@@ -4,31 +4,47 @@ package server
 import (
 	"bytes"
 	"embed"
+	"fmt"
 	"html/template"
+	"io/fs"
 	"log/slog"
 	"net/http"
+	"path"
 )
 
 // Server holds the dependencies shared by all HTTP handlers and routes requests to them. It implements http.Handler.
 type Server struct {
 	mux       *http.ServeMux
 	logger    *slog.Logger
-	templates *template.Template
+	templates map[string]*template.Template
 }
 
 //go:embed templates
 var templateFS embed.FS
 
 // New creates a Server with the given logger and registers its routes. The returned Server is ready to serve requests.
-func New(logger *slog.Logger) *Server {
-	tmpl := template.Must(template.ParseFS(templateFS, "templates/*.html"))
+func New(logger *slog.Logger) (*Server, error) {
+	pages, err := fs.Glob(templateFS, "templates/pages/*.html")
+	if err != nil {
+		return nil, fmt.Errorf("glob page templates: %w", err)
+	}
+
+	templates := make(map[string]*template.Template)
+	for _, page := range pages {
+		tmpl, err := template.ParseFS(templateFS, "templates/base.html", page)
+		if err != nil {
+			return nil, fmt.Errorf("parse template %s: %w", page, err)
+		}
+		templates[path.Base(page)] = tmpl
+	}
+
 	server := &Server{
 		mux:       http.NewServeMux(),
 		logger:    logger,
-		templates: tmpl,
+		templates: templates,
 	}
 	server.routes()
-	return server
+	return server, nil
 }
 
 // ServeHTTP dispatches the request to the handler registered for its method and path, satisfying http.Handler.
@@ -40,11 +56,17 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // occurs, it logs the error and returns a 500 status code.
 func (server *Server) render(w http.ResponseWriter, name string, data any) {
 	var buf bytes.Buffer
-	if err := server.templates.ExecuteTemplate(&buf, name, data); err != nil {
+	tmpl, ok := server.templates[name]
+	if !ok {
+		server.logger.Error("template not found", "name", name)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if err := tmpl.ExecuteTemplate(&buf, "base.html", data); err != nil {
 		server.logger.Error("failed to execute template", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	buf.WriteTo(w)
+	_, _ = buf.WriteTo(w)
 }

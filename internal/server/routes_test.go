@@ -19,7 +19,10 @@ func TestBaseRoutes(t *testing.T) {
 		{"unknown route", "GET", "/nonexistent", http.StatusNotFound},
 	}
 
-	server := New(slog.New(slog.DiscardHandler))
+	server, err := New(slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(tt.method, tt.route, nil)

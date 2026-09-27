@@ -17,7 +17,9 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
 	if err := run(logger); err != nil {
 		logger.Error("Fatal error", "error", err)
 		os.Exit(1)
@@ -29,10 +31,15 @@ func run(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	app, err := server.New(logger)
+	if err != nil {
+		return fmt.Errorf("create server: %w", err)
+	}
+
 	port := envOrDefault("PORT", "8080")
 	srv := &http.Server{
 		Addr:              ":" + port,
-		Handler:           server.New(logger),
+		Handler:           app,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
