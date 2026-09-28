@@ -8,7 +8,7 @@ import (
 
 func newTestServer(t *testing.T) *Server {
 	t.Helper()
-	server, err := New(slog.New(slog.DiscardHandler))
+	server, err := New(slog.New(slog.DiscardHandler), nil)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}

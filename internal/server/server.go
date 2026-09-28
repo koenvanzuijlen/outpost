@@ -3,6 +3,7 @@ package server
 
 import (
 	"bytes"
+	"database/sql"
 	"embed"
 	"fmt"
 	"html/template"
@@ -18,13 +19,14 @@ type Server struct {
 	handler   http.Handler
 	logger    *slog.Logger
 	templates map[string]*template.Template
+	db        *sql.DB
 }
 
 //go:embed templates
 var templateFS embed.FS
 
 // New creates a Server with the given logger and registers its routes. The returned Server is ready to serve requests.
-func New(logger *slog.Logger) (*Server, error) {
+func New(logger *slog.Logger, db *sql.DB) (*Server, error) {
 	pages, err := fs.Glob(templateFS, "templates/pages/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("glob page templates: %w", err)
@@ -43,6 +45,7 @@ func New(logger *slog.Logger) (*Server, error) {
 		mux:       http.NewServeMux(),
 		logger:    logger,
 		templates: templates,
+		db:        db,
 	}
 	server.routes()
 	server.handler = server.requestLogging(server.mux)

@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/server"
 )
 
@@ -31,7 +32,14 @@ func run(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	app, err := server.New(logger)
+	dbPath := envOrDefault("DATABASE_PATH", "outpost.db")
+	db, err := database.Open(ctx, logger, dbPath)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer db.Close()
+
+	app, err := server.New(logger, db)
 	if err != nil {
 		return fmt.Errorf("create server: %w", err)
 	}
