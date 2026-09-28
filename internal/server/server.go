@@ -15,6 +15,7 @@ import (
 // Server holds the dependencies shared by all HTTP handlers and routes requests to them. It implements http.Handler.
 type Server struct {
 	mux       *http.ServeMux
+	handler   http.Handler
 	logger    *slog.Logger
 	templates map[string]*template.Template
 }
@@ -44,12 +45,13 @@ func New(logger *slog.Logger) (*Server, error) {
 		templates: templates,
 	}
 	server.routes()
+	server.handler = server.requestLogging(server.mux)
 	return server, nil
 }
 
-// ServeHTTP dispatches the request to the handler registered for its method and path, satisfying http.Handler.
+// ServeHTTP passes the request through the middleware to the routers.
 func (server *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	server.mux.ServeHTTP(w, r)
+	server.handler.ServeHTTP(w, r)
 }
 
 // render executes the specified template with the given data and writes the result to the response writer. If an error
