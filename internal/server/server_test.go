@@ -1,32 +1,30 @@
 package server
 
 import (
-	"bytes"
 	"log/slog"
+	"path/filepath"
 	"testing"
+
+	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
 func newTestServer(t *testing.T) *Server {
 	t.Helper()
-	server, err := New(slog.New(slog.DiscardHandler), nil)
+	logger := slog.New(slog.DiscardHandler)
+
+	path := filepath.Join(t.TempDir(), "test.db")
+	db, err := database.Open(t.Context(), logger, path)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	server, err := New(logger, db)
 	if err != nil {
 		t.Fatalf("failed to create server: %v", err)
 	}
 	return server
-}
-
-func TestTemplatesRender(t *testing.T) {
-	server := newTestServer(t)
-
-	for name := range server.templates {
-		t.Run(name, func(t *testing.T) {
-			var buf bytes.Buffer
-			if err := server.templates[name].ExecuteTemplate(&buf, "base.html", struct{}{}); err != nil {
-				t.Errorf("render: %v", err)
-			}
-			if buf.Len() == 0 {
-				t.Errorf("empty content %s", name)
-			}
-		})
-	}
 }

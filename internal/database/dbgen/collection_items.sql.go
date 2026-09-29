@@ -9,34 +9,52 @@ import (
 	"context"
 )
 
-const listCollectionItems = `-- name: ListCollectionItems :many
+const listCollectionItemsWithGames = `-- name: ListCollectionItemsWithGames :many
 SELECT
-    id, user_id, game_id, platform, status, rating, started_at, finished_at, notes
+    ci.id, ci.user_id, ci.game_id, ci.platform, ci.status, ci.rating, ci.started_at, ci.finished_at, ci.notes,
+    g.id, g.igdb_id, g.fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.release_year, g.summary
 FROM
-    collection_items
+    collection_items ci
+    JOIN games g ON ci.game_id = g.id
 WHERE
-    user_id = ?
+    ci.user_id = ?
+ORDER BY
+    g.title
 `
 
-func (q *Queries) ListCollectionItems(ctx context.Context, userID int64) ([]CollectionItem, error) {
-	rows, err := q.db.QueryContext(ctx, listCollectionItems, userID)
+type ListCollectionItemsWithGamesRow struct {
+	CollectionItem CollectionItem
+	Game           Game
+}
+
+func (q *Queries) ListCollectionItemsWithGames(ctx context.Context, userID int64) ([]ListCollectionItemsWithGamesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listCollectionItemsWithGames, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CollectionItem
+	var items []ListCollectionItemsWithGamesRow
 	for rows.Next() {
-		var i CollectionItem
+		var i ListCollectionItemsWithGamesRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.GameID,
-			&i.Platform,
-			&i.Status,
-			&i.Rating,
-			&i.StartedAt,
-			&i.FinishedAt,
-			&i.Notes,
+			&i.CollectionItem.ID,
+			&i.CollectionItem.UserID,
+			&i.CollectionItem.GameID,
+			&i.CollectionItem.Platform,
+			&i.CollectionItem.Status,
+			&i.CollectionItem.Rating,
+			&i.CollectionItem.StartedAt,
+			&i.CollectionItem.FinishedAt,
+			&i.CollectionItem.Notes,
+			&i.Game.ID,
+			&i.Game.IgdbID,
+			&i.Game.FetchedAt,
+			&i.Game.ParentIgdbID,
+			&i.Game.Title,
+			&i.Game.GameType,
+			&i.Game.CoverUrl,
+			&i.Game.ReleaseYear,
+			&i.Game.Summary,
 		); err != nil {
 			return nil, err
 		}

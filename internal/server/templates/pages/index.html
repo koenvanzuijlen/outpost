@@ -1,4 +1,13 @@
 {{define "content"}}
 <h1>Outpost</h1>
 <p>Welcome!</p>
+<div>
+  <ul>
+    {{range .Items}}
+    <li>{{.Game.Title}} - {{.CollectionItem.Status}}</li>
+    {{else}}
+    <li>No collection items found.</li>
+    {{end}}
+  </ul>
+</div>
 {{end}}

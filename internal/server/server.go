@@ -11,7 +11,12 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
+
+	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
+
+// defaultUserID is a hardcoded user ID until user management is implemented.
+const defaultUserID = 1
 
 // Server holds the dependencies shared by all HTTP handlers and routes requests to them. It implements http.Handler.
 type Server struct {
@@ -20,6 +25,7 @@ type Server struct {
 	logger    *slog.Logger
 	templates map[string]*template.Template
 	db        *sql.DB
+	queries   *dbgen.Queries
 }
 
 //go:embed templates
@@ -46,6 +52,7 @@ func New(logger *slog.Logger, db *sql.DB) (*Server, error) {
 		logger:    logger,
 		templates: templates,
 		db:        db,
+		queries:   dbgen.New(db),
 	}
 	server.routes()
 	server.handler = server.requestLogging(server.recoverPanic(server.mux))
