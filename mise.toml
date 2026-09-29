@@ -24,7 +24,7 @@ run = "go build -o .tools/golangci-lint-v2 github.com/golangci/golangci-lint/v2/
 description = "Run linters"
 run = "go tool golangci-lint run"
 
-[tasks.generate]
+[tasks.gen-sql]
 description = "Regenerate sqlc code"
 run = "go tool sqlc generate"
 

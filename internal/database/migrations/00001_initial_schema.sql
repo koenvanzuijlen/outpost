@@ -12,12 +12,12 @@ CREATE TABLE games(
     id integer PRIMARY KEY,
     igdb_id integer NOT NULL UNIQUE,
     fetched_at datetime NOT NULL,
-    parent_igdb_id integer NULL,
+    parent_igdb_id integer,
     title text NOT NULL,
     game_type text NOT NULL,
-    cover_url text NULL,
-    release_year integer NULL,
-    summary text NULL
+    cover_url text,
+    release_year integer,
+    summary text
 );
 
 CREATE INDEX idx_games_parent_igdb_id ON games(parent_igdb_id);
@@ -28,10 +28,10 @@ CREATE TABLE collection_items(
     game_id integer NOT NULL REFERENCES games(id) ON DELETE RESTRICT,
     platform text NOT NULL,
     status text NOT NULL,
-    rating integer NULL,
-    started_at datetime NULL,
-    finished_at datetime NULL,
-    notes text NULL,
+    rating integer,
+    started_at datetime,
+    finished_at datetime,
+    notes text,
     UNIQUE (user_id, game_id, platform)
 );
 
@@ -42,7 +42,7 @@ CREATE TABLE dlc_ownership(
     collection_item_id integer NOT NULL REFERENCES collection_items(id) ON DELETE CASCADE,
     dlc_game_id integer NOT NULL REFERENCES games(id) ON DELETE RESTRICT,
     owned integer NOT NULL DEFAULT 0,
-    tracked_collection_item_id integer NULL REFERENCES collection_items(id) ON DELETE SET NULL,
+    tracked_collection_item_id integer REFERENCES collection_items(id) ON DELETE SET NULL,
     UNIQUE (collection_item_id, dlc_game_id)
 );
 
