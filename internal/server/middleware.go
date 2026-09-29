@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"runtime/debug"
 	"time"
 )
 
@@ -29,5 +30,18 @@ func (server *Server) requestLogging(next http.Handler) http.Handler {
 			"status", rec.status,
 			"duration", time.Since(start),
 		)
+	})
+}
+
+// recoverPanic middleware recovers from panics in HTTP handlers and returns a 500.
+func (server *Server) recoverPanic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				server.logger.Error("panic recovered", "error", rec, "path", r.URL.Path, "stack", string(debug.Stack()))
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
 	})
 }

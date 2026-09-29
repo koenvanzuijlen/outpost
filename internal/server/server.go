@@ -48,7 +48,7 @@ func New(logger *slog.Logger, db *sql.DB) (*Server, error) {
 		db:        db,
 	}
 	server.routes()
-	server.handler = server.requestLogging(server.mux)
+	server.handler = server.requestLogging(server.recoverPanic(server.mux))
 	return server, nil
 }
 
