@@ -10,6 +10,7 @@ import (
 	"log/slog"
 
 	"github.com/pressly/goose/v3"
+	// Import the SQLite driver for its side-effects.
 	_ "modernc.org/sqlite"
 )
 

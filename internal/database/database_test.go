@@ -14,7 +14,9 @@ func TestDatabaseConnection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	var fk int
 	err = db.QueryRowContext(ctx, "PRAGMA foreign_keys").Scan(&fk)

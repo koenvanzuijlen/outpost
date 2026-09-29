@@ -37,7 +37,9 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	app, err := server.New(logger, db)
 	if err != nil {
