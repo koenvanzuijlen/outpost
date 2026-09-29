@@ -4,8 +4,9 @@
 
 Requires [mise](https://mise.jdx.dev/).
 
-````sh
+```sh
 mise install
 cp .env.example .env
-go run ./cmd/outpost```
-````
+mise setup
+mise start
+```

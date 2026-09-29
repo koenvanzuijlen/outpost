@@ -3,3 +3,35 @@ go = "1.27.1"
 
 [env]
 _.file = ".env"
+
+[tasks.start]
+description = "Run the server"
+run = "go run ./cmd/outpost"
+
+[tasks.start-fresh]
+description = "Delete database & run the server"
+run = ['rm -f "${DATABASE_PATH:-outpost.db}"*', "go run ./cmd/outpost"]
+
+[tasks.test]
+description = "Run all tests"
+run = "go test ./..."
+
+[tasks.setup]
+description = "Build local dev tool binaries into .tools/"
+run = "go build -o .tools/golangci-lint-v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
+
+[tasks.lint]
+description = "Run linters"
+run = "go tool golangci-lint run"
+
+[tasks.generate]
+description = "Regenerate sqlc code"
+run = "go tool sqlc generate"
+
+[tasks.migrate-status]
+description = "Show migration status"
+run = 'go tool goose -dir internal/database/migrations sqlite3 "${DATABASE_PATH:-outpost.db}" status'
+
+[tasks.migrate-down]
+description = "Roll back the last migration"
+run = 'go tool goose -dir internal/database/migrations sqlite3 "${DATABASE_PATH:-outpost.db}" down'

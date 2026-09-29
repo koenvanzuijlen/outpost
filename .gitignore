@@ -1,5 +1,13 @@
+# Environment variables
+.env
+
+# Build output
 /outpost
+
+# Local database
 *.db
 *.db-shm
 *.db-wal
-.env
+
+# Locally built dev tools
+/.tools/
