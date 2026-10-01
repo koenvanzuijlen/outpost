@@ -14,7 +14,7 @@ run = ['rm -f "${DATABASE_PATH:-outpost.db}"*', "go run ./cmd/outpost"]
 
 [tasks.test]
 description = "Run all tests"
-run = "go test ./..."
+run = "go test -race ./..."
 
 [tasks.setup]
 description = "Build local dev tool binaries into .tools/"
