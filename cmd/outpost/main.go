@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
+	"github.com/koenvanzuijlen/outpost/internal/igdb"
 	"github.com/koenvanzuijlen/outpost/internal/server"
 )
 
@@ -41,7 +42,17 @@ func run(logger *slog.Logger) error {
 		_ = db.Close()
 	}()
 
-	app, err := server.New(logger, db)
+	clientID, ok := os.LookupEnv("TWITCH_CLIENT_ID")
+	if !ok || clientID == "" {
+		return errors.New("TWITCH_CLIENT_ID is required (see .env.example)")
+	}
+	clientSecret, ok := os.LookupEnv("TWITCH_CLIENT_SECRET")
+	if !ok || clientSecret == "" {
+		return errors.New("TWITCH_CLIENT_SECRET is required (see .env.example)")
+	}
+	client := igdb.New(clientID, clientSecret)
+
+	app, err := server.New(logger, db, client)
 	if err != nil {
 		return fmt.Errorf("create server: %w", err)
 	}

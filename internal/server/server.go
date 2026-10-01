@@ -13,6 +13,7 @@ import (
 	"path"
 
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
+	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
 // defaultUserID is a hardcoded user ID until user management is implemented.
@@ -20,19 +21,20 @@ const defaultUserID = 1
 
 // Server holds the dependencies shared by all HTTP handlers and routes requests to them. It implements http.Handler.
 type Server struct {
-	mux       *http.ServeMux
-	handler   http.Handler
-	logger    *slog.Logger
-	templates map[string]*template.Template
-	db        *sql.DB
-	queries   *dbgen.Queries
+	mux        *http.ServeMux
+	handler    http.Handler
+	logger     *slog.Logger
+	templates  map[string]*template.Template
+	db         *sql.DB
+	queries    *dbgen.Queries
+	igdbClient *igdb.Client
 }
 
 //go:embed templates
 var templateFS embed.FS
 
 // New creates a Server with the given logger and registers its routes. The returned Server is ready to serve requests.
-func New(logger *slog.Logger, db *sql.DB) (*Server, error) {
+func New(logger *slog.Logger, db *sql.DB, igdbClient *igdb.Client) (*Server, error) {
 	pages, err := fs.Glob(templateFS, "templates/pages/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("glob page templates: %w", err)
@@ -48,11 +50,12 @@ func New(logger *slog.Logger, db *sql.DB) (*Server, error) {
 	}
 
 	server := &Server{
-		mux:       http.NewServeMux(),
-		logger:    logger,
-		templates: templates,
-		db:        db,
-		queries:   dbgen.New(db),
+		mux:        http.NewServeMux(),
+		logger:     logger,
+		templates:  templates,
+		db:         db,
+		queries:    dbgen.New(db),
+		igdbClient: igdbClient,
 	}
 	server.routes()
 	server.handler = server.requestLogging(server.recoverPanic(server.mux))
