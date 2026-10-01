@@ -15,7 +15,7 @@ func newTestDatabase(t *testing.T) *sql.DB {
 	path := filepath.Join(t.TempDir(), "test.db")
 	db, err := Open(t.Context(), slog.New(slog.DiscardHandler), path)
 	if err != nil {
-		t.Fatalf("failed to open database: %v", err)
+		t.Fatalf("Open() failed: %v", err)
 	}
 
 	t.Cleanup(func() {
@@ -31,10 +31,10 @@ func TestPragmasApplied(t *testing.T) {
 	var fk int
 	err := db.QueryRowContext(ctx, "PRAGMA foreign_keys").Scan(&fk)
 	if err != nil {
-		t.Fatalf("failed to check foreign keys: %v", err)
+		t.Fatalf("PRAGMA foreign_keys query failed: %v", err)
 	}
 	if fk != 1 {
-		t.Fatalf("foreign keys not enabled")
+		t.Errorf("foreign_keys = %d, want 1", fk)
 	}
 }
 
@@ -55,20 +55,20 @@ func TestTypeRoundTrip(t *testing.T) {
 		Summary:      nil,
 	})
 	if err != nil {
-		t.Fatalf("failed to create game: %v", err)
+		t.Fatalf("CreateGame() failed: %v", err)
 	}
 	game, err := queries.GetGameByIGDBID(ctx, 1)
 	if err != nil {
-		t.Fatalf("failed to get game by IGDB ID: %v", err)
+		t.Fatalf("GetGameByIGDBID() failed: %v", err)
 	}
 	t.Run("Datetime_field", func(t *testing.T) {
 		if !game.FetchedAt.Equal(fetchedAt) {
-			t.Errorf("expected fetched_at to be %v, got %v", fetchedAt, game.FetchedAt)
+			t.Errorf("FetchedAt = %v, want %v", game.FetchedAt, fetchedAt)
 		}
 	})
 	t.Run("Nullable_field", func(t *testing.T) {
 		if game.CoverUrl != nil {
-			t.Errorf("expected cover_url to be nil, got %v", game.CoverUrl)
+			t.Errorf("CoverUrl = %v, want nil", game.CoverUrl)
 		}
 	})
 }

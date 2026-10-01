@@ -17,6 +17,6 @@ func TestRecoverPanic(t *testing.T) {
 	handler.ServeHTTP(w, req)
 	status := w.Result().StatusCode
 	if status != http.StatusInternalServerError {
-		t.Errorf("expected status %d, got %d", http.StatusInternalServerError, status)
+		t.Errorf("recoverPanic() status = %d, want %d", status, http.StatusInternalServerError)
 	}
 }

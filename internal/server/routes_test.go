@@ -29,7 +29,7 @@ func TestBasicRouting(t *testing.T) {
 			server.ServeHTTP(w, req)
 
 			if w.Code != tt.expectedStatus {
-				t.Errorf("expected status %d, got %d", tt.expectedStatus, w.Code)
+				t.Errorf("ServeHTTP() status = %d, want %d", w.Code, tt.expectedStatus)
 			}
 		})
 	}
