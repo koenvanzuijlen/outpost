@@ -40,9 +40,17 @@ func New(logger *slog.Logger, db *sql.DB, igdbClient *igdb.Client) (*Server, err
 		return nil, fmt.Errorf("glob page templates: %w", err)
 	}
 
+	partials, err := fs.Glob(templateFS, "templates/partials/*.html")
+	if err != nil {
+		return nil, fmt.Errorf("glob partial templates: %w", err)
+	}
+
 	templates := make(map[string]*template.Template)
 	for _, page := range pages {
-		tmpl, err := template.ParseFS(templateFS, "templates/base.html", page)
+		files := []string{"templates/base.html"}
+		files = append(files, partials...)
+		files = append(files, page)
+		tmpl, err := template.ParseFS(templateFS, files...)
 		if err != nil {
 			return nil, fmt.Errorf("parse template %s: %w", page, err)
 		}

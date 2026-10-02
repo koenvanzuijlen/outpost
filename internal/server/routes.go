@@ -4,5 +4,6 @@ package server
 // that is already serving.
 func (server *Server) routes() {
 	server.mux.HandleFunc("GET /{$}", server.handleIndex)
+	server.mux.HandleFunc("GET /search", server.handleSearch)
 	server.mux.HandleFunc("GET /health", server.handleHealth)
 }
