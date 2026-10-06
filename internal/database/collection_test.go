@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -54,8 +55,8 @@ func TestAddToCollectionSameGameSamePlatform(t *testing.T) {
 	if _, err := AddToCollection(ctx, db, game, newCollectionItemParams("pc")); err != nil {
 		t.Fatalf("AddToCollection() first failed: %v", err)
 	}
-	if _, err := AddToCollection(ctx, db, game, newCollectionItemParams("pc")); err == nil {
-		t.Fatal("AddToCollection() second succeeded, want error")
+	if _, err := AddToCollection(ctx, db, game, newCollectionItemParams("pc")); !errors.Is(err, ErrAlreadyInCollection) {
+		t.Fatalf("AddToCollection() error = %v, want %v", err, ErrAlreadyInCollection)
 	}
 
 	items, err := dbgen.New(db).ListCollectionItemsWithGames(ctx, 1)
