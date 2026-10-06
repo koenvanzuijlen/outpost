@@ -10,35 +10,18 @@ import (
 	"time"
 )
 
-const createGame = `-- name: CreateGame :one
-INSERT INTO games(igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, release_year, summary)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING
+const getGameByIGDBID = `-- name: GetGameByIGDBID :one
+SELECT
     id, igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, release_year, summary
+FROM
+    games
+WHERE
+    igdb_id = ?
+LIMIT 1
 `
 
-type CreateGameParams struct {
-	IgdbID       int64
-	FetchedAt    time.Time
-	ParentIgdbID *int64
-	Title        string
-	GameType     string
-	CoverUrl     *string
-	ReleaseYear  *int64
-	Summary      *string
-}
-
-func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, error) {
-	row := q.db.QueryRowContext(ctx, createGame,
-		arg.IgdbID,
-		arg.FetchedAt,
-		arg.ParentIgdbID,
-		arg.Title,
-		arg.GameType,
-		arg.CoverUrl,
-		arg.ReleaseYear,
-		arg.Summary,
-	)
+func (q *Queries) GetGameByIGDBID(ctx context.Context, igdbID int64) (Game, error) {
+	row := q.db.QueryRowContext(ctx, getGameByIGDBID, igdbID)
 	var i Game
 	err := row.Scan(
 		&i.ID,
@@ -54,18 +37,44 @@ func (q *Queries) CreateGame(ctx context.Context, arg CreateGameParams) (Game, e
 	return i, err
 }
 
-const getGameByIGDBID = `-- name: GetGameByIGDBID :one
-SELECT
-    id, igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, release_year, summary
-FROM
-    games
-WHERE
-    igdb_id = ?
-LIMIT 1
+const upsertGame = `-- name: UpsertGame :one
+INSERT INTO games(igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, release_year, summary)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (igdb_id)
+    DO UPDATE SET
+        fetched_at = EXCLUDED.fetched_at,
+        parent_igdb_id = EXCLUDED.parent_igdb_id,
+        title = EXCLUDED.title,
+        game_type = EXCLUDED.game_type,
+        cover_url = EXCLUDED.cover_url,
+        release_year = EXCLUDED.release_year,
+        summary = EXCLUDED.summary
+    RETURNING
+        id, igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, release_year, summary
 `
 
-func (q *Queries) GetGameByIGDBID(ctx context.Context, igdbID int64) (Game, error) {
-	row := q.db.QueryRowContext(ctx, getGameByIGDBID, igdbID)
+type UpsertGameParams struct {
+	IgdbID       int64
+	FetchedAt    time.Time
+	ParentIgdbID *int64
+	Title        string
+	GameType     int64
+	CoverUrl     *string
+	ReleaseYear  *int64
+	Summary      *string
+}
+
+func (q *Queries) UpsertGame(ctx context.Context, arg UpsertGameParams) (Game, error) {
+	row := q.db.QueryRowContext(ctx, upsertGame,
+		arg.IgdbID,
+		arg.FetchedAt,
+		arg.ParentIgdbID,
+		arg.Title,
+		arg.GameType,
+		arg.CoverUrl,
+		arg.ReleaseYear,
+		arg.Summary,
+	)
 	var i Game
 	err := row.Scan(
 		&i.ID,

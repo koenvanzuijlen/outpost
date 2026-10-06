@@ -44,18 +44,18 @@ func TestTypeRoundTrip(t *testing.T) {
 	queries := dbgen.New(db)
 
 	fetchedAt := time.Now()
-	_, err := queries.CreateGame(ctx, dbgen.CreateGameParams{
+	_, err := queries.UpsertGame(ctx, dbgen.UpsertGameParams{
 		IgdbID:       1,
 		FetchedAt:    fetchedAt,
 		ParentIgdbID: nil,
 		Title:        "Test Game",
-		GameType:     "Test Type",
+		GameType:     1,
 		CoverUrl:     nil,
 		ReleaseYear:  nil,
 		Summary:      nil,
 	})
 	if err != nil {
-		t.Fatalf("CreateGame() failed: %v", err)
+		t.Fatalf("UpsertGame() failed: %v", err)
 	}
 	game, err := queries.GetGameByIGDBID(ctx, 1)
 	if err != nil {

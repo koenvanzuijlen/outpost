@@ -14,7 +14,7 @@ CREATE TABLE games(
     fetched_at datetime NOT NULL,
     parent_igdb_id integer,
     title text NOT NULL,
-    game_type text NOT NULL,
+    game_type integer NOT NULL,
     cover_url text,
     release_year integer,
     summary text

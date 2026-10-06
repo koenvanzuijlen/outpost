@@ -10,3 +10,9 @@ WHERE
 ORDER BY
     g.title;
 
+-- name: CreateCollectionItem :one
+INSERT INTO collection_items(user_id, game_id, platform, status)
+    VALUES (?, ?, ?, ?)
+RETURNING
+    *;
+

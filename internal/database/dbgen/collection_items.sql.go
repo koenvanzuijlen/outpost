@@ -9,6 +9,42 @@ import (
 	"context"
 )
 
+const createCollectionItem = `-- name: CreateCollectionItem :one
+INSERT INTO collection_items(user_id, game_id, platform, status)
+    VALUES (?, ?, ?, ?)
+RETURNING
+    id, user_id, game_id, platform, status, rating, started_at, finished_at, notes
+`
+
+type CreateCollectionItemParams struct {
+	UserID   int64
+	GameID   int64
+	Platform string
+	Status   string
+}
+
+func (q *Queries) CreateCollectionItem(ctx context.Context, arg CreateCollectionItemParams) (CollectionItem, error) {
+	row := q.db.QueryRowContext(ctx, createCollectionItem,
+		arg.UserID,
+		arg.GameID,
+		arg.Platform,
+		arg.Status,
+	)
+	var i CollectionItem
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GameID,
+		&i.Platform,
+		&i.Status,
+		&i.Rating,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.Notes,
+	)
+	return i, err
+}
+
 const listCollectionItemsWithGames = `-- name: ListCollectionItemsWithGames :many
 SELECT
     ci.id, ci.user_id, ci.game_id, ci.platform, ci.status, ci.rating, ci.started_at, ci.finished_at, ci.notes,

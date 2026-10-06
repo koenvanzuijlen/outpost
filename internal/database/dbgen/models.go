@@ -34,7 +34,7 @@ type Game struct {
 	FetchedAt    time.Time
 	ParentIgdbID *int64
 	Title        string
-	GameType     string
+	GameType     int64
 	CoverUrl     *string
 	ReleaseYear  *int64
 	Summary      *string
