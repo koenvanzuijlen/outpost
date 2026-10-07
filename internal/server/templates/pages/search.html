@@ -18,6 +18,11 @@
 					<img src="{{.CoverURL}}" alt="{{.Name}}" />
 				{{end}}
 				<p>{{.Name}}</p>
+				<form method="post" action="/collection">
+					<input type="hidden" name="igdb_id" value="{{.ID}}" />
+					<label>Platform: <input type="text" name="platform" required /></label>
+					<button type="submit">Add to Collection</button>
+				</form>
 			</div>
 		{{end}}
 		</div>

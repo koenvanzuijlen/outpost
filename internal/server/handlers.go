@@ -1,8 +1,13 @@
 package server
 
 import (
+	"errors"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
+	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
@@ -72,4 +77,46 @@ func (server *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		Results: games,
 		Error:   errorMessage,
 	})
+}
+
+// handleAddToCollection handles adding a game to the user's collection. It expects the igdb_id and platform as form
+// values.
+func (server *Server) handleAddToCollection(w http.ResponseWriter, r *http.Request) {
+	igdbID, err := strconv.Atoi(r.PostFormValue("igdb_id"))
+	if err != nil || igdbID <= 0 {
+		http.Error(w, "Invalid igdb_id", http.StatusBadRequest)
+		return
+	}
+
+	platform := strings.TrimSpace(r.PostFormValue("platform"))
+	if platform == "" {
+		http.Error(w, "Invalid platform", http.StatusBadRequest)
+		return
+	}
+
+	game, err := server.igdbClient.GameByID(r.Context(), igdbID)
+	if err != nil {
+		if errors.Is(err, igdb.ErrGameNotFound) {
+			http.Error(w, "Game not found", http.StatusNotFound)
+		} else {
+			server.logger.Error("failed to fetch game", "error", err)
+			http.Error(w, "Failed to fetch game", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	gameParams := upsertGameParamsFromIGDB(game, time.Now().UTC())
+	itemParams := dbgen.CreateCollectionItemParams{
+		UserID:   defaultUserID,
+		Platform: platform,
+		Status:   "backlog",
+	}
+	_, err = database.AddToCollection(r.Context(), server.db, gameParams, itemParams)
+	if err != nil && !errors.Is(err, database.ErrAlreadyInCollection) {
+		server.logger.Error("failed to add to collection", "error", err)
+		http.Error(w, "Failed to add to collection", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
