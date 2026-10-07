@@ -2,9 +2,16 @@ package igdb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 )
+
+// ErrGameNotFound is returned when a game cannot be found in the IGDB API.
+var ErrGameNotFound = errors.New("game not found")
+
+// gameFields defines the default set of fields to request when querying games from the IGDB API.
+const gameFields = "parent_game,name,game_type,cover.url,first_release_date,summary"
 
 // GameType as defined by the IGDB API. See https://api-docs.igdb.com/#game
 type GameType int
@@ -94,7 +101,7 @@ func (g Game) CoverURL() string {
 // SearchGames searches for games matching the given query string.
 func (c *Client) SearchGames(ctx context.Context, query string) ([]Game, error) {
 	escaped := strings.ReplaceAll(query, `"`, `\"`)
-	body := fmt.Sprintf(`search "%s"; fields parent_game,name,game_type,cover.url,first_release_date,summary; limit 10;`, escaped)
+	body := fmt.Sprintf(`search "%s"; fields %s; limit 10;`, escaped, gameFields)
 
 	var games []Game
 	if err := c.query(ctx, "/games", body, &games); err != nil {
@@ -102,4 +109,18 @@ func (c *Client) SearchGames(ctx context.Context, query string) ([]Game, error) 
 	}
 
 	return games, nil
+}
+
+// GameByID retrieves a game by its unique ID from the IGDB API.
+func (c *Client) GameByID(ctx context.Context, id int) (Game, error) {
+	body := fmt.Sprintf(`where id = %d; fields %s;`, id, gameFields)
+
+	var games []Game
+	if err := c.query(ctx, "/games", body, &games); err != nil {
+		return Game{}, fmt.Errorf("query games: %w", err)
+	}
+	if len(games) == 0 {
+		return Game{}, fmt.Errorf("game %d: %w", id, ErrGameNotFound)
+	}
+	return games[0], nil
 }
