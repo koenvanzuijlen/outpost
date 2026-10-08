@@ -4,6 +4,10 @@ go = "1.27.1"
 [env]
 _.file = ".env"
 
+[tasks.build]
+description = "Build the binary"
+run = "go build -o outpost ./cmd/outpost"
+
 [tasks.start]
 description = "Run the server"
 run = "go run ./cmd/outpost"
