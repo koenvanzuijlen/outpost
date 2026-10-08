@@ -18,9 +18,9 @@ func ptrIfNonZero[T comparable](v T) *T {
 
 // upsertGameParamsFromIGDB maps an IGDB game to the parameters required for the UpsertGame database operation.
 func upsertGameParamsFromIGDB(game igdb.Game, fetchedAt time.Time) dbgen.UpsertGameParams {
-	releaseYear := 0
+	releasedAt := time.Time{}
 	if game.FirstReleaseDate != 0 {
-		releaseYear = time.Unix(int64(game.FirstReleaseDate), 0).UTC().Year()
+		releasedAt = time.Unix(int64(game.FirstReleaseDate), 0).UTC()
 	}
 	return dbgen.UpsertGameParams{
 		IgdbID:       int64(game.ID),
@@ -29,7 +29,7 @@ func upsertGameParamsFromIGDB(game igdb.Game, fetchedAt time.Time) dbgen.UpsertG
 		Title:        game.Name,
 		GameType:     int64(game.GameType),
 		CoverUrl:     ptrIfNonZero(game.CoverURL()),
-		ReleaseYear:  ptrIfNonZero(int64(releaseYear)),
+		ReleasedAt:   ptrIfNonZero(releasedAt),
 		Summary:      ptrIfNonZero(game.Summary),
 	}
 }

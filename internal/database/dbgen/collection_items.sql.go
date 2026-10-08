@@ -48,7 +48,7 @@ func (q *Queries) CreateCollectionItem(ctx context.Context, arg CreateCollection
 const listCollectionItemsWithGames = `-- name: ListCollectionItemsWithGames :many
 SELECT
     ci.id, ci.user_id, ci.game_id, ci.platform_id, ci.status, ci.rating, ci.started_at, ci.finished_at, ci.notes,
-    g.id, g.igdb_id, g.fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.release_year, g.summary,
+    g.id, g.igdb_id, g.fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary,
     p.id, p.igdb_id, p.fetched_at, p.name
 FROM
     collection_items ci
@@ -92,7 +92,7 @@ func (q *Queries) ListCollectionItemsWithGames(ctx context.Context, userID int64
 			&i.Game.Title,
 			&i.Game.GameType,
 			&i.Game.CoverUrl,
-			&i.Game.ReleaseYear,
+			&i.Game.ReleasedAt,
 			&i.Game.Summary,
 			&i.Platform.ID,
 			&i.Platform.IgdbID,

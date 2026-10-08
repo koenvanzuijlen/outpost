@@ -8,7 +8,7 @@ import (
 )
 
 func TestUpsertGameParamsFromIGDB(t *testing.T) {
-	released := time.Date(2001, time.November, 15, 0, 0, 0, 0, time.UTC)
+	releasedAt := time.Date(2001, time.November, 15, 0, 0, 0, 0, time.UTC)
 	fetchedAt := time.Date(2026, time.October, 6, 12, 0, 0, 0, time.UTC)
 
 	game := igdb.Game{
@@ -17,7 +17,7 @@ func TestUpsertGameParamsFromIGDB(t *testing.T) {
 		Name:             "Halo: Combat Evolved",
 		GameType:         igdb.GameTypeMain,
 		Cover:            igdb.Cover{URL: "//images.igdb.com/igdb/image/upload/t_thumb/co2r2r.jpg"},
-		FirstReleaseDate: int(released.Unix()),
+		FirstReleaseDate: int(releasedAt.Unix()),
 		Summary:          "The first game in the Halo series.",
 	}
 
@@ -47,8 +47,8 @@ func TestUpsertGameParamsFromIGDB(t *testing.T) {
 	if params.CoverUrl == nil || *params.CoverUrl != wantCover {
 		t.Errorf("CoverUrl = %v, want %q", derefOrNil(params.CoverUrl), wantCover)
 	}
-	if params.ReleaseYear == nil || *params.ReleaseYear != 2001 {
-		t.Errorf("ReleaseYear = %v, want 2001", derefOrNil(params.ReleaseYear))
+	if params.ReleasedAt == nil || !params.ReleasedAt.Equal(releasedAt) {
+		t.Errorf("ReleasedAt = %v, want %v", derefOrNil(params.ReleasedAt), releasedAt)
 	}
 }
 
@@ -71,8 +71,8 @@ func TestUpsertGameParamsFromIGDBMissingFields(t *testing.T) {
 	if params.CoverUrl != nil {
 		t.Errorf("CoverUrl = %q, want nil", *params.CoverUrl)
 	}
-	if params.ReleaseYear != nil {
-		t.Errorf("ReleaseYear = %d, want nil", *params.ReleaseYear)
+	if params.ReleasedAt != nil {
+		t.Errorf("ReleasedAt = %v, want nil", *params.ReleasedAt)
 	}
 }
 

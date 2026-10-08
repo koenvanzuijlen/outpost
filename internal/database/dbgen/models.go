@@ -36,7 +36,7 @@ type Game struct {
 	Title        string
 	GameType     int64
 	CoverUrl     *string
-	ReleaseYear  *int64
+	ReleasedAt   *time.Time
 	Summary      *string
 }
 

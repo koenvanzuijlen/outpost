@@ -51,7 +51,7 @@ func TestTypeRoundTrip(t *testing.T) {
 		Title:        "Test Game",
 		GameType:     1,
 		CoverUrl:     nil,
-		ReleaseYear:  nil,
+		ReleasedAt:   nil,
 		Summary:      nil,
 	})
 	if err != nil {

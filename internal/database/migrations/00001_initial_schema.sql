@@ -16,7 +16,7 @@ CREATE TABLE games(
     title text NOT NULL,
     game_type integer NOT NULL,
     cover_url text,
-    release_year integer,
+    released_at datetime,
     summary text
 );
 

@@ -13,7 +13,7 @@ func TestGameCoverURL(t *testing.T) {
 	tests := []struct {
 		name         string
 		retrievedURL string
-		expectedURL  string
+		want         string
 	}{
 		{"empty", "", ""},
 		{"filled", "//images.igdb.com/t_thumb/cover.jpg", "https://images.igdb.com/t_cover_big/cover.jpg"},
@@ -22,8 +22,28 @@ func TestGameCoverURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			game := Game{Cover: Cover{URL: tt.retrievedURL}}
 			got := game.CoverURL()
-			if got != tt.expectedURL {
-				t.Errorf("CoverURL() = %v, want %v", got, tt.expectedURL)
+			if got != tt.want {
+				t.Errorf("CoverURL() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGameReleaseYear(t *testing.T) {
+	tests := []struct {
+		name         string
+		firstRelease int
+		want         int
+	}{
+		{"unknown", 0, 0},
+		{"known", 915148800, 1999},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			game := Game{FirstReleaseDate: tt.firstRelease}
+			got := game.ReleaseYear()
+			if got != tt.want {
+				t.Errorf("ReleaseYear() = %v, want %v", got, tt.want)
 			}
 		})
 	}

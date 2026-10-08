@@ -17,7 +17,7 @@
 				{{if .CoverURL}}
 					<img src="{{.CoverURL}}" alt="{{.Name}}" />
 				{{end}}
-				<p>{{.Name}}</p>
+				<p>{{.Name}}{{if .ReleaseYear}} ({{.ReleaseYear}}){{end}}</p>
 				<form method="post" action="/collection">
 					<input type="hidden" name="igdb_id" value="{{.ID}}" />
 					<label>Platform: 

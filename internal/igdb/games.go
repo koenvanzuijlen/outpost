@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // ErrGameNotFound is returned when a game cannot be found in the IGDB API.
@@ -37,6 +38,14 @@ func (g Game) CoverURL() string {
 		return ""
 	}
 	return "https:" + strings.ReplaceAll(g.Cover.URL, "t_thumb", "t_cover_big")
+}
+
+// ReleaseYear returns the year the game was first released, or 0 if the release date is not available.
+func (g Game) ReleaseYear() int {
+	if g.FirstReleaseDate == 0 {
+		return 0
+	}
+	return time.Unix(int64(g.FirstReleaseDate), 0).UTC().Year()
 }
 
 // SearchGames searches for games matching the given query string.

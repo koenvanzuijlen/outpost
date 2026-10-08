@@ -12,7 +12,7 @@ import (
 
 const getGameByIGDBID = `-- name: GetGameByIGDBID :one
 SELECT
-    id, igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, release_year, summary
+    id, igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary
 FROM
     games
 WHERE
@@ -31,14 +31,14 @@ func (q *Queries) GetGameByIGDBID(ctx context.Context, igdbID int64) (Game, erro
 		&i.Title,
 		&i.GameType,
 		&i.CoverUrl,
-		&i.ReleaseYear,
+		&i.ReleasedAt,
 		&i.Summary,
 	)
 	return i, err
 }
 
 const upsertGame = `-- name: UpsertGame :one
-INSERT INTO games(igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, release_year, summary)
+INSERT INTO games(igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (igdb_id)
     DO UPDATE SET
@@ -47,10 +47,10 @@ ON CONFLICT (igdb_id)
         title = EXCLUDED.title,
         game_type = EXCLUDED.game_type,
         cover_url = EXCLUDED.cover_url,
-        release_year = EXCLUDED.release_year,
+        released_at = EXCLUDED.released_at,
         summary = EXCLUDED.summary
     RETURNING
-        id, igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, release_year, summary
+        id, igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary
 `
 
 type UpsertGameParams struct {
@@ -60,7 +60,7 @@ type UpsertGameParams struct {
 	Title        string
 	GameType     int64
 	CoverUrl     *string
-	ReleaseYear  *int64
+	ReleasedAt   *time.Time
 	Summary      *string
 }
 
@@ -72,7 +72,7 @@ func (q *Queries) UpsertGame(ctx context.Context, arg UpsertGameParams) (Game, e
 		arg.Title,
 		arg.GameType,
 		arg.CoverUrl,
-		arg.ReleaseYear,
+		arg.ReleasedAt,
 		arg.Summary,
 	)
 	var i Game
@@ -84,7 +84,7 @@ func (q *Queries) UpsertGame(ctx context.Context, arg UpsertGameParams) (Game, e
 		&i.Title,
 		&i.GameType,
 		&i.CoverUrl,
-		&i.ReleaseYear,
+		&i.ReleasedAt,
 		&i.Summary,
 	)
 	return i, err
