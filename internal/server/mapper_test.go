@@ -76,6 +76,26 @@ func TestUpsertGameParamsFromIGDBMissingFields(t *testing.T) {
 	}
 }
 
+func TestUpsertPlatformParamsFromIGDB(t *testing.T) {
+	platform := igdb.Platform{
+		ID:   11,
+		Name: "Xbox",
+	}
+	fetchedAt := time.Date(2026, time.October, 6, 12, 0, 0, 0, time.UTC)
+
+	params := upsertPlatformParamsFromIGDB(platform, fetchedAt)
+
+	if params.IgdbID != 11 {
+		t.Errorf("IgdbID = %d, want %d", params.IgdbID, 11)
+	}
+	if params.Name != "Xbox" {
+		t.Errorf("Name = %q, want %q", params.Name, "Xbox")
+	}
+	if !params.FetchedAt.Equal(fetchedAt) {
+		t.Errorf("FetchedAt = %v, want %v", params.FetchedAt, fetchedAt)
+	}
+}
+
 // derefOrNil returns the value p points to, or nil, so failure messages show a value instead of an address.
 func derefOrNil[T any](p *T) any {
 	if p == nil {

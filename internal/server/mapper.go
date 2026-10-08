@@ -33,3 +33,12 @@ func upsertGameParamsFromIGDB(game igdb.Game, fetchedAt time.Time) dbgen.UpsertG
 		Summary:      ptrIfNonZero(game.Summary),
 	}
 }
+
+// upsertPlatformParamsFromIGDB maps an IGDB platform to the parameters required for the UpsertPlatform database operation.
+func upsertPlatformParamsFromIGDB(platform igdb.Platform, fetchedAt time.Time) dbgen.UpsertPlatformParams {
+	return dbgen.UpsertPlatformParams{
+		IgdbID:    int64(platform.ID),
+		FetchedAt: fetchedAt,
+		Name:      platform.Name,
+	}
+}

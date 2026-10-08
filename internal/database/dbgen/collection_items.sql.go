@@ -10,24 +10,24 @@ import (
 )
 
 const createCollectionItem = `-- name: CreateCollectionItem :one
-INSERT INTO collection_items(user_id, game_id, platform, status)
+INSERT INTO collection_items(user_id, game_id, platform_id, status)
     VALUES (?, ?, ?, ?)
 RETURNING
-    id, user_id, game_id, platform, status, rating, started_at, finished_at, notes
+    id, user_id, game_id, platform_id, status, rating, started_at, finished_at, notes
 `
 
 type CreateCollectionItemParams struct {
-	UserID   int64
-	GameID   int64
-	Platform string
-	Status   string
+	UserID     int64
+	GameID     int64
+	PlatformID int64
+	Status     string
 }
 
 func (q *Queries) CreateCollectionItem(ctx context.Context, arg CreateCollectionItemParams) (CollectionItem, error) {
 	row := q.db.QueryRowContext(ctx, createCollectionItem,
 		arg.UserID,
 		arg.GameID,
-		arg.Platform,
+		arg.PlatformID,
 		arg.Status,
 	)
 	var i CollectionItem
@@ -35,7 +35,7 @@ func (q *Queries) CreateCollectionItem(ctx context.Context, arg CreateCollection
 		&i.ID,
 		&i.UserID,
 		&i.GameID,
-		&i.Platform,
+		&i.PlatformID,
 		&i.Status,
 		&i.Rating,
 		&i.StartedAt,
@@ -47,11 +47,13 @@ func (q *Queries) CreateCollectionItem(ctx context.Context, arg CreateCollection
 
 const listCollectionItemsWithGames = `-- name: ListCollectionItemsWithGames :many
 SELECT
-    ci.id, ci.user_id, ci.game_id, ci.platform, ci.status, ci.rating, ci.started_at, ci.finished_at, ci.notes,
-    g.id, g.igdb_id, g.fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.release_year, g.summary
+    ci.id, ci.user_id, ci.game_id, ci.platform_id, ci.status, ci.rating, ci.started_at, ci.finished_at, ci.notes,
+    g.id, g.igdb_id, g.fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.release_year, g.summary,
+    p.id, p.igdb_id, p.fetched_at, p.name
 FROM
     collection_items ci
     JOIN games g ON ci.game_id = g.id
+    JOIN platforms p ON ci.platform_id = p.id
 WHERE
     ci.user_id = ?
 ORDER BY
@@ -61,6 +63,7 @@ ORDER BY
 type ListCollectionItemsWithGamesRow struct {
 	CollectionItem CollectionItem
 	Game           Game
+	Platform       Platform
 }
 
 func (q *Queries) ListCollectionItemsWithGames(ctx context.Context, userID int64) ([]ListCollectionItemsWithGamesRow, error) {
@@ -76,7 +79,7 @@ func (q *Queries) ListCollectionItemsWithGames(ctx context.Context, userID int64
 			&i.CollectionItem.ID,
 			&i.CollectionItem.UserID,
 			&i.CollectionItem.GameID,
-			&i.CollectionItem.Platform,
+			&i.CollectionItem.PlatformID,
 			&i.CollectionItem.Status,
 			&i.CollectionItem.Rating,
 			&i.CollectionItem.StartedAt,
@@ -91,6 +94,10 @@ func (q *Queries) ListCollectionItemsWithGames(ctx context.Context, userID int64
 			&i.Game.CoverUrl,
 			&i.Game.ReleaseYear,
 			&i.Game.Summary,
+			&i.Platform.ID,
+			&i.Platform.IgdbID,
+			&i.Platform.FetchedAt,
+			&i.Platform.Name,
 		); err != nil {
 			return nil, err
 		}

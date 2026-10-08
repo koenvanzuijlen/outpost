@@ -12,7 +12,7 @@ type CollectionItem struct {
 	ID         int64
 	UserID     int64
 	GameID     int64
-	Platform   string
+	PlatformID int64
 	Status     string
 	Rating     *int64
 	StartedAt  *time.Time
@@ -38,6 +38,13 @@ type Game struct {
 	CoverUrl     *string
 	ReleaseYear  *int64
 	Summary      *string
+}
+
+type Platform struct {
+	ID        int64
+	IgdbID    int64
+	FetchedAt time.Time
+	Name      string
 }
 
 type User struct {

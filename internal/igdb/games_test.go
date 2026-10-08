@@ -47,6 +47,9 @@ func TestSearchGames(t *testing.T) {
 	if !strings.Contains(gotBody, "halo") {
 		t.Errorf("SearchGames() request body = %v, want it to contain %q", gotBody, "halo")
 	}
+	if !strings.Contains(gotBody, "platforms != null") {
+		t.Errorf("SearchGames() request body = %v, want it to contain %q", gotBody, "platform != null")
+	}
 	if len(games) == 0 {
 		t.Fatalf("SearchGames() returned no games, want at least one")
 	}
@@ -83,6 +86,15 @@ func TestGameByID(t *testing.T) {
 	}
 	if game.Cover.URL == "" {
 		t.Errorf("GameByID() cover URL = %v, want it to be non-empty", game.Cover.URL)
+	}
+	if len(game.Platforms) == 0 {
+		t.Fatalf("GameByID() platforms = %v, want it to be non-empty", game.Platforms)
+	}
+	if game.Platforms[0].ID != 11 {
+		t.Errorf("GameByID() first platform ID = %v, want %v", game.Platforms[0].ID, 11)
+	}
+	if game.Platforms[0].Name != "Xbox" {
+		t.Errorf("GameByID() first platform Name = %v, want %v", game.Platforms[0].Name, "Xbox")
 	}
 }
 

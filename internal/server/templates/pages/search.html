@@ -20,7 +20,13 @@
 				<p>{{.Name}}</p>
 				<form method="post" action="/collection">
 					<input type="hidden" name="igdb_id" value="{{.ID}}" />
-					<label>Platform: <input type="text" name="platform" required /></label>
+					<label>Platform: 
+						<select name="platform_id" required>
+						{{range .Platforms}}
+							<option value="{{.ID}}">{{.Name}}</option>
+						{{end}}
+						</select>
+					</label>
 					<button type="submit">Add to Collection</button>
 				</form>
 			</div>

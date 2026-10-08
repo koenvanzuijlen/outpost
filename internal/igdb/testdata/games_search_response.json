@@ -7,6 +7,24 @@
     },
     "first_release_date": 1005782400,
     "name": "Halo: Combat Evolved",
+    "platforms": [
+      {
+        "id": 11,
+        "name": "Xbox"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 14,
+        "name": "Mac"
+      },
+      {
+        "id": 12,
+        "name": "Xbox 360"
+      }
+    ],
     "summary": "Bent on Humankind's extermination, a powerful fellowship of alien races known as the Covenant is wiping out Earth's fledgling interstellar empire. Climb into the boots of Master Chief, a biologically altered super-soldier, as you and the other surviving defenders of a devastated colony-world make a desperate attempt to lure the alien fleet away from earth. Shot down and marooned on the ancient ring-world Halo, you begin a guerilla-war against the Covenant. Fight for humanity against an alien onslaught as you race to uncover the mysteries of Halo.",
     "game_type": 0
   },
@@ -19,6 +37,20 @@
     "first_release_date": 1321315200,
     "name": "Halo: Combat Evolved Anniversary",
     "parent_game": 740,
+    "platforms": [
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 12,
+        "name": "Xbox 360"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
     "summary": "Halo: Combat Evolved Anniversary is a spectacular remastered version of the original game, created to celebrate the 10th anniversary of one of the most beloved first-person shooters in gaming history. Bundled with seven of the most popular multiplayer maps in Halo history ready for Xbox Live, Halo: Anniversary includes a bounty of new features including cooperative play over Xbox Live, Achievements, new challenges, and new fiction to uncover.",
     "game_type": 9
   },
@@ -30,6 +62,12 @@
     },
     "first_release_date": 1352160000,
     "name": "Halo 4: Limited Edition",
+    "platforms": [
+      {
+        "id": 12,
+        "name": "Xbox 360"
+      }
+    ],
     "summary": "Contents:\n\nA steel façade case with a UNSC device stencilled on it\nA redeemable code for the Infinity Actual Kit\nWar Games Map Pass\nRecruit Prime armor skin\nPrime emblem\nAssault Rifle Prime weapon skin\nAll eight Specializations unlocked immediately after reaching SR-50\nCryo-Chamber Avatar prop\nRecruit Armor Avatar clothes\nUNSC Infinity Briefing Packet, which includes Mjolnir Armor schematics, weapon information, and a layout of the indoctrination of the SPARTAN-IVs\n90-minute extended edition of Halo 4: Forward Unto Dawn accessible through Halo Waypoint\nBonus content providing backstory on characters and stories in Halo 4: Forward Unto Dawn\nSpecial featurette: Making of Halo 4: Forward Unto Dawn\nSpecial featurette: Bringing Gaming to Reality",
     "game_type": 0
   },
@@ -41,6 +79,12 @@
     },
     "first_release_date": 1262217600,
     "name": "Halo 3 + Halo Wars",
+    "platforms": [
+      {
+        "id": 12,
+        "name": "Xbox 360"
+      }
+    ],
     "summary": "This bundle contains:\n\n- Halo 3\n- Halo Wars",
     "game_type": 3
   },
@@ -52,6 +96,20 @@
     },
     "first_release_date": 1415664000,
     "name": "Halo: The Master Chief Collection",
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
     "summary": "The improved and enhanced Halo: The Master Chief Collection features visual enhancements with up to 4K UHD resolution, improved matchmaking, offline LAN, customizable installation options, and faster load times, it’s the definitive way to experience the ultimate Halo saga. Includes the extensive suite of campaign, multiplayer and additional features from Halo: Combat Evolved Anniversary, Halo 2: Anniversary, Halo 3, and Halo 4 - all updated to run at 60FPS.",
     "game_type": 3
   },
@@ -63,6 +121,20 @@
     },
     "first_release_date": 1638921600,
     "name": "Halo Infinite",
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
     "summary": "Halo Infinite is a first-person shooter and the sixth mainline entry in the Halo series. The game features a semi-open world campaign set on the Forerunner ringworld Zeta Halo, where players control the supersoldier Master Chief in combat against the Banished, a mercenary faction of aliens and humans. Players traverse the environment on foot and in vehicles, capturing forward operating bases, rescuing Marines, and completing story missions that advance the narrative. Equipment such as the Grappleshot adds traversal and combat options. The multiplayer component is free-to-play and includes various competitive modes in 4v4 and 12v12 formats.",
     "game_type": 0
   },
@@ -74,6 +146,20 @@
     },
     "first_release_date": 1099958400,
     "name": "Halo 2",
+    "platforms": [
+      {
+        "id": 11,
+        "name": "Xbox"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
     "summary": "Halo 2 is a first-person shooter developed by Bungie and the sequel to Halo: Combat Evolved. The campaign alternates between two playable characters: the human supersoldier Master Chief and the Covenant warrior known as the Arbiter. The game introduced online multiplayer via Xbox Live with an automated matchmaking system, dual-wielding of certain weapons, and vehicle hijacking. It supports both cooperative campaign and competitive multiplayer modes, and was the best-selling game on the original Xbox.",
     "game_type": 0
   },
@@ -86,6 +172,12 @@
     "first_release_date": 1732579200,
     "name": "Halo: Combat Evolved VR",
     "parent_game": 740,
+    "platforms": [
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      }
+    ],
     "summary": "A virtual reality conversion mod for the original PC version of Halo: Combat Evolved.",
     "game_type": 5
   },
@@ -97,6 +189,12 @@
     },
     "first_release_date": 1190678400,
     "name": "Halo 3: Legendary Edition",
+    "platforms": [
+      {
+        "id": 12,
+        "name": "Xbox 360"
+      }
+    ],
     "summary": "The set includes:\n\n- A scaled-down replica model of a MJOLNIR Mark VI helmet.\n- A plastic holder for the three discs.\n- Three discs:\n-- Disc One is the game itself, Halo 3.\n-- Disc Two is the same Xbox 360 game disc that was in the Halo 3 Limited Collector's Edition.\n-- Disc Three, which is exclusive to the Legendary Edition, contains the cutscenes from Halo: Combat Evolved and Halo 2 in chronological order, with optional developer commentary featuring Joseph Staten, Martin O'Donnell, and Jason Jones. Also included on the disc is a guide to the 7 Steps to World Domination plan, included in a short history of Bungie, as well as a documentary chronicling Cortana voice actor Jen Taylor as she learns about the Bungie fan community. Also included was an episode of This Spartan Life which included footage made in Halo 3, and two episodes of Red vs Blue, \"The Call\" and a special edition of Red vs Blue Episode I. Included in the special edition of Red vs Blue Episode I was a short mockumentary about the time leading up to the creation of the series. Also on this disc is the expanded digital Bestiarum and also the surround sound test carried over from Halo 2.",
     "game_type": 0
   }

@@ -26,9 +26,10 @@ func TestHandleAddToCollectionValidation(t *testing.T) {
 		body string
 	}{
 		{"missing body", ""},
-		{"invalid id", "igdb_id=abc&platform=pc"},
-		{"negative id", "igdb_id=-1&platform=pc"},
-		{"missing platform", "igdb_id=700&platform=%20"},
+		{"invalid id", "igdb_id=abc&platform_id=11"},
+		{"negative id", "igdb_id=-1&platform_id=11"},
+		{"invalid platform", "igdb_id=740&platform_id=abc"},
+		{"negative platform", "igdb_id=740&platform_id=-1"},
 	}
 
 	for _, tt := range tests {
@@ -46,20 +47,22 @@ func TestHandleAddToCollectionValidation(t *testing.T) {
 func TestHandleAddToCollection(t *testing.T) {
 	tests := []struct {
 		name         string
+		body         string
 		fake         *fakeIGDB
 		wantStatus   int
 		wantLocation string
 	}{
-		{"added", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_response.json")[0]}, http.StatusSeeOther, "/"},
-		{"not found", &fakeIGDB{gameErr: igdb.ErrGameNotFound}, http.StatusNotFound, ""},
-		{"igdb error", &fakeIGDB{gameErr: errors.New("IGDB failure")}, http.StatusInternalServerError, ""},
+		{"added", "igdb_id=740&platform_id=11", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_response.json")[0]}, http.StatusSeeOther, "/"},
+		{"game not on platform", "igdb_id=740&platform_id=999", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_response.json")[0]}, http.StatusBadRequest, ""},
+		{"not found", "igdb_id=740&platform_id=11", &fakeIGDB{gameErr: igdb.ErrGameNotFound}, http.StatusNotFound, ""},
+		{"igdb error", "igdb_id=740&platform_id=11", &fakeIGDB{gameErr: errors.New("IGDB failure")}, http.StatusInternalServerError, ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
 			server.igdbClient = tt.fake
-			w := postForm(t, server, "/collection", "igdb_id=740&platform=pc")
+			w := postForm(t, server, "/collection", tt.body)
 
 			if w.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
@@ -76,13 +79,13 @@ func TestHandleAddToCollection(t *testing.T) {
 func TestHandleAddToCollectionTwice(t *testing.T) {
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id_response.json")[0]}
-	w := postForm(t, server, "/collection", "igdb_id=740&platform=pc")
+	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
 
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("first status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	w = postForm(t, server, "/collection", "igdb_id=740&platform=pc")
+	w = postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
 
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("second status = %d, want %d", w.Code, http.StatusSeeOther)
@@ -107,7 +110,7 @@ func TestHandleAddToCollectionDatabaseFailure(t *testing.T) {
 	// Simulate a database failure by closing the database connection.
 	_ = server.db.Close()
 
-	w := postForm(t, server, "/collection", "igdb_id=740&platform=pc")
+	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)

@@ -11,7 +11,7 @@ import (
 var ErrGameNotFound = errors.New("game not found")
 
 // gameFields defines the default set of fields to request when querying games from the IGDB API.
-const gameFields = "parent_game,name,game_type,cover.url,first_release_date,summary"
+const gameFields = "parent_game,name,game_type,cover.url,first_release_date,summary,platforms.name"
 
 // Cover represents the cover image of a game retrieved from the IGDB API.
 type Cover struct {
@@ -20,13 +20,14 @@ type Cover struct {
 
 // Game represents a video game retrieved from the IGDB API.
 type Game struct {
-	ID               int      `json:"id"`
-	ParentGameID     int      `json:"parent_game"`
-	Name             string   `json:"name"`
-	GameType         GameType `json:"game_type"`
-	Cover            Cover    `json:"cover"`
-	FirstReleaseDate int      `json:"first_release_date"`
-	Summary          string   `json:"summary"`
+	ID               int        `json:"id"`
+	ParentGameID     int        `json:"parent_game"`
+	Name             string     `json:"name"`
+	GameType         GameType   `json:"game_type"`
+	Cover            Cover      `json:"cover"`
+	FirstReleaseDate int        `json:"first_release_date"`
+	Summary          string     `json:"summary"`
+	Platforms        []Platform `json:"platforms"`
 }
 
 // CoverURL returns the URL of the game's cover image, or an empty string if no cover is available. It replaces the
@@ -41,7 +42,7 @@ func (g Game) CoverURL() string {
 // SearchGames searches for games matching the given query string.
 func (c *Client) SearchGames(ctx context.Context, query string) ([]Game, error) {
 	escaped := strings.ReplaceAll(query, `"`, `\"`)
-	body := fmt.Sprintf(`search "%s"; fields %s; limit 10;`, escaped, gameFields)
+	body := fmt.Sprintf(`search "%s"; where platforms != null; fields %s; limit 10;`, escaped, gameFields)
 
 	var games []Game
 	if err := c.query(ctx, "/games", body, &games); err != nil {

@@ -3,8 +3,8 @@ package server
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
@@ -88,8 +88,8 @@ func (server *Server) handleAddToCollection(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	platform := strings.TrimSpace(r.PostFormValue("platform"))
-	if platform == "" {
+	platformID, err := strconv.Atoi(r.PostFormValue("platform_id"))
+	if err != nil || platformID <= 0 {
 		http.Error(w, "Invalid platform", http.StatusBadRequest)
 		return
 	}
@@ -105,13 +105,20 @@ func (server *Server) handleAddToCollection(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	gameParams := upsertGameParamsFromIGDB(game, time.Now().UTC())
-	itemParams := dbgen.CreateCollectionItemParams{
-		UserID:   defaultUserID,
-		Platform: platform,
-		Status:   "backlog",
+	platformIndex := slices.IndexFunc(game.Platforms, func(p igdb.Platform) bool { return p.ID == platformID })
+	if platformIndex == -1 {
+		http.Error(w, "Game not available for this platform", http.StatusBadRequest)
+		return
 	}
-	_, err = database.AddToCollection(r.Context(), server.db, gameParams, itemParams)
+
+	now := time.Now().UTC()
+	gameParams := upsertGameParamsFromIGDB(game, now)
+	platformParams := upsertPlatformParamsFromIGDB(game.Platforms[platformIndex], now)
+	itemParams := dbgen.CreateCollectionItemParams{
+		UserID: defaultUserID,
+		Status: "backlog",
+	}
+	_, err = database.AddToCollection(r.Context(), server.db, gameParams, platformParams, itemParams)
 	if err != nil && !errors.Is(err, database.ErrAlreadyInCollection) {
 		server.logger.Error("failed to add to collection", "error", err)
 		http.Error(w, "Failed to add to collection", http.StatusInternalServerError)

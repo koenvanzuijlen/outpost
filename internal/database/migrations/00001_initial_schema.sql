@@ -22,17 +22,24 @@ CREATE TABLE games(
 
 CREATE INDEX idx_games_parent_igdb_id ON games(parent_igdb_id);
 
+CREATE TABLE platforms(
+    id integer PRIMARY KEY,
+    igdb_id integer NOT NULL UNIQUE,
+    fetched_at datetime NOT NULL,
+    name text NOT NULL
+);
+
 CREATE TABLE collection_items(
     id integer PRIMARY KEY,
     user_id integer NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     game_id integer NOT NULL REFERENCES games(id) ON DELETE RESTRICT,
-    platform text NOT NULL,
+    platform_id integer NOT NULL REFERENCES platforms(id) ON DELETE RESTRICT,
     status text NOT NULL,
     rating integer,
     started_at datetime,
     finished_at datetime,
     notes text,
-    UNIQUE (user_id, game_id, platform)
+    UNIQUE (user_id, game_id, platform_id)
 );
 
 CREATE INDEX idx_collection_items_game_id ON collection_items(game_id);
@@ -54,6 +61,8 @@ CREATE INDEX idx_dlc_ownership_dlc_game_id ON dlc_ownership(dlc_game_id);
 DROP TABLE dlc_ownership;
 
 DROP TABLE collection_items;
+
+DROP TABLE platforms;
 
 DROP TABLE games;
 

@@ -4,7 +4,7 @@
   <div>
     <ul>
       {{range .Items}}
-        <li>{{.Game.Title}} - {{.CollectionItem.Status}}</li>
+        <li>{{.Game.Title}} - {{.Platform.Name}} - {{.CollectionItem.Status}}</li>
       {{else}}
         <li>No collection items found.</li>
       {{end}}
