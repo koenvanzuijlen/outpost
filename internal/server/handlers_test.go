@@ -99,3 +99,21 @@ func TestHandleAddToCollectionTwice(t *testing.T) {
 		t.Errorf("collection item title = %q, want %q", items[0].Game.Title, "Halo: Combat Evolved")
 	}
 }
+
+func TestHandleAddToCollectionDatabaseFailure(t *testing.T) {
+	server := newTestServer(t)
+	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id_response.json")[0]}
+
+	// Simulate a database failure by closing the database connection.
+	_ = server.db.Close()
+
+	w := postForm(t, server, "/collection", "igdb_id=740&platform=pc")
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+	}
+	location := w.Header().Get("Location")
+	if location != "" {
+		t.Errorf("location header = %q, want empty", location)
+	}
+}
