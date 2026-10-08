@@ -10,6 +10,16 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
+// postForm sends a POST request with the given form body to the specified URL and returns the response recorder.
+func postForm(t *testing.T, server *Server, path, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	return w
+}
+
 func TestHandleAddToCollectionValidation(t *testing.T) {
 	tests := []struct {
 		name string
@@ -23,12 +33,8 @@ func TestHandleAddToCollectionValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/collection", strings.NewReader(tt.body))
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			w := httptest.NewRecorder()
-
 			server := newTestServer(t)
-			server.ServeHTTP(w, req)
+			w := postForm(t, server, "/collection", tt.body)
 
 			if w.Code != http.StatusBadRequest {
 				t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
@@ -51,13 +57,9 @@ func TestHandleAddToCollection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/collection", strings.NewReader("igdb_id=740&platform=pc"))
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			w := httptest.NewRecorder()
-
 			server := newTestServer(t)
 			server.igdbClient = tt.fake
-			server.ServeHTTP(w, req)
+			w := postForm(t, server, "/collection", "igdb_id=740&platform=pc")
 
 			if w.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
@@ -72,20 +74,15 @@ func TestHandleAddToCollection(t *testing.T) {
 }
 
 func TestHandleAddToCollectionTwice(t *testing.T) {
-	req := httptest.NewRequest("POST", "/collection", strings.NewReader("igdb_id=740&platform=pc"))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	w := httptest.NewRecorder()
-
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id_response.json")[0]}
-	server.ServeHTTP(w, req)
+	w := postForm(t, server, "/collection", "igdb_id=740&platform=pc")
 
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("first status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	w = httptest.NewRecorder()
-	server.ServeHTTP(w, req)
+	w = postForm(t, server, "/collection", "igdb_id=740&platform=pc")
 
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("second status = %d, want %d", w.Code, http.StatusSeeOther)
