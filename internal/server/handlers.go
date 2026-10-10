@@ -116,7 +116,7 @@ func (server *Server) handleAddToCollection(w http.ResponseWriter, r *http.Reque
 	platformParams := upsertPlatformParamsFromIGDB(game.Platforms[platformIndex], now)
 	itemParams := dbgen.CreateCollectionItemParams{
 		UserID: defaultUserID,
-		Status: "backlog",
+		Status: string(database.GameStatusBacklog),
 	}
 	_, err = database.AddToCollection(r.Context(), server.db, gameParams, platformParams, itemParams)
 	if err != nil && !errors.Is(err, database.ErrAlreadyInCollection) {

@@ -28,7 +28,7 @@ func newPlatformParams(igdbID int64, name string) dbgen.UpsertPlatformParams {
 func newCollectionItemParams() dbgen.CreateCollectionItemParams {
 	return dbgen.CreateCollectionItemParams{
 		UserID: 1,
-		Status: "backlog",
+		Status: string(GameStatusBacklog),
 	}
 }
 
