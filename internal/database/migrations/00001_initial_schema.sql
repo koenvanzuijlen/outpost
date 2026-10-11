@@ -29,38 +29,56 @@ CREATE TABLE platforms(
     name text NOT NULL
 );
 
-CREATE TABLE collection_items(
+CREATE TABLE user_games(
     id integer PRIMARY KEY,
     user_id integer NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     game_id integer NOT NULL REFERENCES games(id) ON DELETE RESTRICT,
-    platform_id integer NOT NULL REFERENCES platforms(id) ON DELETE RESTRICT,
-    status text NOT NULL,
+    status text,
     rating integer,
-    started_at datetime,
-    finished_at datetime,
+    wishlisted boolean NOT NULL DEFAULT FALSE,
     notes text,
-    UNIQUE (user_id, game_id, platform_id)
+    added_at datetime NOT NULL,
+    UNIQUE (user_id, game_id),
+    CHECK (NOT wishlisted OR status IS NULL),
+    CHECK (rating BETWEEN 1 AND 10)
 );
 
-CREATE INDEX idx_collection_items_game_id ON collection_items(game_id);
+CREATE INDEX idx_user_games_game_id ON user_games(game_id);
 
-CREATE TABLE dlc_ownership(
+CREATE TABLE owned_copies(
     id integer PRIMARY KEY,
-    collection_item_id integer NOT NULL REFERENCES collection_items(id) ON DELETE CASCADE,
-    dlc_game_id integer NOT NULL REFERENCES games(id) ON DELETE RESTRICT,
-    owned integer NOT NULL DEFAULT 0,
-    tracked_collection_item_id integer REFERENCES collection_items(id) ON DELETE SET NULL,
-    UNIQUE (collection_item_id, dlc_game_id)
+    user_game_id integer NOT NULL REFERENCES user_games(id) ON DELETE CASCADE,
+    platform_id integer NOT NULL REFERENCES platforms(id) ON DELETE RESTRICT,
+    UNIQUE (user_game_id, platform_id)
 );
 
-CREATE INDEX idx_dlc_ownership_tracked ON dlc_ownership(tracked_collection_item_id);
+CREATE TABLE owned_dlc(
+    owned_copy_id integer NOT NULL REFERENCES owned_copies(id) ON DELETE CASCADE,
+    dlc_game_id integer NOT NULL REFERENCES games(id) ON DELETE RESTRICT,
+    PRIMARY KEY (owned_copy_id, dlc_game_id)
+);
 
-CREATE INDEX idx_dlc_ownership_dlc_game_id ON dlc_ownership(dlc_game_id);
+CREATE INDEX idx_owned_dlc_dlc_game_id ON owned_dlc(dlc_game_id);
+
+CREATE TABLE playthroughs(
+    id integer PRIMARY KEY,
+    user_game_id integer NOT NULL REFERENCES user_games(id) ON DELETE CASCADE,
+    platform_id integer REFERENCES platforms(id) ON DELETE RESTRICT,
+    outcome text NOT NULL,
+    started_at datetime,
+    finished_at datetime
+);
+
+CREATE INDEX idx_playthroughs_user_game_id ON playthroughs(user_game_id);
 
 -- +goose Down
-DROP TABLE dlc_ownership;
+DROP TABLE playthroughs;
 
-DROP TABLE collection_items;
+DROP TABLE owned_dlc;
+
+DROP TABLE owned_copies;
+
+DROP TABLE user_games;
 
 DROP TABLE platforms;
 

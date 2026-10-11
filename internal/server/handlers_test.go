@@ -91,15 +91,15 @@ func TestHandleAddToCollectionTwice(t *testing.T) {
 		t.Errorf("second status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	items, err := server.queries.ListCollectionItemsWithGames(t.Context(), defaultUserID)
+	ownedCopies, err := server.queries.ListOwnedCopies(t.Context(), defaultUserID)
 	if err != nil {
-		t.Fatalf("ListCollectionItemsWithGames() failed: %v", err)
+		t.Fatalf("ListOwnedCopies() failed: %v", err)
 	}
-	if len(items) != 1 {
-		t.Fatalf("number of collection items = %d, want %d", len(items), 1)
+	if len(ownedCopies) != 1 {
+		t.Fatalf("number of owned copies = %d, want %d", len(ownedCopies), 1)
 	}
-	if items[0].Game.Title != "Halo: Combat Evolved" {
-		t.Errorf("collection item title = %q, want %q", items[0].Game.Title, "Halo: Combat Evolved")
+	if ownedCopies[0].Game.Title != "Halo: Combat Evolved" {
+		t.Errorf("owned copy title = %q, want %q", ownedCopies[0].Game.Title, "Halo: Combat Evolved")
 	}
 }
 

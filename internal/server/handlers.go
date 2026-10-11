@@ -21,14 +21,14 @@ func (server *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 }
 
 type indexData struct {
-	Items []dbgen.ListCollectionItemsWithGamesRow
+	Items []dbgen.ListOwnedCopiesRow
 }
 
 // handleIndex serves the application's root page.
 func (server *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	items, err := server.queries.ListCollectionItemsWithGames(r.Context(), defaultUserID)
+	items, err := server.queries.ListOwnedCopies(r.Context(), defaultUserID)
 	if err != nil {
-		server.logger.Error("failed to list collection items with games", "error", err)
+		server.logger.Error("failed to list owned copies", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -114,11 +114,11 @@ func (server *Server) handleAddToCollection(w http.ResponseWriter, r *http.Reque
 	now := time.Now().UTC()
 	gameParams := upsertGameParamsFromIGDB(game, now)
 	platformParams := upsertPlatformParamsFromIGDB(game.Platforms[platformIndex], now)
-	itemParams := dbgen.CreateCollectionItemParams{
-		UserID: defaultUserID,
-		Status: string(database.GameStatusBacklog),
+	userGameParams := dbgen.UpsertOwnedUserGameParams{
+		UserID:  defaultUserID,
+		AddedAt: now,
 	}
-	_, err = database.AddToCollection(r.Context(), server.db, gameParams, platformParams, itemParams)
+	_, err = database.AddToCollection(r.Context(), server.db, gameParams, platformParams, userGameParams)
 	if err != nil && !errors.Is(err, database.ErrAlreadyInCollection) {
 		server.logger.Error("failed to add to collection", "error", err)
 		http.Error(w, "Failed to add to collection", http.StatusInternalServerError)

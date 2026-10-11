@@ -12,13 +12,13 @@ INSERT INTO games(igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_u
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (igdb_id)
     DO UPDATE SET
-        fetched_at = EXCLUDED.fetched_at,
-        parent_igdb_id = EXCLUDED.parent_igdb_id,
-        title = EXCLUDED.title,
-        game_type = EXCLUDED.game_type,
-        cover_url = EXCLUDED.cover_url,
-        released_at = EXCLUDED.released_at,
-        summary = EXCLUDED.summary
+        fetched_at = excluded.fetched_at,
+        parent_igdb_id = excluded.parent_igdb_id,
+        title = excluded.title,
+        game_type = excluded.game_type,
+        cover_url = excluded.cover_url,
+        released_at = excluded.released_at,
+        summary = excluded.summary
     RETURNING
         *;
 

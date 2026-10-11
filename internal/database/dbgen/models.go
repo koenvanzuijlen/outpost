@@ -8,26 +8,6 @@ import (
 	"time"
 )
 
-type CollectionItem struct {
-	ID         int64
-	UserID     int64
-	GameID     int64
-	PlatformID int64
-	Status     string
-	Rating     *int64
-	StartedAt  *time.Time
-	FinishedAt *time.Time
-	Notes      *string
-}
-
-type DlcOwnership struct {
-	ID                      int64
-	CollectionItemID        int64
-	DlcGameID               int64
-	Owned                   int64
-	TrackedCollectionItemID *int64
-}
-
 type Game struct {
 	ID           int64
 	IgdbID       int64
@@ -40,6 +20,17 @@ type Game struct {
 	Summary      *string
 }
 
+type OwnedCopy struct {
+	ID         int64
+	UserGameID int64
+	PlatformID int64
+}
+
+type OwnedDlc struct {
+	OwnedCopyID int64
+	DlcGameID   int64
+}
+
 type Platform struct {
 	ID        int64
 	IgdbID    int64
@@ -47,8 +38,28 @@ type Platform struct {
 	Name      string
 }
 
+type Playthrough struct {
+	ID         int64
+	UserGameID int64
+	PlatformID *int64
+	Outcome    string
+	StartedAt  *time.Time
+	FinishedAt *time.Time
+}
+
 type User struct {
 	ID           int64
 	Username     string
 	PasswordHash string
+}
+
+type UserGame struct {
+	ID         int64
+	UserID     int64
+	GameID     int64
+	Status     *string
+	Rating     *int64
+	Wishlisted bool
+	Notes      *string
+	AddedAt    time.Time
 }
