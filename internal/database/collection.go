@@ -15,7 +15,7 @@ import (
 var ErrAlreadyInCollection = errors.New("game is already in the collection on this platform")
 
 // AddToCollection adds a game to the user's collection, creating the game and platform if they don't exist, and then
-// creating the owned copy. Newly owned copies are added with status "backlog", existing copies retain their current
+// creating the owned copy. New games to the collection are added with status "backlog", existing ones retain their current
 // status. If the game is already in the collection on the specified platform, it returns ErrAlreadyInCollection.
 func AddToCollection(
 	ctx context.Context,

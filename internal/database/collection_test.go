@@ -120,11 +120,11 @@ func TestAddToCollectionPreservesStatus(t *testing.T) {
 
 	_, err = db.ExecContext(ctx, "UPDATE user_games SET status = ?", "completed")
 	if err != nil {
-		t.Fatalf("Failed to update user game status: %v", err)
+		t.Fatalf("ExecContext() failed: %v", err)
 	}
 
 	second, err := AddToCollection(ctx, db, game, newPlatformParams(11, "Xbox"), userGame)
-	if err != nil && !errors.Is(err, ErrAlreadyInCollection) {
+	if err != nil {
 		t.Fatalf("AddToCollection() second failed: %v", err)
 	}
 
@@ -141,7 +141,7 @@ func TestAddToCollectionPreservesStatus(t *testing.T) {
 	}
 	status := ownedCopies[0].UserGame.Status
 	if status == nil || *status != "completed" {
-		t.Errorf("Status = %v, want %q", *status, "completed")
+		t.Errorf("Status = %v, want %q", status, "completed")
 	}
 }
 
