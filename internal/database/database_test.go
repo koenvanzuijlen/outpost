@@ -1,7 +1,6 @@
 package database
 
 import (
-	"database/sql"
 	"log/slog"
 	"path/filepath"
 	"testing"
@@ -10,7 +9,7 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
 
-func newTestDatabase(t *testing.T) *sql.DB {
+func newTestStore(t *testing.T) *Store {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "test.db")
 	db, err := Open(t.Context(), slog.New(slog.DiscardHandler), path)
@@ -26,10 +25,10 @@ func newTestDatabase(t *testing.T) *sql.DB {
 
 func TestPragmasApplied(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
+	store := newTestStore(t)
 
 	var fk int
-	err := db.QueryRowContext(ctx, "PRAGMA foreign_keys").Scan(&fk)
+	err := store.db.QueryRowContext(ctx, "PRAGMA foreign_keys").Scan(&fk)
 	if err != nil {
 		t.Fatalf("PRAGMA foreign_keys query failed: %v", err)
 	}
@@ -40,11 +39,10 @@ func TestPragmasApplied(t *testing.T) {
 
 func TestTypeRoundTrip(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
-	queries := dbgen.New(db)
+	store := newTestStore(t)
 
 	fetchedAt := time.Now()
-	_, err := queries.UpsertGame(ctx, dbgen.UpsertGameParams{
+	_, err := store.queries.UpsertGame(ctx, dbgen.UpsertGameParams{
 		IgdbID:       1,
 		FetchedAt:    fetchedAt,
 		ParentIgdbID: nil,
@@ -57,7 +55,7 @@ func TestTypeRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertGame() failed: %v", err)
 	}
-	game, err := queries.GetGameByIGDBID(ctx, 1)
+	game, err := store.queries.GetGameByIGDBID(ctx, 1)
 	if err != nil {
 		t.Fatalf("GetGameByIGDBID() failed: %v", err)
 	}

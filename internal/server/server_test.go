@@ -47,16 +47,16 @@ func newTestServer(t *testing.T) *Server {
 	logger := slog.New(slog.DiscardHandler)
 
 	path := filepath.Join(t.TempDir(), "test.db")
-	db, err := database.Open(t.Context(), logger, path)
+	store, err := database.Open(t.Context(), logger, path)
 	if err != nil {
 		t.Fatalf("database.Open() failed: %v", err)
 	}
 
 	t.Cleanup(func() {
-		_ = db.Close()
+		_ = store.Close()
 	})
 
-	server, err := New(logger, db, nil)
+	server, err := New(logger, store, nil)
 	if err != nil {
 		t.Fatalf("New() failed: %v", err)
 	}

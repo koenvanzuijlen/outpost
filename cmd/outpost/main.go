@@ -34,12 +34,12 @@ func run(logger *slog.Logger) error {
 	defer stop()
 
 	dbPath := envOrDefault("DATABASE_PATH", "outpost.db")
-	db, err := database.Open(ctx, logger, dbPath)
+	store, err := database.Open(ctx, logger, dbPath)
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
 	}
 	defer func() {
-		_ = db.Close()
+		_ = store.Close()
 	}()
 
 	clientID, ok := os.LookupEnv("TWITCH_CLIENT_ID")
@@ -52,7 +52,7 @@ func run(logger *slog.Logger) error {
 	}
 	client := igdb.New(clientID, clientSecret)
 
-	app, err := server.New(logger, db, client)
+	app, err := server.New(logger, store, client)
 	if err != nil {
 		return fmt.Errorf("create server: %w", err)
 	}

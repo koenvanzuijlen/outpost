@@ -4,20 +4,18 @@ import (
 	"errors"
 	"testing"
 	"time"
-
-	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
 
 func TestAddToWishlist(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
+	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
 
-	if err := AddToWishlist(ctx, db, game, 1, time.Now().UTC()); err != nil {
+	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); err != nil {
 		t.Fatalf("AddToWishlist() failed: %v", err)
 	}
 
-	wishlisted, err := dbgen.New(db).ListWishlistedUserGames(ctx, 1)
+	wishlisted, err := store.queries.ListWishlistedUserGames(ctx, 1)
 	if err != nil {
 		t.Fatalf("ListWishlistedUserGames() failed: %v", err)
 	}
@@ -35,34 +33,34 @@ func TestAddToWishlist(t *testing.T) {
 
 func TestAddToWishlistDuplicate(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
+	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
-	if err := AddToWishlist(ctx, db, game, 1, time.Now().UTC()); err != nil {
+	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); err != nil {
 		t.Fatalf("AddToWishlist() first failed: %v", err)
 	}
-	if err := AddToWishlist(ctx, db, game, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyInLibrary) {
+	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyInLibrary) {
 		t.Fatalf("AddToWishlist() second error = %v, want %v", err, ErrAlreadyInLibrary)
 	}
 }
 
 func TestAddToWishlistOwnedGame(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
+	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
 	platform := newPlatformParams(6, "Test Platform")
 
 	// Add the game to the collection first
-	if _, err := AddToCollection(ctx, db, game, platform, 1, time.Now().UTC()); err != nil {
+	if _, err := store.AddToCollection(ctx, game, platform, 1, time.Now().UTC()); err != nil {
 		t.Fatalf("AddToCollection() failed: %v", err)
 	}
 
 	// Attempt to add the same game to the wishlist
-	if err := AddToWishlist(ctx, db, game, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyInLibrary) {
+	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyInLibrary) {
 		t.Fatalf("AddToWishlist() error = %v, want %v", err, ErrAlreadyInLibrary)
 	}
 
 	// Ensure wishlist is empty
-	wishlisted, err := dbgen.New(db).ListWishlistedUserGames(ctx, 1)
+	wishlisted, err := store.queries.ListWishlistedUserGames(ctx, 1)
 	if err != nil {
 		t.Fatalf("ListWishlistedUserGames() failed: %v", err)
 	}
@@ -71,7 +69,7 @@ func TestAddToWishlistOwnedGame(t *testing.T) {
 	}
 
 	// Ensure the game is still in the collection
-	collected, err := dbgen.New(db).ListOwnedCopies(ctx, 1)
+	collected, err := store.queries.ListOwnedCopies(ctx, 1)
 	if err != nil {
 		t.Fatalf("ListOwnedCopies() failed: %v", err)
 	}

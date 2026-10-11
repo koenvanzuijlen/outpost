@@ -4,7 +4,6 @@ package server
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"embed"
 	"fmt"
 	"html/template"
@@ -13,7 +12,7 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
+	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
@@ -32,8 +31,7 @@ type Server struct {
 	handler    http.Handler
 	logger     *slog.Logger
 	templates  map[string]*template.Template
-	db         *sql.DB
-	queries    *dbgen.Queries
+	store      *database.Store
 	igdbClient IGDBClient
 }
 
@@ -42,7 +40,7 @@ var templateFS embed.FS
 
 // New creates a Server with the given logger, database connection, and IGDB client. It parses the templates, sets up
 // the routes, and returns the ready-to-serve Server instance.
-func New(logger *slog.Logger, db *sql.DB, igdbClient IGDBClient) (*Server, error) {
+func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient) (*Server, error) {
 	pages, err := fs.Glob(templateFS, "templates/pages/*.html")
 	if err != nil {
 		return nil, fmt.Errorf("glob page templates: %w", err)
@@ -69,8 +67,7 @@ func New(logger *slog.Logger, db *sql.DB, igdbClient IGDBClient) (*Server, error
 		mux:        http.NewServeMux(),
 		logger:     logger,
 		templates:  templates,
-		db:         db,
-		queries:    dbgen.New(db),
+		store:      store,
 		igdbClient: igdbClient,
 	}
 	server.routes()

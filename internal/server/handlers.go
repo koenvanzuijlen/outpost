@@ -28,13 +28,13 @@ type indexData struct {
 // handleIndex serves the application's root page.
 func (server *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ownedCopies, err := server.queries.ListOwnedCopies(ctx, defaultUserID)
+	ownedCopies, err := server.store.ListCollection(ctx, defaultUserID)
 	if err != nil {
 		server.logger.Error("failed to list owned copies", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	wishlistedGames, err := server.queries.ListWishlistedUserGames(ctx, defaultUserID)
+	wishlistedGames, err := server.store.ListWishlist(ctx, defaultUserID)
 	if err != nil {
 		server.logger.Error("failed to list wishlisted games", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -109,7 +109,7 @@ func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request
 	}
 
 	now := time.Now().UTC()
-	err = database.AddToWishlist(r.Context(), server.db, upsertGameParamsFromIGDB(game, now), defaultUserID, now)
+	err = server.store.AddToWishlist(r.Context(), upsertGameParamsFromIGDB(game, now), defaultUserID, now)
 	if err != nil && !errors.Is(err, database.ErrAlreadyInLibrary) {
 		server.logger.Error("failed to add to wishlist", "error", err)
 		http.Error(w, "Failed to add to wishlist", http.StatusInternalServerError)
@@ -153,7 +153,7 @@ func (server *Server) handleAddToCollection(w http.ResponseWriter, r *http.Reque
 	now := time.Now().UTC()
 	gameParams := upsertGameParamsFromIGDB(game, now)
 	platformParams := upsertPlatformParamsFromIGDB(game.Platforms[platformIndex], now)
-	_, err = database.AddToCollection(r.Context(), server.db, gameParams, platformParams, defaultUserID, now)
+	_, err = server.store.AddToCollection(r.Context(), gameParams, platformParams, defaultUserID, now)
 	if err != nil && !errors.Is(err, database.ErrAlreadyOwnedOnPlatform) {
 		server.logger.Error("failed to add to collection", "error", err)
 		http.Error(w, "Failed to add to collection", http.StatusInternalServerError)

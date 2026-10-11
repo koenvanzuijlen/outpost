@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -13,16 +12,15 @@ import (
 // ErrAlreadyInLibrary is returned when wishlisting a game that is already in the library.
 var ErrAlreadyInLibrary = errors.New("game is already in the library")
 
+// ListWishlist returns all wishlisted games for the specified user.
+func (s *Store) ListWishlist(ctx context.Context, userID int64) ([]dbgen.ListWishlistedUserGamesRow, error) {
+	return s.queries.ListWishlistedUserGames(ctx, userID)
+}
+
 // AddToWishlist adds a game to the user's wishlist, creating the game if it doesn't exist. If the game is already in
 // the user's games, it returns ErrAlreadyInLibrary.
-func AddToWishlist(
-	ctx context.Context,
-	db *sql.DB,
-	game dbgen.UpsertGameParams,
-	userID int64,
-	addedAt time.Time,
-) error {
-	tx, err := db.BeginTx(ctx, nil)
+func (s *Store) AddToWishlist(ctx context.Context, game dbgen.UpsertGameParams, userID int64, addedAt time.Time) error {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}

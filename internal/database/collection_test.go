@@ -27,18 +27,17 @@ func newPlatformParams(igdbID int64, name string) dbgen.UpsertPlatformParams {
 
 func TestAddToCollectionClearsWishlist(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
+	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
 
-	if err := AddToWishlist(ctx, db, game, 1, time.Now().UTC()); err != nil {
+	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); err != nil {
 		t.Fatalf("AddToWishlist() failed: %v", err)
 	}
-	if _, err := AddToCollection(ctx, db, game, newPlatformParams(6, "PC"), 1, time.Now().UTC()); err != nil {
+	if _, err := store.AddToCollection(ctx, game, newPlatformParams(6, "PC"), 1, time.Now().UTC()); err != nil {
 		t.Fatalf("AddToCollection() failed: %v", err)
 	}
 
-	queries := dbgen.New(db)
-	wishlisted, err := queries.ListWishlistedUserGames(ctx, 1)
+	wishlisted, err := store.queries.ListWishlistedUserGames(ctx, 1)
 	if err != nil {
 		t.Fatalf("ListWishlistedUserGames() failed: %v", err)
 	}
@@ -46,7 +45,7 @@ func TestAddToCollectionClearsWishlist(t *testing.T) {
 		t.Errorf("len(wishlisted) = %d, want 0", len(wishlisted))
 	}
 
-	owned, err := queries.ListOwnedCopies(ctx, 1)
+	owned, err := store.queries.ListOwnedCopies(ctx, 1)
 	if err != nil {
 		t.Fatalf("ListOwnedCopies() failed: %v", err)
 	}
@@ -57,13 +56,13 @@ func TestAddToCollectionClearsWishlist(t *testing.T) {
 
 func TestAddToCollectionSameGameDifferentPlatforms(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
+	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
-	first, err := AddToCollection(ctx, db, game, newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	first, err := store.AddToCollection(ctx, game, newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("AddToCollection() first failed: %v", err)
 	}
-	second, err := AddToCollection(ctx, db, game, newPlatformParams(6, "PC"), 1, time.Now().UTC())
+	second, err := store.AddToCollection(ctx, game, newPlatformParams(6, "PC"), 1, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("AddToCollection() second failed: %v", err)
 	}
@@ -81,14 +80,14 @@ func TestAddToCollectionSameGameDifferentPlatforms(t *testing.T) {
 
 func TestAddToCollectionDifferentGamesSamePlatform(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
+	store := newTestStore(t)
 	platform := newPlatformParams(6, "PC")
 
-	first, err := AddToCollection(ctx, db, newGameParams(100, "Test Game"), platform, 1, time.Now().UTC())
+	first, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), platform, 1, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("AddToCollection() first failed: %v", err)
 	}
-	second, err := AddToCollection(ctx, db, newGameParams(101, "Test Game 2"), platform, 1, time.Now().UTC())
+	second, err := store.AddToCollection(ctx, newGameParams(101, "Test Game 2"), platform, 1, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("AddToCollection() second failed: %v", err)
 	}
@@ -106,18 +105,18 @@ func TestAddToCollectionDifferentGamesSamePlatform(t *testing.T) {
 
 func TestAddToCollectionSameGameSamePlatform(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
+	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
 	platform := newPlatformParams(6, "PC")
 
-	if _, err := AddToCollection(ctx, db, game, platform, 1, time.Now().UTC()); err != nil {
+	if _, err := store.AddToCollection(ctx, game, platform, 1, time.Now().UTC()); err != nil {
 		t.Fatalf("AddToCollection() first failed: %v", err)
 	}
-	if _, err := AddToCollection(ctx, db, game, platform, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyOwnedOnPlatform) {
+	if _, err := store.AddToCollection(ctx, game, platform, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyOwnedOnPlatform) {
 		t.Fatalf("AddToCollection() error = %v, want %v", err, ErrAlreadyOwnedOnPlatform)
 	}
 
-	items, err := dbgen.New(db).ListOwnedCopies(ctx, 1)
+	items, err := store.queries.ListOwnedCopies(ctx, 1)
 	if err != nil {
 		t.Fatalf("ListOwnedCopies() failed: %v", err)
 	}
@@ -128,20 +127,20 @@ func TestAddToCollectionSameGameSamePlatform(t *testing.T) {
 
 func TestAddToCollectionPreservesStatus(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
+	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
 
-	first, err := AddToCollection(ctx, db, game, newPlatformParams(6, "PC"), 1, time.Now().UTC())
+	first, err := store.AddToCollection(ctx, game, newPlatformParams(6, "PC"), 1, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("AddToCollection() first failed: %v", err)
 	}
 
-	_, err = db.ExecContext(ctx, "UPDATE user_games SET status = ?", "completed")
+	_, err = store.db.ExecContext(ctx, "UPDATE user_games SET status = ?", "completed")
 	if err != nil {
 		t.Fatalf("ExecContext() failed: %v", err)
 	}
 
-	second, err := AddToCollection(ctx, db, game, newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	second, err := store.AddToCollection(ctx, game, newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("AddToCollection() second failed: %v", err)
 	}
@@ -150,7 +149,7 @@ func TestAddToCollectionPreservesStatus(t *testing.T) {
 		t.Errorf("UserGameID = %d and %d, want same game", first.UserGameID, second.UserGameID)
 	}
 
-	ownedCopies, err := dbgen.New(db).ListOwnedCopies(ctx, 1)
+	ownedCopies, err := store.queries.ListOwnedCopies(ctx, 1)
 	if err != nil {
 		t.Fatalf("ListOwnedCopies() failed: %v", err)
 	}
@@ -165,9 +164,9 @@ func TestAddToCollectionPreservesStatus(t *testing.T) {
 
 func TestAddToCollectionUpdatesGameInfo(t *testing.T) {
 	ctx := t.Context()
-	db := newTestDatabase(t)
+	store := newTestStore(t)
 
-	first, err := AddToCollection(ctx, db, newGameParams(100, "Old Title"), newPlatformParams(6, "PC"), 1, time.Now().UTC())
+	first, err := store.AddToCollection(ctx, newGameParams(100, "Old Title"), newPlatformParams(6, "PC"), 1, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("AddToCollection() first failed: %v", err)
 	}
@@ -175,7 +174,7 @@ func TestAddToCollectionUpdatesGameInfo(t *testing.T) {
 	cover := "https://example.com/cover.jpg"
 	updated := newGameParams(100, "New Title")
 	updated.CoverUrl = &cover
-	second, err := AddToCollection(ctx, db, updated, newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	second, err := store.AddToCollection(ctx, updated, newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("AddToCollection() second failed: %v", err)
 	}
@@ -183,7 +182,7 @@ func TestAddToCollectionUpdatesGameInfo(t *testing.T) {
 		t.Errorf("UserGameID = %d and %d, want same game", first.UserGameID, second.UserGameID)
 	}
 
-	game, err := dbgen.New(db).GetGameByIGDBID(ctx, 100)
+	game, err := store.queries.GetGameByIGDBID(ctx, 100)
 	if err != nil {
 		t.Fatalf("GetGameByIGDBID() failed: %v", err)
 	}

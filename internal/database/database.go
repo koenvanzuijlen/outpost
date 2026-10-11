@@ -17,8 +17,9 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-// Open creates and returns a connection to the SQLite database at the specified path. It also applies any pending migrations.
-func Open(ctx context.Context, logger *slog.Logger, path string) (*sql.DB, error) {
+// Open creates and returns a connected Store to the SQLite database at the specified path. It also applies any
+// pending migrations.
+func Open(ctx context.Context, logger *slog.Logger, path string) (*Store, error) {
 	conn, err := sql.Open("sqlite", dsn(path))
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
@@ -33,7 +34,7 @@ func Open(ctx context.Context, logger *slog.Logger, path string) (*sql.DB, error
 		_ = conn.Close()
 		return nil, fmt.Errorf("migrate database: %w", err)
 	}
-	return conn, nil
+	return newStore(conn), nil
 }
 
 // migrate applies any pending migrations to the given database connection.

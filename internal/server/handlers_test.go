@@ -151,9 +151,9 @@ func TestHandleAddToCollectionTwice(t *testing.T) {
 		t.Errorf("second status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	ownedCopies, err := server.queries.ListOwnedCopies(t.Context(), defaultUserID)
+	ownedCopies, err := server.store.ListCollection(t.Context(), defaultUserID)
 	if err != nil {
-		t.Fatalf("ListOwnedCopies() failed: %v", err)
+		t.Fatalf("ListCollection() failed: %v", err)
 	}
 	if len(ownedCopies) != 1 {
 		t.Fatalf("number of owned copies = %d, want %d", len(ownedCopies), 1)
@@ -168,7 +168,7 @@ func TestHandleAddToCollectionDatabaseFailure(t *testing.T) {
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id_response.json")[0]}
 
 	// Simulate a database failure by closing the database connection.
-	_ = server.db.Close()
+	_ = server.store.Close()
 
 	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
 
