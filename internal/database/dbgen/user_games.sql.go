@@ -10,6 +10,87 @@ import (
 	"time"
 )
 
+const createWishlistedUserGame = `-- name: CreateWishlistedUserGame :execrows
+INSERT INTO user_games(user_id, game_id, status, wishlisted, added_at)
+    VALUES (?, ?, NULL, TRUE, ?)
+ON CONFLICT (user_id, game_id)
+    DO NOTHING
+`
+
+type CreateWishlistedUserGameParams struct {
+	UserID  int64
+	GameID  int64
+	AddedAt time.Time
+}
+
+func (q *Queries) CreateWishlistedUserGame(ctx context.Context, arg CreateWishlistedUserGameParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, createWishlistedUserGame, arg.UserID, arg.GameID, arg.AddedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const listWishlistedUserGames = `-- name: ListWishlistedUserGames :many
+SELECT
+    ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
+    g.id, g.igdb_id, g.fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary
+FROM
+    user_games ug
+    JOIN games g ON ug.game_id = g.id
+WHERE
+    ug.user_id = ?
+    AND ug.wishlisted = TRUE
+ORDER BY
+    g.released_at ASC NULLS LAST
+`
+
+type ListWishlistedUserGamesRow struct {
+	UserGame UserGame
+	Game     Game
+}
+
+func (q *Queries) ListWishlistedUserGames(ctx context.Context, userID int64) ([]ListWishlistedUserGamesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listWishlistedUserGames, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListWishlistedUserGamesRow
+	for rows.Next() {
+		var i ListWishlistedUserGamesRow
+		if err := rows.Scan(
+			&i.UserGame.ID,
+			&i.UserGame.UserID,
+			&i.UserGame.GameID,
+			&i.UserGame.Status,
+			&i.UserGame.Rating,
+			&i.UserGame.Wishlisted,
+			&i.UserGame.Notes,
+			&i.UserGame.AddedAt,
+			&i.Game.ID,
+			&i.Game.IgdbID,
+			&i.Game.FetchedAt,
+			&i.Game.ParentIgdbID,
+			&i.Game.Title,
+			&i.Game.GameType,
+			&i.Game.CoverUrl,
+			&i.Game.ReleasedAt,
+			&i.Game.Summary,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertOwnedUserGame = `-- name: UpsertOwnedUserGame :one
 INSERT INTO user_games(user_id, game_id, status, wishlisted, added_at)
     VALUES (?, ?, ?, FALSE, ?)

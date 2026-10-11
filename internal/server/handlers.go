@@ -21,19 +21,29 @@ func (server *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 }
 
 type indexData struct {
-	Items []dbgen.ListOwnedCopiesRow
+	OwnedCopies     []dbgen.ListOwnedCopiesRow
+	WishlistedGames []dbgen.ListWishlistedUserGamesRow
 }
 
 // handleIndex serves the application's root page.
 func (server *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	items, err := server.queries.ListOwnedCopies(r.Context(), defaultUserID)
+	ctx := r.Context()
+	ownedCopies, err := server.queries.ListOwnedCopies(ctx, defaultUserID)
 	if err != nil {
 		server.logger.Error("failed to list owned copies", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	wishlistedGames, err := server.queries.ListWishlistedUserGames(ctx, defaultUserID)
+	if err != nil {
+		server.logger.Error("failed to list wishlisted games", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	server.render(w, "index.html", indexData{
-		Items: items,
+		OwnedCopies:     ownedCopies,
+		WishlistedGames: wishlistedGames,
 	})
 }
 
@@ -79,6 +89,35 @@ func (server *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleAddToWishlist handles adding a game to the user's wishlist. It expects the igdb_id as a form value.
+func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request) {
+	igdbID, err := strconv.Atoi(r.PostFormValue("igdb_id"))
+	if err != nil || igdbID <= 0 {
+		http.Error(w, "Invalid igdb_id", http.StatusBadRequest)
+		return
+	}
+
+	game, err := server.igdbClient.GameByID(r.Context(), igdbID)
+	if err != nil {
+		if errors.Is(err, igdb.ErrGameNotFound) {
+			http.Error(w, "Game not found", http.StatusNotFound)
+		} else {
+			server.logger.Error("failed to fetch game", "error", err)
+			http.Error(w, "Failed to fetch game", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	now := time.Now().UTC()
+	err = database.AddToWishlist(r.Context(), server.db, upsertGameParamsFromIGDB(game, now), defaultUserID, now)
+	if err != nil && !errors.Is(err, database.ErrAlreadyInLibrary) {
+		server.logger.Error("failed to add to wishlist", "error", err)
+		http.Error(w, "Failed to add to wishlist", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 // handleAddToCollection handles adding a game to the user's collection. It expects the igdb_id and platform as form
 // values.
 func (server *Server) handleAddToCollection(w http.ResponseWriter, r *http.Request) {
@@ -114,12 +153,8 @@ func (server *Server) handleAddToCollection(w http.ResponseWriter, r *http.Reque
 	now := time.Now().UTC()
 	gameParams := upsertGameParamsFromIGDB(game, now)
 	platformParams := upsertPlatformParamsFromIGDB(game.Platforms[platformIndex], now)
-	userGameParams := dbgen.UpsertOwnedUserGameParams{
-		UserID:  defaultUserID,
-		AddedAt: now,
-	}
-	_, err = database.AddToCollection(r.Context(), server.db, gameParams, platformParams, userGameParams)
-	if err != nil && !errors.Is(err, database.ErrAlreadyInCollection) {
+	_, err = database.AddToCollection(r.Context(), server.db, gameParams, platformParams, defaultUserID, now)
+	if err != nil && !errors.Is(err, database.ErrAlreadyOwnedOnPlatform) {
 		server.logger.Error("failed to add to collection", "error", err)
 		http.Error(w, "Failed to add to collection", http.StatusInternalServerError)
 		return

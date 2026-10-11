@@ -29,6 +29,10 @@
 					</label>
 					<button type="submit">Add to Collection</button>
 				</form>
+				<form method="post" action="/wishlist">
+					<input type="hidden" name="igdb_id" value="{{.ID}}" />
+					<button type="submit">Add to Wishlist</button>
+				</form>
 			</div>
 		{{end}}
 		</div>
