@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
@@ -61,4 +64,22 @@ func newTestServer(t *testing.T) *Server {
 		t.Fatalf("New() failed: %v", err)
 	}
 	return server
+}
+
+// postForm sends a POST request with the given form body to the specified URL and returns the response recorder.
+func postForm(t *testing.T, server *Server, path, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	return w
+}
+
+// derefOrNil returns the value p points to, or nil, so failure messages show a value instead of an address.
+func derefOrNil[T any](p *T) any {
+	if p == nil {
+		return nil
+	}
+	return *p
 }

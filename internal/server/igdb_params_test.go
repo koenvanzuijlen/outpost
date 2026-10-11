@@ -95,11 +95,3 @@ func TestUpsertPlatformParamsFromIGDB(t *testing.T) {
 		t.Errorf("FetchedAt = %v, want %v", params.FetchedAt, fetchedAt)
 	}
 }
-
-// derefOrNil returns the value p points to, or nil, so failure messages show a value instead of an address.
-func derefOrNil[T any](p *T) any {
-	if p == nil {
-		return nil
-	}
-	return *p
-}

@@ -16,7 +16,7 @@ func TestBasicRouting(t *testing.T) {
 		expectedStatus int
 	}{
 		{"health", "GET", "/health", http.StatusOK},
-		{"index", "GET", "/", http.StatusOK},
+		{"library", "GET", "/", http.StatusOK},
 		{"invalid method", "POST", "/health", http.StatusMethodNotAllowed},
 		{"unknown route", "GET", "/nonexistent", http.StatusNotFound},
 	}

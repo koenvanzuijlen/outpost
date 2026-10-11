@@ -50,7 +50,7 @@ func TestGameReleaseYear(t *testing.T) {
 }
 
 func TestSearchGames(t *testing.T) {
-	searchResponseFixture, err := os.ReadFile("testdata/games_search_response.json")
+	searchResponseFixture, err := os.ReadFile("testdata/games_search.json")
 	if err != nil {
 		t.Fatalf("os.ReadFile() failed: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestSearchGames(t *testing.T) {
 }
 
 func TestGameByID(t *testing.T) {
-	gameByIDResponseFixture, err := os.ReadFile("testdata/game_by_id_response.json")
+	gameByIDResponseFixture, err := os.ReadFile("testdata/game_by_id.json")
 	if err != nil {
 		t.Fatalf("os.ReadFile() failed: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestGameByID(t *testing.T) {
 }
 
 func TestGameByIDEmpty(t *testing.T) {
-	emptyResponseFixture, err := os.ReadFile("testdata/generic_empty_response.json")
+	emptyResponseFixture, err := os.ReadFile("testdata/empty.json")
 	if err != nil {
 		t.Fatalf("os.ReadFile() failed: %v", err)
 	}

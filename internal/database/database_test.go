@@ -1,27 +1,11 @@
 package database
 
 import (
-	"log/slog"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
-
-func newTestStore(t *testing.T) *Store {
-	t.Helper()
-	path := filepath.Join(t.TempDir(), "test.db")
-	db, err := Open(t.Context(), slog.New(slog.DiscardHandler), path)
-	if err != nil {
-		t.Fatalf("Open() failed: %v", err)
-	}
-
-	t.Cleanup(func() {
-		_ = db.Close()
-	})
-	return db
-}
 
 func TestPragmasApplied(t *testing.T) {
 	ctx := t.Context()

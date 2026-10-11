@@ -4,26 +4,7 @@ import (
 	"errors"
 	"testing"
 	"time"
-
-	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
-
-func newGameParams(igdbID int64, title string) dbgen.UpsertGameParams {
-	return dbgen.UpsertGameParams{
-		IgdbID:    igdbID,
-		FetchedAt: time.Now().UTC(),
-		Title:     title,
-		GameType:  0,
-	}
-}
-
-func newPlatformParams(igdbID int64, name string) dbgen.UpsertPlatformParams {
-	return dbgen.UpsertPlatformParams{
-		IgdbID:    igdbID,
-		FetchedAt: time.Now().UTC(),
-		Name:      name,
-	}
-}
 
 func TestAddToCollectionClearsWishlist(t *testing.T) {
 	ctx := t.Context()
