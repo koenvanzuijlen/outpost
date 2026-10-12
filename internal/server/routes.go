@@ -5,6 +5,7 @@ package server
 func (server *Server) routes() {
 	server.mux.HandleFunc("GET /{$}", server.handleLibrary)
 	server.mux.HandleFunc("GET /search", server.handleSearch)
+	server.mux.HandleFunc("GET /games/{igdbID}", server.handleGame)
 	server.mux.HandleFunc("GET /health", server.handleHealth)
 
 	server.mux.HandleFunc("POST /wishlist", server.handleAddToWishlist)

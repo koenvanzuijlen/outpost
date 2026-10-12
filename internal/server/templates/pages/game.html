@@ -1,0 +1,20 @@
+{{define "content"}}
+	<h1>{{.LibraryGame.Game.Title}}</h1>
+	<div>
+		{{if .LibraryGame.Game.CoverUrl}}<img alt="{{.LibraryGame.Game.Title}}" src="{{.LibraryGame.Game.CoverUrl}}">{{end}}
+		{{if .LibraryGame.UserGame.Wishlisted}}<p>On your wishlist</p>{{end}}
+		{{with .LibraryGame.UserGame.Status}}<p>Status: {{.}}</p>{{end}}
+		{{with .LibraryGame.Platforms}}
+			<p>Owned on platforms:</p>
+			<ul>
+			{{range .}}
+				<li>{{.Name}}</li>
+			{{end}}
+			</ul>
+		{{end}}
+		{{with .LibraryGame.UserGame.Rating}}<p>Rating: {{.}}/10</p>{{end}}
+		{{with .LibraryGame.Game.ReleasedAt}}<p>Released: {{.Format "2 January 2006"}}</p>{{end}}
+		{{with .LibraryGame.Game.Summary}}<p>Summary:<br>{{.}}</p>{{end}}
+	</div>
+	<a href="/">Back to library</a>
+{{end}}

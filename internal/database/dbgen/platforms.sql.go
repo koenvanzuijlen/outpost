@@ -10,6 +10,46 @@ import (
 	"time"
 )
 
+const listPlatformsForUserGameID = `-- name: ListPlatformsForUserGameID :many
+SELECT
+    p.id, p.igdb_id, p.fetched_at, p.name
+FROM
+    platforms p
+    JOIN owned_copies oc ON oc.platform_id = p.id
+WHERE
+    oc.user_game_id = ?
+ORDER BY
+    p.name
+`
+
+func (q *Queries) ListPlatformsForUserGameID(ctx context.Context, userGameID int64) ([]Platform, error) {
+	rows, err := q.db.QueryContext(ctx, listPlatformsForUserGameID, userGameID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Platform
+	for rows.Next() {
+		var i Platform
+		if err := rows.Scan(
+			&i.ID,
+			&i.IgdbID,
+			&i.FetchedAt,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertPlatform = `-- name: UpsertPlatform :one
 INSERT INTO platforms(igdb_id, fetched_at, name)
     VALUES (?, ?, ?)

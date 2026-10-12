@@ -5,7 +5,7 @@
     <h2>Your Collection</h2>
     <ul>
       {{range .OwnedCopies}}
-        <li>{{.Game.Title}}{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}} - {{.Platform.Name}}{{with .UserGame.Status}} - {{.}}{{end}}</li>
+        <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}} - {{.Platform.Name}}{{with .UserGame.Status}} - {{.}}{{end}}</li>
       {{else}}
         <li>Your collection is empty.</li>
       {{end}}
@@ -14,7 +14,7 @@
   <h2>Your Wishlist</h2>
   <ul>
     {{range .WishlistedGames}}
-      <li>{{.Game.Title}}{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}}</li>
+      <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}}</li>
     {{else}}
       <li>Your wishlist is empty.</li>
     {{end}}

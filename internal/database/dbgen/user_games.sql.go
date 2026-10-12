@@ -31,6 +31,53 @@ func (q *Queries) CreateWishlistedUserGame(ctx context.Context, arg CreateWishli
 	return result.RowsAffected()
 }
 
+const getUserGameByIGDBID = `-- name: GetUserGameByIGDBID :one
+SELECT
+    ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
+    g.id, g.igdb_id, g.fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary
+FROM
+    user_games ug
+    JOIN games g ON ug.game_id = g.id
+WHERE
+    ug.user_id = ?
+    AND g.igdb_id = ?
+`
+
+type GetUserGameByIGDBIDParams struct {
+	UserID int64
+	IgdbID int64
+}
+
+type GetUserGameByIGDBIDRow struct {
+	UserGame UserGame
+	Game     Game
+}
+
+func (q *Queries) GetUserGameByIGDBID(ctx context.Context, arg GetUserGameByIGDBIDParams) (GetUserGameByIGDBIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserGameByIGDBID, arg.UserID, arg.IgdbID)
+	var i GetUserGameByIGDBIDRow
+	err := row.Scan(
+		&i.UserGame.ID,
+		&i.UserGame.UserID,
+		&i.UserGame.GameID,
+		&i.UserGame.Status,
+		&i.UserGame.Rating,
+		&i.UserGame.Wishlisted,
+		&i.UserGame.Notes,
+		&i.UserGame.AddedAt,
+		&i.Game.ID,
+		&i.Game.IgdbID,
+		&i.Game.FetchedAt,
+		&i.Game.ParentIgdbID,
+		&i.Game.Title,
+		&i.Game.GameType,
+		&i.Game.CoverUrl,
+		&i.Game.ReleasedAt,
+		&i.Game.Summary,
+	)
+	return i, err
+}
+
 const listWishlistedUserGames = `-- name: ListWishlistedUserGames :many
 SELECT
     ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,

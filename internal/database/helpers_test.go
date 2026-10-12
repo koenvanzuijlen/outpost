@@ -41,3 +41,11 @@ func newTestStore(t *testing.T) *Store {
 	})
 	return db
 }
+
+// derefOrNil returns the value p points to, or nil, so failure messages show a value instead of an address.
+func derefOrNil[T any](p *T) any {
+	if p == nil {
+		return nil
+	}
+	return *p
+}
