@@ -64,6 +64,7 @@ CREATE TABLE playthroughs(
     id integer PRIMARY KEY,
     user_game_id integer NOT NULL REFERENCES user_games(id) ON DELETE CASCADE,
     platform_id integer REFERENCES platforms(id) ON DELETE RESTRICT,
+    name text,
     outcome text NOT NULL,
     started_at datetime,
     finished_at datetime

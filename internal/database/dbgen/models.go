@@ -42,6 +42,7 @@ type Playthrough struct {
 	ID         int64
 	UserGameID int64
 	PlatformID *int64
+	Name       *string
 	Outcome    string
 	StartedAt  *time.Time
 	FinishedAt *time.Time
