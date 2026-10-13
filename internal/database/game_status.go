@@ -1,6 +1,12 @@
 package database
 
-import "slices"
+import (
+	"errors"
+	"slices"
+)
+
+// ErrInvalidGameStatus is returned when an invalid game status is provided.
+var ErrInvalidGameStatus = errors.New("invalid game status")
 
 // GameStatus has the possible values for the status of a game.
 type GameStatus string

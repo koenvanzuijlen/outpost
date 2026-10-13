@@ -45,3 +45,25 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 		Platforms: platforms,
 	}, nil
 }
+
+// UpdateStatusAndRating updates the status and rating of a game in the user's library. Returns ErrUserGameNotFound if
+// the game is not in the library.
+func (s *Store) UpdateStatusAndRating(ctx context.Context, userID, igdbID int64, status GameStatus, rating *int64) error {
+	if !status.Valid() {
+		return ErrInvalidGameStatus
+	}
+	statusString := string(status)
+	updatedRows, err := s.queries.UpdateUserGameStatusAndRating(ctx, dbgen.UpdateUserGameStatusAndRatingParams{
+		Status: &statusString,
+		Rating: rating,
+		UserID: userID,
+		IgdbID: igdbID,
+	})
+	if err != nil {
+		return fmt.Errorf("update status and rating: %w", err)
+	}
+	if updatedRows == 0 {
+		return ErrUserGameNotFound
+	}
+	return nil
+}

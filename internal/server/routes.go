@@ -10,4 +10,5 @@ func (server *Server) routes() {
 
 	server.mux.HandleFunc("POST /wishlist", server.handleAddToWishlist)
 	server.mux.HandleFunc("POST /collection", server.handleAddToCollection)
+	server.mux.HandleFunc("POST /games/{igdbID}", server.handleUpdateGame)
 }

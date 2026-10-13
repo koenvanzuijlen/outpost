@@ -7,15 +7,6 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
-// ptrIfNonZero returns a pointer to the given value if it is non-zero, otherwise it returns nil.
-func ptrIfNonZero[T comparable](v T) *T {
-	var zero T
-	if v == zero {
-		return nil
-	}
-	return &v
-}
-
 // upsertGameParamsFromIGDB maps an IGDB game to the parameters required for the UpsertGame database operation.
 func upsertGameParamsFromIGDB(game igdb.Game, fetchedAt time.Time) dbgen.UpsertGameParams {
 	releasedAt := time.Time{}

@@ -49,7 +49,7 @@ func parseTemplates() (map[string]*template.Template, error) {
 		files := []string{"templates/base.html"}
 		files = append(files, partials...)
 		files = append(files, page)
-		tmpl, err := template.ParseFS(templateFS, files...)
+		tmpl, err := template.New("base.html").Funcs(templateFuncs()).ParseFS(templateFS, files...)
 		if err != nil {
 			return nil, fmt.Errorf("parse template %s: %w", page, err)
 		}

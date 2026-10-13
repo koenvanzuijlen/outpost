@@ -38,3 +38,20 @@ ON CONFLICT (user_id, game_id)
     RETURNING
         *;
 
+-- name: UpdateUserGameStatusAndRating :execrows
+UPDATE
+    user_games
+SET
+    status = ?,
+    rating = ?
+WHERE
+    user_id = ?
+    AND game_id =(
+        SELECT
+            id
+        FROM
+            games
+        WHERE
+            igdb_id = ?)
+    AND NOT wishlisted;
+

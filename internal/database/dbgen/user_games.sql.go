@@ -138,6 +138,44 @@ func (q *Queries) ListWishlistedUserGames(ctx context.Context, userID int64) ([]
 	return items, nil
 }
 
+const updateUserGameStatusAndRating = `-- name: UpdateUserGameStatusAndRating :execrows
+UPDATE
+    user_games
+SET
+    status = ?,
+    rating = ?
+WHERE
+    user_id = ?
+    AND game_id =(
+        SELECT
+            id
+        FROM
+            games
+        WHERE
+            igdb_id = ?)
+    AND NOT wishlisted
+`
+
+type UpdateUserGameStatusAndRatingParams struct {
+	Status *string
+	Rating *int64
+	UserID int64
+	IgdbID int64
+}
+
+func (q *Queries) UpdateUserGameStatusAndRating(ctx context.Context, arg UpdateUserGameStatusAndRatingParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserGameStatusAndRating,
+		arg.Status,
+		arg.Rating,
+		arg.UserID,
+		arg.IgdbID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const upsertOwnedUserGame = `-- name: UpsertOwnedUserGame :one
 INSERT INTO user_games(user_id, game_id, status, wishlisted, added_at)
     VALUES (?, ?, ?, FALSE, ?)

@@ -12,9 +12,32 @@
 			{{end}}
 			</ul>
 		{{end}}
-		{{with .LibraryGame.UserGame.Rating}}<p>Rating: {{.}}/10</p>{{end}}
+		{{with .LibraryGame.UserGame.Rating}}<span title="{{ratingLabel .}}" aria-label="{{ratingLabel .}}" role="img">{{ratingText .}}</span>{{end}}
 		{{with .LibraryGame.Game.ReleasedAt}}<p>Released: {{.Format "2 January 2006"}}</p>{{end}}
 		{{with .LibraryGame.Game.Summary}}<p>Summary:<br>{{.}}</p>{{end}}
 	</div>
+	{{if not .LibraryGame.UserGame.Wishlisted}}
+		<div>
+			<form method="post" action="/games/{{.LibraryGame.Game.IgdbID}}">
+				<h2>Update game</h2>
+				<label>Status 
+					<select name="status">
+						{{range .Statuses}}
+							<option value="{{.}}"{{if eq . $.CurrentStatus}} selected{{end}}>{{.}}</option>
+						{{end}}
+					</select>
+				</label>
+				<label>Rating 
+					<select name="rating">
+						<option value=""{{if eq 0 $.CurrentRating}} selected{{end}}>Unrated</option>
+						{{range .RatingOptions}}
+							<option value="{{.Value}}"{{if eq .Value $.CurrentRating}} selected{{end}}>{{.Label}}</option>
+						{{end}}
+					</select>
+				</label>
+				<button type="submit">Save</button>
+			</form>
+		</div>
+	{{end}}
 	<a href="/">Back to library</a>
 {{end}}
