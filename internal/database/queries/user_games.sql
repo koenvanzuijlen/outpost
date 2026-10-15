@@ -38,6 +38,14 @@ ON CONFLICT (user_id, game_id)
     RETURNING
         *;
 
+-- name: UpdateUserGameStatus :exec
+UPDATE
+    user_games
+SET
+    status = ?
+WHERE
+    id = ?;
+
 -- name: UpdateUserGameStatusAndRating :execrows
 UPDATE
     user_games

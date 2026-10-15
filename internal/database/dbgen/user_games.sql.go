@@ -138,6 +138,25 @@ func (q *Queries) ListWishlistedUserGames(ctx context.Context, userID int64) ([]
 	return items, nil
 }
 
+const updateUserGameStatus = `-- name: UpdateUserGameStatus :exec
+UPDATE
+    user_games
+SET
+    status = ?
+WHERE
+    id = ?
+`
+
+type UpdateUserGameStatusParams struct {
+	Status *string
+	ID     int64
+}
+
+func (q *Queries) UpdateUserGameStatus(ctx context.Context, arg UpdateUserGameStatusParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserGameStatus, arg.Status, arg.ID)
+	return err
+}
+
 const updateUserGameStatusAndRating = `-- name: UpdateUserGameStatusAndRating :execrows
 UPDATE
     user_games
