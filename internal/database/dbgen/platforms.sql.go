@@ -10,6 +10,27 @@ import (
 	"time"
 )
 
+const getPlatformByIGDBID = `-- name: GetPlatformByIGDBID :one
+SELECT
+    id, igdb_id, fetched_at, name
+FROM
+    platforms
+WHERE
+    igdb_id = ?
+`
+
+func (q *Queries) GetPlatformByIGDBID(ctx context.Context, igdbID int64) (Platform, error) {
+	row := q.db.QueryRowContext(ctx, getPlatformByIGDBID, igdbID)
+	var i Platform
+	err := row.Scan(
+		&i.ID,
+		&i.IgdbID,
+		&i.FetchedAt,
+		&i.Name,
+	)
+	return i, err
+}
+
 const listPlatformsForUserGameID = `-- name: ListPlatformsForUserGameID :many
 SELECT
     p.id, p.igdb_id, p.fetched_at, p.name

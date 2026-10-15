@@ -47,11 +47,10 @@ func (s *Store) AddToCollection(
 		return dbgen.OwnedCopy{}, fmt.Errorf("upsert platform: %w", err)
 	}
 
-	status := string(GameStatusBacklog)
 	storedUserGame, err := q.UpsertOwnedUserGame(ctx, dbgen.UpsertOwnedUserGameParams{
 		UserID:  userID,
 		GameID:  storedGame.ID,
-		Status:  &status,
+		Status:  GameStatusBacklog.StringPtr(),
 		AddedAt: addedAt,
 	})
 	if err != nil {

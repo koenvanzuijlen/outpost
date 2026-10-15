@@ -52,9 +52,8 @@ func (s *Store) UpdateStatusAndRating(ctx context.Context, userID, igdbID int64,
 	if !status.Valid() {
 		return ErrInvalidGameStatus
 	}
-	statusString := string(status)
 	updatedRows, err := s.queries.UpdateUserGameStatusAndRating(ctx, dbgen.UpdateUserGameStatusAndRatingParams{
-		Status: &statusString,
+		Status: status.StringPtr(),
 		Rating: rating,
 		UserID: userID,
 		IgdbID: igdbID,
@@ -66,4 +65,20 @@ func (s *Store) UpdateStatusAndRating(ctx context.Context, userID, igdbID int64,
 		return ErrUserGameNotFound
 	}
 	return nil
+}
+
+// getOwnedUserGame retrieves a user's owned game by its IGDB ID, excluding wishlisted games. Returns
+// ErrUserGameNotFound if the game is not found or is wishlisted.
+func getOwnedUserGame(ctx context.Context, q *dbgen.Queries, userID, igdbID int64) (dbgen.GetUserGameByIGDBIDRow, error) {
+	row, err := q.GetUserGameByIGDBID(ctx, dbgen.GetUserGameByIGDBIDParams{UserID: userID, IgdbID: igdbID})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return dbgen.GetUserGameByIGDBIDRow{}, ErrUserGameNotFound
+		}
+		return dbgen.GetUserGameByIGDBIDRow{}, fmt.Errorf("get user game by igdb id: %w", err)
+	}
+	if row.UserGame.Wishlisted {
+		return dbgen.GetUserGameByIGDBIDRow{}, ErrUserGameNotFound
+	}
+	return row, nil
 }

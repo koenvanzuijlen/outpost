@@ -28,3 +28,14 @@ func TestPlaythroughOutcomeValid(t *testing.T) {
 		})
 	}
 }
+
+func TestPlaythroughOutcomeSubsetOfGameStatus(t *testing.T) {
+	for _, o := range PlaythroughOutcomes {
+		t.Run(string(o), func(t *testing.T) {
+			got := GameStatus(o).Valid()
+			if !got {
+				t.Errorf("GameStatus().Valid() = %v, want %v", got, true)
+			}
+		})
+	}
+}

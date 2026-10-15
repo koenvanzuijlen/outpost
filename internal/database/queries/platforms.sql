@@ -9,6 +9,14 @@ WHERE
 ORDER BY
     p.name;
 
+-- name: GetPlatformByIGDBID :one
+SELECT
+    *
+FROM
+    platforms
+WHERE
+    igdb_id = ?;
+
 -- name: UpsertPlatform :one
 INSERT INTO platforms(igdb_id, fetched_at, name)
     VALUES (?, ?, ?)

@@ -35,3 +35,9 @@ var GameStatuses = []GameStatus{
 func (s GameStatus) Valid() bool {
 	return slices.Contains(GameStatuses, s)
 }
+
+// StringPtr gives the string pointer value for a game status.
+func (s GameStatus) StringPtr() *string {
+	str := string(s)
+	return &str
+}
