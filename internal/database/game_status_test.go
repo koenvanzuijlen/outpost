@@ -2,7 +2,7 @@ package database
 
 import "testing"
 
-func TestValid(t *testing.T) {
+func TestGameStatusValid(t *testing.T) {
 	tests := []struct {
 		name   string
 		status GameStatus
