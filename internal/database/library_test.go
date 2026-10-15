@@ -36,6 +36,55 @@ func TestGetLibraryGameCollection(t *testing.T) {
 	if row.Platforms[0].Name != "Xbox" {
 		t.Errorf("Platform.Name = %v, want %v", row.Platforms[0].Name, "Xbox")
 	}
+	if len(row.Playthroughs) != 0 {
+		t.Errorf("len(Playthroughs) = %d, want 0", len(row.Playthroughs))
+	}
+}
+
+func TestGetLibraryGameWithPlaythroughs(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	platformIGDBID := int64(11)
+
+	// Add a game to the user's collection before attempting to retrieve it
+	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(platformIGDBID, "Xbox"), 1, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("AddToCollection() failed: %v", err)
+	}
+
+	name := "Test Playthrough newer"
+	_, err = store.StartPlaythrough(ctx, 1, 100, &platformIGDBID, &name, time.Now().UTC().Add(time.Hour))
+	if err != nil {
+		t.Fatalf("StartPlaythrough() failed: %v", err)
+	}
+
+	name = "Test Playthrough older"
+	_, err = store.StartPlaythrough(ctx, 1, 100, nil, &name, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("StartPlaythrough() failed: %v", err)
+	}
+
+	// Attempt to retrieve the row from the library
+	row, err := store.GetLibraryGame(ctx, 1, 100)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if len(row.Playthroughs) != 2 {
+		t.Fatalf("len(Playthroughs) = %d, want 2", len(row.Playthroughs))
+	}
+	// Should be ordered by the time they were started, with the newest first
+	if row.Playthroughs[0].Playthrough.Name == nil || *row.Playthroughs[0].Playthrough.Name != "Test Playthrough newer" {
+		t.Errorf("Playthroughs[0].Name = %v, want %v", derefOrNil(row.Playthroughs[0].Playthrough.Name), "Test Playthrough newer")
+	}
+	if row.Playthroughs[0].PlatformName == nil || *row.Playthroughs[0].PlatformName != "Xbox" {
+		t.Errorf("Playthroughs[0].PlatformName = %v, want %v", derefOrNil(row.Playthroughs[0].PlatformName), "Xbox")
+	}
+	if row.Playthroughs[1].Playthrough.Name == nil || *row.Playthroughs[1].Playthrough.Name != "Test Playthrough older" {
+		t.Errorf("Playthroughs[1].Name = %v, want %v", derefOrNil(row.Playthroughs[1].Playthrough.Name), "Test Playthrough older")
+	}
+	if row.Playthroughs[1].PlatformName != nil {
+		t.Errorf("Playthroughs[1].PlatformName = %v, want %v", derefOrNil(row.Playthroughs[1].PlatformName), nil)
+	}
 }
 
 func TestGetLibraryGameWishlist(t *testing.T) {

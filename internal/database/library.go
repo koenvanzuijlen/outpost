@@ -12,12 +12,13 @@ import (
 // ErrUserGameNotFound is returned when a game is not found in the user's library.
 var ErrUserGameNotFound = errors.New("game not found in library")
 
-// LibraryGame represents a game in the user's library, including the game details, the user's game entry, and the
-// platforms the user owns it on.
+// LibraryGame represents a game in the user's library, including the game details, the user's game entry, the platforms
+// the user owns it on, and the playthroughs associated with the game.
 type LibraryGame struct {
-	Game      dbgen.Game
-	UserGame  dbgen.UserGame
-	Platforms []dbgen.Platform
+	Game         dbgen.Game
+	UserGame     dbgen.UserGame
+	Platforms    []dbgen.Platform
+	Playthroughs []dbgen.ListPlaythroughsForUserGameIDRow
 }
 
 // GetLibraryGame retrieves a game from the user's library by its IGDB ID. Returns ErrUserGameNotFound if the game is
@@ -39,10 +40,16 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 		return LibraryGame{}, fmt.Errorf("list owned platforms: %w", err)
 	}
 
+	playthroughs, err := s.queries.ListPlaythroughsForUserGameID(ctx, row.UserGame.ID)
+	if err != nil {
+		return LibraryGame{}, fmt.Errorf("list playthroughs: %w", err)
+	}
+
 	return LibraryGame{
-		Game:      row.Game,
-		UserGame:  row.UserGame,
-		Platforms: platforms,
+		Game:         row.Game,
+		UserGame:     row.UserGame,
+		Platforms:    platforms,
+		Playthroughs: playthroughs,
 	}, nil
 }
 
