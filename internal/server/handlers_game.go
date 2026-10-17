@@ -77,15 +77,10 @@ func (server *Server) handleUpdateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ratingValue := r.PostFormValue("rating")
-	var rating *int64
-	if ratingValue != "" {
-		ratingParsed, err := strconv.ParseInt(ratingValue, 10, 64)
-		if err != nil || ratingParsed <= 0 || ratingParsed > 10 {
-			http.Error(w, "Invalid rating", http.StatusBadRequest)
-			return
-		}
-		rating = &ratingParsed
+	rating, ok := formOptionalPositiveInt(r, "rating")
+	if !ok || (rating != nil && *rating > 10) {
+		http.Error(w, "Invalid rating", http.StatusBadRequest)
+		return
 	}
 
 	err := server.store.UpdateStatusAndRating(r.Context(), defaultUserID, igdbID, status, rating)

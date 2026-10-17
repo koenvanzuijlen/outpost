@@ -19,15 +19,10 @@ func (server *Server) handleStartPlaythrough(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	platformValue := r.PostFormValue("platform")
-	var platformIGDBID *int64
-	if platformValue != "" {
-		platformParsed, err := strconv.ParseInt(platformValue, 10, 64)
-		if err != nil || platformParsed <= 0 {
-			http.Error(w, "Invalid platform", http.StatusBadRequest)
-			return
-		}
-		platformIGDBID = &platformParsed
+	platformIGDBID, ok := formOptionalPositiveInt(r, "platform")
+	if !ok {
+		http.Error(w, "Invalid platform", http.StatusBadRequest)
+		return
 	}
 
 	name := ptrIfNonZero(strings.TrimSpace(r.PostFormValue("name")))

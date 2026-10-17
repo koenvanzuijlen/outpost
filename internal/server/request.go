@@ -13,3 +13,19 @@ func pathID(r *http.Request, name string) (int64, bool) {
 	}
 	return value, true
 }
+
+// formOptionalPositiveInt extracts an optional positive integer from the form values. It returns a pointer to the
+// integer and a boolean indicating success. An empty form value is considered valid and results in nil and true. If the
+// form value can't be parsed as a positive integer, it returns nil and false.
+func formOptionalPositiveInt(r *http.Request, name string) (*int64, bool) {
+	formValue := r.PostFormValue(name)
+	var value *int64
+	if formValue != "" {
+		parsed, err := strconv.ParseInt(formValue, 10, 64)
+		if err != nil || parsed <= 0 {
+			return nil, false
+		}
+		value = &parsed
+	}
+	return value, true
+}
