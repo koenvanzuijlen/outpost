@@ -37,8 +37,8 @@ type gamePage struct {
 
 // handleGame serves the detail page for a game in the user's library.
 func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
-	igdbID, err := strconv.ParseInt(r.PathValue("igdbID"), 10, 64)
-	if err != nil || igdbID <= 0 {
+	igdbID, ok := pathID(r, "igdbID")
+	if !ok {
 		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
 		return
 	}
@@ -65,8 +65,8 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 
 // handleUpdateGame processes updates to a game's status and rating in the user's library.
 func (server *Server) handleUpdateGame(w http.ResponseWriter, r *http.Request) {
-	igdbID, err := strconv.ParseInt(r.PathValue("igdbID"), 10, 64)
-	if err != nil || igdbID <= 0 {
+	igdbID, ok := pathID(r, "igdbID")
+	if !ok {
 		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
 		return
 	}
@@ -88,7 +88,7 @@ func (server *Server) handleUpdateGame(w http.ResponseWriter, r *http.Request) {
 		rating = &ratingParsed
 	}
 
-	err = server.store.UpdateStatusAndRating(r.Context(), defaultUserID, igdbID, status, rating)
+	err := server.store.UpdateStatusAndRating(r.Context(), defaultUserID, igdbID, status, rating)
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
