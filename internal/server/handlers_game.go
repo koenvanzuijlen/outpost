@@ -46,7 +46,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 	libraryGame, err := server.store.GetLibraryGame(r.Context(), defaultUserID, igdbID)
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			http.Error(w, "Game not in library", http.StatusNotFound)
 		} else {
 			server.logger.Error("failed to get library game", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -91,7 +91,7 @@ func (server *Server) handleUpdateGame(w http.ResponseWriter, r *http.Request) {
 	err := server.store.UpdateStatusAndRating(r.Context(), defaultUserID, igdbID, status, rating)
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			http.Error(w, "Game not in library", http.StatusNotFound)
 		} else if errors.Is(err, database.ErrInvalidGameStatus) {
 			http.Error(w, "Invalid game status", http.StatusBadRequest)
 		} else {
