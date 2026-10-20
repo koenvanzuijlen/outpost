@@ -27,6 +27,13 @@ var PlaythroughOutcomes = []PlaythroughOutcome{
 	PlaythroughOutcomeRetired,
 }
 
+// FinishOutcomes contains all playthrough outcomes that indicate the playthrough has finished.
+var FinishOutcomes = []PlaythroughOutcome{
+	PlaythroughOutcomeCompleted,
+	PlaythroughOutcomeAbandoned,
+	PlaythroughOutcomeRetired,
+}
+
 // Valid checks if the given outcome is a valid playthrough outcome.
 func (o PlaythroughOutcome) Valid() bool {
 	return slices.Contains(PlaythroughOutcomes, o)

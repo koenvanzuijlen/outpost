@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -97,6 +98,61 @@ func TestHandleGameInLibraryWishlisted(t *testing.T) {
 	}
 	if strings.Contains(w.Body.String(), "name=\"status\"") {
 		t.Errorf("body should not contain update form for wishlisted game: %s", w.Body.String())
+	}
+	if strings.Contains(w.Body.String(), "/playthroughs") {
+		t.Errorf("body should not contain playthroughs for wishlisted game: %s", w.Body.String())
+	}
+}
+
+func TestHandleGameActivePlaythrough(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "Hard mode run", "11")
+
+	req := httptest.NewRequest(http.MethodGet, "/games/740", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+	if !strings.Contains(w.Body.String(), "Hard mode run") {
+		t.Errorf("body does not contain expected content: %s", w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "Platform: Xbox") {
+		t.Errorf("body does not contain expected content: %s", w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), fmt.Sprintf("/games/740/playthroughs/%d/finish", playthroughID)) {
+		t.Errorf("body does not contain expected content: %s", w.Body.String())
+	}
+}
+
+func TestHandleGameFinishedPlaythrough(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "Hard mode run", "11")
+
+	w := postForm(t, server, fmt.Sprintf("/games/740/playthroughs/%d/finish", playthroughID), "outcome=abandoned")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("finish playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/games/740", nil)
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+	if !strings.Contains(w.Body.String(), "Hard mode run") {
+		t.Errorf("body does not contain expected content: %s", w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "Platform: Xbox") {
+		t.Errorf("body does not contain expected content: %s", w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "Outcome: abandoned") {
+		t.Errorf("body does not contain expected content: %s", w.Body.String())
+	}
+	if strings.Contains(w.Body.String(), fmt.Sprintf("games/740/playthroughs/%d/finish", playthroughID)) {
+		t.Errorf("body should not contain finish form: %s", w.Body.String())
 	}
 }
 

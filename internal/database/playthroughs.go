@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
@@ -82,7 +83,7 @@ func (s *Store) FinishPlaythrough(
 	outcome PlaythroughOutcome,
 	finishedAt time.Time,
 ) error {
-	if !outcome.Valid() || outcome == PlaythroughOutcomePlaying {
+	if !slices.Contains(FinishOutcomes, outcome) {
 		return ErrInvalidPlaythroughOutcome
 	}
 

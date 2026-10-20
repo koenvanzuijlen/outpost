@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -117,7 +118,7 @@ func TestHandleStartPlaythroughWishlisted(t *testing.T) {
 }
 
 // startTestPlaythrough adds game 740 to the collection, starts a playthrough for it and returns the playthrough ID.
-func startTestPlaythrough(t *testing.T, server *Server) int64 {
+func startTestPlaythrough(t *testing.T, server *Server, name, platformIGDBID string) int64 {
 	t.Helper()
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
 	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
@@ -125,7 +126,8 @@ func startTestPlaythrough(t *testing.T, server *Server) int64 {
 		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	w = postForm(t, server, "/games/740/playthroughs", "")
+	form := url.Values{"name": {name}, "platform": {platformIGDBID}}.Encode()
+	w = postForm(t, server, "/games/740/playthroughs", form)
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -146,7 +148,7 @@ func TestHandleFinishPlaythrough(t *testing.T) {
 	for _, outcome := range tests {
 		t.Run(outcome, func(t *testing.T) {
 			server := newTestServer(t)
-			playthroughID := startTestPlaythrough(t, server)
+			playthroughID := startTestPlaythrough(t, server, "", "")
 
 			path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/finish"
 			w := postForm(t, server, path, "outcome="+outcome)
@@ -186,7 +188,7 @@ func TestHandleFinishPlaythroughValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
-			playthroughID := startTestPlaythrough(t, server)
+			playthroughID := startTestPlaythrough(t, server, "", "")
 
 			path := strings.ReplaceAll(tt.path, "{id}", strconv.FormatInt(playthroughID, 10))
 			w := postForm(t, server, path, tt.body)
@@ -199,7 +201,7 @@ func TestHandleFinishPlaythroughValidation(t *testing.T) {
 
 func TestHandleFinishPlaythroughUnknownPlaythrough(t *testing.T) {
 	server := newTestServer(t)
-	playthroughID := startTestPlaythrough(t, server)
+	playthroughID := startTestPlaythrough(t, server, "", "")
 
 	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID+1, 10) + "/finish"
 	w := postForm(t, server, path, "outcome=completed")

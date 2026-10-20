@@ -38,6 +38,46 @@
 				<button type="submit">Save</button>
 			</form>
 		</div>
+		<div>
+			<h2>Playthroughs</h2>
+			<ul>
+				{{range .LibraryGame.Playthroughs}}
+					<li>
+						{{with .Playthrough.Name}}<p>{{.}}</p>{{end}}
+						{{with .PlatformName}}<p>Platform: {{.}}</p>{{end}}
+						<p>Outcome: {{.Playthrough.Outcome}}</p>
+						{{with .Playthrough.StartedAt}}<p>Started: {{.Format "2 January 2006"}}</p>{{end}}
+						{{with .Playthrough.FinishedAt}}<p>Finished: {{.Format "2 January 2006"}}</p>{{end}}
+						{{if eq .Playthrough.Outcome "playing"}}
+							<form method="post" action="/games/{{$.LibraryGame.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/finish">
+								{{range $.FinishOutcomes}}
+									<button type="submit" name="outcome" value="{{.}}">{{.}}</button>
+								{{end}}
+							</form>
+						{{end}}
+					</li>
+				{{else}}
+					<li>No playthroughs yet.</li>
+				{{end}}
+			</ul>
+		</div>
+		<div>
+			<form method="post" action="/games/{{.LibraryGame.Game.IgdbID}}/playthroughs">
+				<h3>Start a new playthrough</h3>
+				<label>Playthrough name
+					<input type="text" name="name">
+				</label>
+				<label>Platform 
+					<select name="platform">
+						<option value="">No platform</option>
+						{{range .LibraryGame.Platforms}}
+							<option value="{{.IgdbID}}">{{.Name}}</option>
+						{{end}}
+					</select>
+				</label>
+				<button type="submit">Start</button>
+			</form>
+		</div>
 	{{end}}
 	<a href="/">Back to library</a>
 {{end}}
