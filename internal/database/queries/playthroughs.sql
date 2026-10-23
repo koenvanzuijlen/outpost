@@ -28,3 +28,8 @@ WHERE
     AND user_game_id = ?
     AND outcome = 'playing';
 
+-- name: DeletePlaythrough :execrows
+DELETE FROM playthroughs
+WHERE id = ?
+    AND user_game_id = ?;
+

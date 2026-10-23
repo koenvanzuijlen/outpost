@@ -44,6 +44,25 @@ func (q *Queries) CreatePlaythrough(ctx context.Context, arg CreatePlaythroughPa
 	return i, err
 }
 
+const deletePlaythrough = `-- name: DeletePlaythrough :execrows
+DELETE FROM playthroughs
+WHERE id = ?
+    AND user_game_id = ?
+`
+
+type DeletePlaythroughParams struct {
+	ID         int64
+	UserGameID int64
+}
+
+func (q *Queries) DeletePlaythrough(ctx context.Context, arg DeletePlaythroughParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deletePlaythrough, arg.ID, arg.UserGameID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const finishPlaythrough = `-- name: FinishPlaythrough :execrows
 UPDATE
     playthroughs

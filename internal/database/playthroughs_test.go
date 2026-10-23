@@ -236,3 +236,99 @@ func TestFinishPlaythroughOtherGame(t *testing.T) {
 		t.Fatalf("err = %v, want %v", err, ErrPlaythroughNotFound)
 	}
 }
+
+func TestDeletePlaythrough(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+
+	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("AddToCollection() failed: %v", err)
+	}
+
+	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("StartPlaythrough() failed: %v", err)
+	}
+
+	err = store.DeletePlaythrough(ctx, 1, 100, pt.ID)
+	if err != nil {
+		t.Fatalf("DeletePlaythrough() failed: %v", err)
+	}
+
+	pts, err := store.queries.ListPlaythroughsForUserGameID(ctx, pt.UserGameID)
+	if err != nil {
+		t.Fatalf("ListPlaythroughsForUserGameID() failed: %v", err)
+	}
+	if len(pts) != 0 {
+		t.Fatalf("len(pts) = %d, want 0", len(pts))
+	}
+
+	game, err := store.GetLibraryGame(ctx, 1, 100)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if game.UserGame.Status == nil || *game.UserGame.Status != "playing" {
+		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(game.UserGame.Status), "playing")
+	}
+}
+
+func TestDeletePlaythroughTwice(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+
+	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("AddToCollection() failed: %v", err)
+	}
+
+	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("StartPlaythrough() failed: %v", err)
+	}
+
+	err = store.DeletePlaythrough(ctx, 1, 100, pt.ID)
+	if err != nil {
+		t.Fatalf("DeletePlaythrough() failed: %v", err)
+	}
+
+	err = store.DeletePlaythrough(ctx, 1, 100, pt.ID)
+	if !errors.Is(err, ErrPlaythroughNotFound) {
+		t.Fatalf("err = %v, want %v", err, ErrPlaythroughNotFound)
+	}
+}
+
+func TestDeletePlaythroughOtherGame(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	platform := newPlatformParams(11, "Xbox")
+
+	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), platform, 1, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("AddToCollection() failed: %v", err)
+	}
+	_, err = store.AddToCollection(ctx, newGameParams(101, "Test Game 2"), platform, 1, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("AddToCollection() failed: %v", err)
+	}
+
+	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("StartPlaythrough() failed: %v", err)
+	}
+
+	err = store.DeletePlaythrough(ctx, 1, 101, pt.ID)
+	if !errors.Is(err, ErrPlaythroughNotFound) {
+		t.Fatalf("err = %v, want %v", err, ErrPlaythroughNotFound)
+	}
+}
+
+func TestDeletePlaythroughNotInLibrary(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+
+	err := store.DeletePlaythrough(ctx, 1, 100, 1)
+	if !errors.Is(err, ErrUserGameNotFound) {
+		t.Fatalf("err = %v, want %v", err, ErrUserGameNotFound)
+	}
+}

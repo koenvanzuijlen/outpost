@@ -125,3 +125,30 @@ func (s *Store) FinishPlaythrough(
 	}
 	return nil
 }
+
+// DeletePlaythrough deletes an existing playthrough for a user's game, the user game status remains unchanged. Returns
+// ErrPlaythroughNotFound, ErrUserGameNotFound, or another error if the operation fails.
+func (s *Store) DeletePlaythrough(
+	ctx context.Context,
+	userID,
+	igdbID,
+	playthroughID int64,
+) error {
+	row, err := getOwnedUserGame(ctx, s.queries, userID, igdbID)
+	if err != nil {
+		return fmt.Errorf("get owned user game: %w", err)
+	}
+
+	rows, err := s.queries.DeletePlaythrough(ctx, dbgen.DeletePlaythroughParams{
+		ID:         playthroughID,
+		UserGameID: row.UserGame.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("delete playthrough: %w", err)
+	}
+	if rows == 0 {
+		return ErrPlaythroughNotFound
+	}
+
+	return nil
+}

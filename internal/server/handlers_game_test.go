@@ -124,6 +124,9 @@ func TestHandleGameActivePlaythrough(t *testing.T) {
 	if !strings.Contains(w.Body.String(), fmt.Sprintf("/games/740/playthroughs/%d/finish", playthroughID)) {
 		t.Errorf("body does not contain expected content: %s", w.Body.String())
 	}
+	if !strings.Contains(w.Body.String(), fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID)) {
+		t.Errorf("body does not contain expected content: %s", w.Body.String())
+	}
 }
 
 func TestHandleGameFinishedPlaythrough(t *testing.T) {
@@ -153,6 +156,9 @@ func TestHandleGameFinishedPlaythrough(t *testing.T) {
 	}
 	if strings.Contains(w.Body.String(), fmt.Sprintf("games/740/playthroughs/%d/finish", playthroughID)) {
 		t.Errorf("body should not contain finish form: %s", w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID)) {
+		t.Errorf("body does not contain expected content: %s", w.Body.String())
 	}
 }
 

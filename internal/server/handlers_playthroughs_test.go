@@ -209,3 +209,68 @@ func TestHandleFinishPlaythroughUnknownPlaythrough(t *testing.T) {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
 	}
 }
+
+func TestHandleDeletePlaythrough(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "", "")
+
+	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/delete"
+	w := postForm(t, server, path, "")
+	if w.Code != http.StatusSeeOther {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	location := w.Header().Get("Location")
+	if location != "/games/740" {
+		t.Errorf("Location header = %q, want %q", location, "/games/740")
+	}
+
+	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if len(libraryGame.Playthroughs) != 0 {
+		t.Errorf("playthroughs = %v, want empty", libraryGame.Playthroughs)
+	}
+}
+
+func TestHandleDeletePlaythroughUnknown(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "", "")
+
+	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID+1, 10) + "/delete"
+	w := postForm(t, server, path, "")
+	if w.Code != http.StatusSeeOther {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	location := w.Header().Get("Location")
+	if location != "/games/740" {
+		t.Errorf("Location header = %q, want %q", location, "/games/740")
+	}
+
+	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if len(libraryGame.Playthroughs) != 1 {
+		t.Errorf("playthroughs = %v, want 1", libraryGame.Playthroughs)
+	}
+}
+
+func TestHandleDeletePlaythroughInvalid(t *testing.T) {
+	server := newTestServer(t)
+	_ = startTestPlaythrough(t, server, "", "")
+
+	path := "/games/740/playthroughs/abc/delete"
+	w := postForm(t, server, path, "")
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+
+	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if len(libraryGame.Playthroughs) != 1 {
+		t.Errorf("playthroughs = %v, want 1", libraryGame.Playthroughs)
+	}
+}

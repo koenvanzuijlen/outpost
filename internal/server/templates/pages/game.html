@@ -55,6 +55,12 @@
 								{{end}}
 							</form>
 						{{end}}
+						<details>
+							<summary>Delete</summary>
+							<form method="post" action="/games/{{$.LibraryGame.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/delete">
+								<button type="submit">Confirm deletion</button>
+							</form>
+						</details>
 					</li>
 				{{else}}
 					<li>No playthroughs yet.</li>

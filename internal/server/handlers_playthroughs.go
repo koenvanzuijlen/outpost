@@ -77,3 +77,32 @@ func (server *Server) handleFinishPlaythrough(w http.ResponseWriter, r *http.Req
 
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
 }
+
+// handleDeletePlaythrough handles the HTTP request to delete an existing playthrough for a game. It expects the IGDB ID
+// of the game and the playthrough ID as path parameters.
+func (server *Server) handleDeletePlaythrough(w http.ResponseWriter, r *http.Request) {
+	igdbID, ok := pathID(r, "igdbID")
+	if !ok {
+		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		return
+	}
+
+	playthroughID, ok := pathID(r, "playthroughID")
+	if !ok {
+		http.Error(w, "Invalid playthrough ID", http.StatusBadRequest)
+		return
+	}
+
+	err := server.store.DeletePlaythrough(r.Context(), defaultUserID, igdbID, playthroughID)
+	if err != nil && !errors.Is(err, database.ErrPlaythroughNotFound) {
+		if errors.Is(err, database.ErrUserGameNotFound) {
+			http.Error(w, "Game not in library", http.StatusNotFound)
+		} else {
+			server.logger.Error("failed to delete playthrough", "error", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
+}
