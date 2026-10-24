@@ -11,22 +11,38 @@ ORDER BY
     pt.started_at DESC,
     pt.id DESC;
 
+-- name: GetPlaythrough :one
+SELECT
+    *
+FROM
+    playthroughs
+WHERE
+    id = ?
+    AND user_game_id = ?;
+
+-- name: CountPlayingPlaythroughs :one
+SELECT
+    COUNT(*)
+FROM
+    playthroughs
+WHERE
+    user_game_id = ?
+    AND outcome = 'playing';
+
 -- name: CreatePlaythrough :one
 INSERT INTO playthroughs(user_game_id, platform_id, name, started_at, outcome)
     VALUES (?, ?, ?, ?, 'playing')
 RETURNING
     *;
 
--- name: FinishPlaythrough :execrows
+-- name: UpdatePlaythroughOutcome :exec
 UPDATE
     playthroughs
 SET
     outcome = ?,
     finished_at = ?
 WHERE
-    id = ?
-    AND user_game_id = ?
-    AND outcome = 'playing';
+    id = ?;
 
 -- name: DeletePlaythrough :execrows
 DELETE FROM playthroughs

@@ -41,3 +41,11 @@ func (s GameStatus) StringPtr() *string {
 	str := string(s)
 	return &str
 }
+
+// gameStatusFrom converts a string pointer to a GameStatus. If the pointer is nil, it returns an empty GameStatus.
+func gameStatusFrom(s *string) GameStatus {
+	if s == nil {
+		return ""
+	}
+	return GameStatus(*s)
+}

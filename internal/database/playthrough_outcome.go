@@ -3,6 +3,7 @@ package database
 import (
 	"errors"
 	"slices"
+	"time"
 )
 
 // ErrInvalidPlaythroughOutcome is returned when an invalid playthrough outcome is provided.
@@ -27,14 +28,28 @@ var PlaythroughOutcomes = []PlaythroughOutcome{
 	PlaythroughOutcomeRetired,
 }
 
-// FinishOutcomes contains all playthrough outcomes that indicate the playthrough has finished.
-var FinishOutcomes = []PlaythroughOutcome{
-	PlaythroughOutcomeCompleted,
-	PlaythroughOutcomeAbandoned,
-	PlaythroughOutcomeRetired,
-}
-
 // Valid checks if the given outcome is a valid playthrough outcome.
 func (o PlaythroughOutcome) Valid() bool {
 	return slices.Contains(PlaythroughOutcomes, o)
+}
+
+// finishedAtFor determines the appropriate finished_at timestamp based on the transition of playthrough outcomes.
+func finishedAtFor(from, to PlaythroughOutcome, current *time.Time, now time.Time) *time.Time {
+	if from == PlaythroughOutcomePlaying && to != PlaythroughOutcomePlaying {
+		return &now
+	}
+	if from != PlaythroughOutcomePlaying && to == PlaythroughOutcomePlaying {
+		return nil
+	}
+	return current
+}
+
+// statusAfterOutcomeChange determines the new game status after ending a playthrough, which can be changed only when it
+// ends the last playing playthrough of a game that is playing. Returns the new game status and a boolean indicating if
+// it should change.
+func statusAfterOutcomeChange(from, to PlaythroughOutcome, status GameStatus, otherPlaying int64) (GameStatus, bool) {
+	if from != PlaythroughOutcomePlaying || to == PlaythroughOutcomePlaying || status != GameStatusPlaying || otherPlaying > 0 {
+		return status, false
+	}
+	return GameStatus(to), true
 }

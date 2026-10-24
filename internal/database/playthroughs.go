@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
@@ -14,8 +13,9 @@ import (
 // ErrPlaythroughNotFound is returned when a playthrough is not found in the database.
 var ErrPlaythroughNotFound = errors.New("playthrough not found")
 
-// StartPlaythrough starts a new playthrough for a user's game, it also marks the game status itself as playing. Returns
-// the created playthrough, or ErrPlatformNotFound, ErrUserGameNotFound, or another error if the operation fails.
+// StartPlaythrough starts a new playthrough for a user's game, it also marks the game status itself as playing if it
+// was previously in the backlog. Returns the created playthrough, or ErrPlatformNotFound, ErrUserGameNotFound, or
+// another error if the operation fails.
 func (s *Store) StartPlaythrough(
 	ctx context.Context,
 	userID,
@@ -58,12 +58,14 @@ func (s *Store) StartPlaythrough(
 		return dbgen.Playthrough{}, fmt.Errorf("create playthrough: %w", err)
 	}
 
-	err = q.UpdateUserGameStatus(ctx, dbgen.UpdateUserGameStatusParams{
-		ID:     row.UserGame.ID,
-		Status: GameStatusPlaying.StringPtr(),
-	})
-	if err != nil {
-		return dbgen.Playthrough{}, fmt.Errorf("update user game status: %w", err)
+	if gameStatusFrom(row.UserGame.Status) == GameStatusBacklog {
+		err = q.UpdateUserGameStatus(ctx, dbgen.UpdateUserGameStatusParams{
+			ID:     row.UserGame.ID,
+			Status: GameStatusPlaying.StringPtr(),
+		})
+		if err != nil {
+			return dbgen.Playthrough{}, fmt.Errorf("update user game status: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -72,18 +74,19 @@ func (s *Store) StartPlaythrough(
 	return pt, nil
 }
 
-// FinishPlaythrough finishes an existing playthrough for a user's game, it also updates the game status itself based on
-// the outcome. Returns ErrPlaythroughNotFound, ErrUserGameNotFound, ErrInvalidPlaythroughOutcome, or another error if
-// the operation fails.
-func (s *Store) FinishPlaythrough(
+// SetPlaythroughOutcome sets the outcome of an existing playthrough for a user's game, it also updates the game status
+// itself based on the outcome when it ends the last playing playthrough of a game that is playing. Setting the same
+// outcome again does nothing. Returns ErrPlaythroughNotFound, ErrUserGameNotFound,
+// ErrInvalidPlaythroughOutcome, or another error if the operation fails.
+func (s *Store) SetPlaythroughOutcome(
 	ctx context.Context,
 	userID,
 	igdbID,
 	playthroughID int64,
 	outcome PlaythroughOutcome,
-	finishedAt time.Time,
+	changedAt time.Time,
 ) error {
-	if !slices.Contains(FinishOutcomes, outcome) {
+	if !outcome.Valid() {
 		return ErrInvalidPlaythroughOutcome
 	}
 
@@ -99,25 +102,45 @@ func (s *Store) FinishPlaythrough(
 		return fmt.Errorf("get owned user game: %w", err)
 	}
 
-	rows, err := q.FinishPlaythrough(ctx, dbgen.FinishPlaythroughParams{
+	playthrough, err := q.GetPlaythrough(ctx, dbgen.GetPlaythroughParams{
 		ID:         playthroughID,
 		UserGameID: row.UserGame.ID,
-		Outcome:    string(outcome),
-		FinishedAt: &finishedAt,
 	})
 	if err != nil {
-		return fmt.Errorf("finish playthrough: %w", err)
-	}
-	if rows == 0 {
-		return ErrPlaythroughNotFound
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrPlaythroughNotFound
+		}
+		return fmt.Errorf("get playthrough: %w", err)
 	}
 
-	err = q.UpdateUserGameStatus(ctx, dbgen.UpdateUserGameStatusParams{
-		ID:     row.UserGame.ID,
-		Status: GameStatus(outcome).StringPtr(),
+	currentOutcome := PlaythroughOutcome(playthrough.Outcome)
+	if currentOutcome == outcome {
+		return nil
+	}
+
+	err = q.UpdatePlaythroughOutcome(ctx, dbgen.UpdatePlaythroughOutcomeParams{
+		ID:         playthroughID,
+		Outcome:    string(outcome),
+		FinishedAt: finishedAtFor(currentOutcome, outcome, playthrough.FinishedAt, changedAt),
 	})
 	if err != nil {
-		return fmt.Errorf("update user game status: %w", err)
+		return fmt.Errorf("update playthrough outcome: %w", err)
+	}
+
+	otherPlaying, err := q.CountPlayingPlaythroughs(ctx, row.UserGame.ID)
+	if err != nil {
+		return fmt.Errorf("count playthroughs: %w", err)
+	}
+
+	nextStatus, ok := statusAfterOutcomeChange(currentOutcome, outcome, gameStatusFrom(row.UserGame.Status), otherPlaying)
+	if ok {
+		err = q.UpdateUserGameStatus(ctx, dbgen.UpdateUserGameStatusParams{
+			ID:     row.UserGame.ID,
+			Status: nextStatus.StringPtr(),
+		})
+		if err != nil {
+			return fmt.Errorf("update user game status: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

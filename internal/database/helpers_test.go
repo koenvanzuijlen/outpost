@@ -42,6 +42,25 @@ func newTestStore(t *testing.T) *Store {
 	return db
 }
 
+// addOwnedGame adds a game to user 1's collection on a default platform. It fails the test if the game cannot be added.
+func addOwnedGame(t *testing.T, store *Store, igdbID int64) {
+	t.Helper()
+	_, err := store.AddToCollection(t.Context(), newGameParams(igdbID, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("AddToCollection() failed: %v", err)
+	}
+}
+
+// getLibraryGame retrieves a game from user 1's library. It fails the test if the game cannot be retrieved.
+func getLibraryGame(t *testing.T, store *Store, igdbID int64) LibraryGame {
+	t.Helper()
+	game, err := store.GetLibraryGame(t.Context(), 1, igdbID)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	return game
+}
+
 // derefOrNil returns the value p points to, or nil, so failure messages show a value instead of an address.
 func derefOrNil[T any](p *T) any {
 	if p == nil {

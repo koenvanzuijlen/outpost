@@ -142,7 +142,7 @@ func startTestPlaythrough(t *testing.T, server *Server, name, platformIGDBID str
 	return libraryGame.Playthroughs[0].Playthrough.ID
 }
 
-func TestHandleFinishPlaythrough(t *testing.T) {
+func TestHandleSetPlaythroughOutcome(t *testing.T) {
 	tests := []string{"completed", "abandoned", "retired"}
 
 	for _, outcome := range tests {
@@ -150,10 +150,10 @@ func TestHandleFinishPlaythrough(t *testing.T) {
 			server := newTestServer(t)
 			playthroughID := startTestPlaythrough(t, server, "", "")
 
-			path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/finish"
+			path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/outcome"
 			w := postForm(t, server, path, "outcome="+outcome)
 			if w.Code != http.StatusSeeOther {
-				t.Fatalf("finish playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
+				t.Fatalf("set outcome status = %d, want %d", w.Code, http.StatusSeeOther)
 			}
 			location := w.Header().Get("Location")
 			if location != "/games/740" {
@@ -174,15 +174,38 @@ func TestHandleFinishPlaythrough(t *testing.T) {
 	}
 }
 
-func TestHandleFinishPlaythroughValidation(t *testing.T) {
+func TestHandleSetPlaythroughOutcomeBackToPlaying(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "", "")
+
+	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/outcome"
+	for _, outcome := range []string{"completed", "playing"} {
+		w := postForm(t, server, path, "outcome="+outcome)
+		if w.Code != http.StatusSeeOther {
+			t.Fatalf("set outcome %q status = %d, want %d", outcome, w.Code, http.StatusSeeOther)
+		}
+	}
+
+	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if len(libraryGame.Playthroughs) != 1 {
+		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
+	}
+	if got := libraryGame.Playthroughs[0].Playthrough.Outcome; got != "playing" {
+		t.Errorf("outcome = %q, want %q", got, "playing")
+	}
+}
+
+func TestHandleSetPlaythroughOutcomeValidation(t *testing.T) {
 	tests := []struct {
 		name string
 		path string
 		body string
 	}{
-		{"playing outcome", "/games/740/playthroughs/{id}/finish", "outcome=playing"},
-		{"invalid outcome", "/games/740/playthroughs/{id}/finish", "outcome=invalid"},
-		{"non-numeric playthrough id", "/games/740/playthroughs/abc/finish", "outcome=completed"},
+		{"invalid outcome", "/games/740/playthroughs/{id}/outcome", "outcome=invalid"},
+		{"non-numeric playthrough id", "/games/740/playthroughs/abc/outcome", "outcome=completed"},
 	}
 
 	for _, tt := range tests {
@@ -199,11 +222,11 @@ func TestHandleFinishPlaythroughValidation(t *testing.T) {
 	}
 }
 
-func TestHandleFinishPlaythroughUnknownPlaythrough(t *testing.T) {
+func TestHandleSetPlaythroughOutcomeUnknownPlaythrough(t *testing.T) {
 	server := newTestServer(t)
 	playthroughID := startTestPlaythrough(t, server, "", "")
 
-	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID+1, 10) + "/finish"
+	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID+1, 10) + "/outcome"
 	w := postForm(t, server, path, "outcome=completed")
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)

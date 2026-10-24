@@ -43,9 +43,9 @@ func (server *Server) handleStartPlaythrough(w http.ResponseWriter, r *http.Requ
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
 }
 
-// handleFinishPlaythrough handles the HTTP request to finish an existing playthrough for a game. It expects the IGDB ID
-// of the game and the playthrough ID as path parameters and the outcome as a form value.
-func (server *Server) handleFinishPlaythrough(w http.ResponseWriter, r *http.Request) {
+// handleSetPlaythroughOutcome handles the HTTP request to set the outcome of an existing playthrough for a game. It
+// expects the IGDB ID of the game and the playthrough ID as path parameters and the outcome as a form value.
+func (server *Server) handleSetPlaythroughOutcome(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
 		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
@@ -60,7 +60,7 @@ func (server *Server) handleFinishPlaythrough(w http.ResponseWriter, r *http.Req
 
 	outcome := database.PlaythroughOutcome(r.PostFormValue("outcome"))
 
-	err := server.store.FinishPlaythrough(r.Context(), defaultUserID, igdbID, playthroughID, outcome, time.Now().UTC())
+	err := server.store.SetPlaythroughOutcome(r.Context(), defaultUserID, igdbID, playthroughID, outcome, time.Now().UTC())
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			http.Error(w, "Game not in library", http.StatusNotFound)
@@ -69,7 +69,7 @@ func (server *Server) handleFinishPlaythrough(w http.ResponseWriter, r *http.Req
 		} else if errors.Is(err, database.ErrInvalidPlaythroughOutcome) {
 			http.Error(w, "Invalid playthrough outcome", http.StatusBadRequest)
 		} else {
-			server.logger.Error("failed to finish playthrough", "error", err)
+			server.logger.Error("failed to set playthrough outcome", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return

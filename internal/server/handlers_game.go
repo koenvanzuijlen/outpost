@@ -28,12 +28,12 @@ func ratingOptions() []ratingOption {
 
 // gamePage represents the data needed to render the game detail page.
 type gamePage struct {
-	LibraryGame    database.LibraryGame
-	Statuses       []database.GameStatus
-	CurrentStatus  database.GameStatus
-	RatingOptions  []ratingOption
-	CurrentRating  int64
-	FinishOutcomes []database.PlaythroughOutcome
+	LibraryGame         database.LibraryGame
+	Statuses            []database.GameStatus
+	CurrentStatus       database.GameStatus
+	RatingOptions       []ratingOption
+	CurrentRating       int64
+	PlaythroughOutcomes []database.PlaythroughOutcome
 }
 
 // handleGame serves the detail page for a game in the user's library.
@@ -56,12 +56,12 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	server.render(w, "game.html", gamePage{
-		LibraryGame:    libraryGame,
-		Statuses:       database.GameStatuses,
-		CurrentStatus:  database.GameStatus(derefOrZero(libraryGame.UserGame.Status)),
-		RatingOptions:  ratingOptions(),
-		CurrentRating:  derefOrZero(libraryGame.UserGame.Rating),
-		FinishOutcomes: database.FinishOutcomes,
+		LibraryGame:         libraryGame,
+		Statuses:            database.GameStatuses,
+		CurrentStatus:       database.GameStatus(derefOrZero(libraryGame.UserGame.Status)),
+		RatingOptions:       ratingOptions(),
+		CurrentRating:       derefOrZero(libraryGame.UserGame.Rating),
+		PlaythroughOutcomes: database.PlaythroughOutcomes,
 	})
 }
 

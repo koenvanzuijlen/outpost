@@ -10,6 +10,23 @@ import (
 	"time"
 )
 
+const countPlayingPlaythroughs = `-- name: CountPlayingPlaythroughs :one
+SELECT
+    COUNT(*)
+FROM
+    playthroughs
+WHERE
+    user_game_id = ?
+    AND outcome = 'playing'
+`
+
+func (q *Queries) CountPlayingPlaythroughs(ctx context.Context, userGameID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countPlayingPlaythroughs, userGameID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createPlaythrough = `-- name: CreatePlaythrough :one
 INSERT INTO playthroughs(user_game_id, platform_id, name, started_at, outcome)
     VALUES (?, ?, ?, ?, 'playing')
@@ -63,36 +80,34 @@ func (q *Queries) DeletePlaythrough(ctx context.Context, arg DeletePlaythroughPa
 	return result.RowsAffected()
 }
 
-const finishPlaythrough = `-- name: FinishPlaythrough :execrows
-UPDATE
+const getPlaythrough = `-- name: GetPlaythrough :one
+SELECT
+    id, user_game_id, platform_id, name, outcome, started_at, finished_at
+FROM
     playthroughs
-SET
-    outcome = ?,
-    finished_at = ?
 WHERE
     id = ?
     AND user_game_id = ?
-    AND outcome = 'playing'
 `
 
-type FinishPlaythroughParams struct {
-	Outcome    string
-	FinishedAt *time.Time
+type GetPlaythroughParams struct {
 	ID         int64
 	UserGameID int64
 }
 
-func (q *Queries) FinishPlaythrough(ctx context.Context, arg FinishPlaythroughParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, finishPlaythrough,
-		arg.Outcome,
-		arg.FinishedAt,
-		arg.ID,
-		arg.UserGameID,
+func (q *Queries) GetPlaythrough(ctx context.Context, arg GetPlaythroughParams) (Playthrough, error) {
+	row := q.db.QueryRowContext(ctx, getPlaythrough, arg.ID, arg.UserGameID)
+	var i Playthrough
+	err := row.Scan(
+		&i.ID,
+		&i.UserGameID,
+		&i.PlatformID,
+		&i.Name,
+		&i.Outcome,
+		&i.StartedAt,
+		&i.FinishedAt,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	return i, err
 }
 
 const listPlaythroughsForUserGameID = `-- name: ListPlaythroughsForUserGameID :many
@@ -144,4 +159,25 @@ func (q *Queries) ListPlaythroughsForUserGameID(ctx context.Context, userGameID 
 		return nil, err
 	}
 	return items, nil
+}
+
+const updatePlaythroughOutcome = `-- name: UpdatePlaythroughOutcome :exec
+UPDATE
+    playthroughs
+SET
+    outcome = ?,
+    finished_at = ?
+WHERE
+    id = ?
+`
+
+type UpdatePlaythroughOutcomeParams struct {
+	Outcome    string
+	FinishedAt *time.Time
+	ID         int64
+}
+
+func (q *Queries) UpdatePlaythroughOutcome(ctx context.Context, arg UpdatePlaythroughOutcomeParams) error {
+	_, err := q.db.ExecContext(ctx, updatePlaythroughOutcome, arg.Outcome, arg.FinishedAt, arg.ID)
+	return err
 }

@@ -48,13 +48,12 @@
 						<p>Outcome: {{.Playthrough.Outcome}}</p>
 						{{with .Playthrough.StartedAt}}<p>Started: {{.Format "2 January 2006"}}</p>{{end}}
 						{{with .Playthrough.FinishedAt}}<p>Finished: {{.Format "2 January 2006"}}</p>{{end}}
-						{{if eq .Playthrough.Outcome "playing"}}
-							<form method="post" action="/games/{{$.LibraryGame.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/finish">
-								{{range $.FinishOutcomes}}
-									<button type="submit" name="outcome" value="{{.}}">{{.}}</button>
+							<form method="post" action="/games/{{$.LibraryGame.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/outcome">
+								{{$outcome := .Playthrough.Outcome}}
+								{{range $.PlaythroughOutcomes}}
+									<button type="submit" name="outcome" value="{{.}}" aria-pressed="{{if eq . $outcome}}true{{else}}false{{end}}">{{.}}</button>
 								{{end}}
 							</form>
-						{{end}}
 						<details>
 							<summary>Delete</summary>
 							<form method="post" action="/games/{{$.LibraryGame.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/delete">
