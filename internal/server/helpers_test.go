@@ -76,6 +76,22 @@ func postForm(t *testing.T, server *Server, path, body string) *httptest.Respons
 	return w
 }
 
+// assertBodyContains reports an error if the response body does not contain want.
+func assertBodyContains(t *testing.T, w *httptest.ResponseRecorder, want string) {
+	t.Helper()
+	if !strings.Contains(w.Body.String(), want) {
+		t.Errorf("body does not contain %q", want)
+	}
+}
+
+// assertBodyNotContains reports an error if the response body contains unwanted.
+func assertBodyNotContains(t *testing.T, w *httptest.ResponseRecorder, unwanted string) {
+	t.Helper()
+	if strings.Contains(w.Body.String(), unwanted) {
+		t.Errorf("body unexpectedly contains %q", unwanted)
+	}
+}
+
 // derefOrNil returns the value p points to, or nil, so failure messages show a value instead of an address.
 func derefOrNil[T any](p *T) any {
 	if p == nil {

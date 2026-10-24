@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 )
 
@@ -64,18 +63,10 @@ func TestHandleGameInLibrary(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
 	}
-	if !strings.Contains(w.Body.String(), "Halo: Combat Evolved") {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), "Xbox") {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), "name=\"status\"") {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), "4.5") {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
+	assertBodyContains(t, w, "Halo: Combat Evolved")
+	assertBodyContains(t, w, "Xbox")
+	assertBodyContains(t, w, `name="status"`)
+	assertBodyContains(t, w, "4.5")
 }
 
 func TestHandleGameInLibraryWishlisted(t *testing.T) {
@@ -93,15 +84,9 @@ func TestHandleGameInLibraryWishlisted(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
 	}
-	if !strings.Contains(w.Body.String(), "Halo: Combat Evolved") {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if strings.Contains(w.Body.String(), "name=\"status\"") {
-		t.Errorf("body should not contain update form for wishlisted game: %s", w.Body.String())
-	}
-	if strings.Contains(w.Body.String(), "/playthroughs") {
-		t.Errorf("body should not contain playthroughs for wishlisted game: %s", w.Body.String())
-	}
+	assertBodyContains(t, w, "Halo: Combat Evolved")
+	assertBodyNotContains(t, w, `name="status"`)
+	assertBodyNotContains(t, w, "/playthroughs")
 }
 
 func TestHandleGameActivePlaythrough(t *testing.T) {
@@ -115,18 +100,10 @@ func TestHandleGameActivePlaythrough(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
 	}
-	if !strings.Contains(w.Body.String(), "Hard mode run") {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), "Platform: Xbox") {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), fmt.Sprintf("/games/740/playthroughs/%d/outcome", playthroughID)) {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID)) {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
+	assertBodyContains(t, w, "Hard mode run")
+	assertBodyContains(t, w, "Platform: Xbox")
+	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/outcome", playthroughID))
+	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID))
 }
 
 func TestHandleGameoutcomeedPlaythrough(t *testing.T) {
@@ -145,27 +122,13 @@ func TestHandleGameoutcomeedPlaythrough(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
 	}
-	if !strings.Contains(w.Body.String(), "Hard mode run") {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), "Platform: Xbox") {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), "Outcome: abandoned") {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), `value="abandoned" aria-pressed="true"`) {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), `value="playing" aria-pressed="false"`) {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), fmt.Sprintf("/games/740/playthroughs/%d/outcome", playthroughID)) {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
-	if !strings.Contains(w.Body.String(), fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID)) {
-		t.Errorf("body does not contain expected content: %s", w.Body.String())
-	}
+	assertBodyContains(t, w, "Hard mode run")
+	assertBodyContains(t, w, "Platform: Xbox")
+	assertBodyContains(t, w, "Outcome: abandoned")
+	assertBodyContains(t, w, `value="abandoned" aria-pressed="true"`)
+	assertBodyContains(t, w, `value="playing" aria-pressed="false"`)
+	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/outcome", playthroughID))
+	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID))
 }
 
 func TestHandleUpdateGameValidation(t *testing.T) {
