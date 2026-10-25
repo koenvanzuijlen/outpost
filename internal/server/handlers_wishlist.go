@@ -29,6 +29,11 @@ func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if !game.GameType.Standalone() {
+		http.Error(w, "This game type can't be added to the library", http.StatusBadRequest)
+		return
+	}
+
 	now := time.Now().UTC()
 	err = server.store.AddToWishlist(r.Context(), upsertGameParamsFromIGDB(game, now), defaultUserID, now)
 	if err != nil && !errors.Is(err, database.ErrAlreadyInLibrary) {

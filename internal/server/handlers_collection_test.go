@@ -41,6 +41,7 @@ func TestHandleAddToCollection(t *testing.T) {
 		wantLocation string
 	}{
 		{"added", "igdb_id=740&platform_id=11", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/"},
+		{"dlc game type", "igdb_id=13166&platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}, http.StatusBadRequest, ""},
 		{"game not on platform", "igdb_id=740&platform_id=999", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusBadRequest, ""},
 		{"not found", "igdb_id=740&platform_id=11", &fakeIGDB{gameErr: igdb.ErrGameNotFound}, http.StatusNotFound, ""},
 		{"igdb error", "igdb_id=740&platform_id=11", &fakeIGDB{gameErr: errors.New("IGDB failure")}, http.StatusInternalServerError, ""},
@@ -59,6 +60,18 @@ func TestHandleAddToCollection(t *testing.T) {
 			location := w.Header().Get("Location")
 			if location != tt.wantLocation {
 				t.Errorf("location = %q, want %q", location, tt.wantLocation)
+			}
+
+			ownedCopies, err := server.store.ListCollection(t.Context(), defaultUserID)
+			if err != nil {
+				t.Fatalf("ListCollection() failed: %v", err)
+			}
+			wantCount := 0
+			if tt.wantStatus == http.StatusSeeOther {
+				wantCount = 1
+			}
+			if len(ownedCopies) != wantCount {
+				t.Errorf("number of owned copies = %d, want %d", len(ownedCopies), wantCount)
 			}
 		})
 	}

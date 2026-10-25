@@ -1,0 +1,40 @@
+[
+  {
+    "id": 13166,
+    "cover": {
+      "id": 121128,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co2lgo.jpg"
+    },
+    "first_release_date": 1464566400,
+    "name": "The Witcher 3: Wild Hunt - Blood and Wine",
+    "parent_game": 1942,
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 167,
+        "name": "PlayStation 5"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      },
+      {
+        "id": 130,
+        "name": "Nintendo Switch"
+      }
+    ],
+    "summary": "Blood and Wine is the second major expansion to The Witcher 3: Wild Hunt.\n\nThe players will accompany Geralt of Rivia to the region of Toussaint, one of the few places in the Witcher universe which has remained largely untouched by the war. The calm, laid-back atmosphere holds a dark and bloody secret that only the White Wolf can uncover; the expansion features new items for players to collect on their adventure and introduces previously unknown characters.",
+    "game_type": 2
+  }
+]

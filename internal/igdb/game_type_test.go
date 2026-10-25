@@ -21,3 +21,36 @@ func TestGameTypeString(t *testing.T) {
 		})
 	}
 }
+
+func TestGameTypeStandalone(t *testing.T) {
+	tests := []struct {
+		name     string
+		gameType GameType
+		want     bool
+	}{
+		{"main game", GameTypeMain, true},
+		{"fork", GameTypeFork, true},
+		{"dlc", GameTypeDLCAddon, false},
+		{"bundle", GameTypeBundle, false},
+		{"update", GameTypeUpdate, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.gameType.Standalone()
+			if got != tt.want {
+				t.Errorf("Standalone() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGameTypeStandaloneDisjointFromDLC(t *testing.T) {
+	// DLCGameTypes and StandaloneGameTypes do not contain same types
+	for _, gt := range StandaloneGameTypes {
+		for _, dlcGT := range DLCGameTypes {
+			if gt == dlcGT {
+				t.Errorf("%v is in both StandaloneGameTypes and DLCGameTypes", gt)
+			}
+		}
+	}
+}

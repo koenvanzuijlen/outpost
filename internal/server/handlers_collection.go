@@ -37,6 +37,11 @@ func (server *Server) handleAddToCollection(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if !game.GameType.Standalone() {
+		http.Error(w, "This game type can't be added to the library", http.StatusBadRequest)
+		return
+	}
+
 	platformIndex := slices.IndexFunc(game.Platforms, func(p igdb.Platform) bool { return p.ID == platformID })
 	if platformIndex == -1 {
 		http.Error(w, "Game not available for this platform", http.StatusBadRequest)

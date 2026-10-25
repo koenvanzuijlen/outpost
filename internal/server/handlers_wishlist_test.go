@@ -40,3 +40,25 @@ func TestHandleAddToWishlist(t *testing.T) {
 		t.Errorf("location header = %q, want %q", location, "/")
 	}
 }
+
+func TestHandleAddToWishlistDLC(t *testing.T) {
+	server := newTestServer(t)
+	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}
+	w := postForm(t, server, "/wishlist", "igdb_id=13166")
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+	location := w.Header().Get("Location")
+	if location != "" {
+		t.Errorf("location header = %q, want empty", location)
+	}
+
+	wishlist, err := server.store.ListWishlist(t.Context(), defaultUserID)
+	if err != nil {
+		t.Fatalf("ListWishlist() failed: %v", err)
+	}
+	if len(wishlist) != 0 {
+		t.Errorf("number of wishlisted games = %d, want 0", len(wishlist))
+	}
+}

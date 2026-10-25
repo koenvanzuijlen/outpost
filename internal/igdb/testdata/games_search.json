@@ -72,48 +72,6 @@
     "game_type": 0
   },
   {
-    "id": 163108,
-    "cover": {
-      "id": 333217,
-      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co7541.jpg"
-    },
-    "first_release_date": 1262217600,
-    "name": "Halo 3 + Halo Wars",
-    "platforms": [
-      {
-        "id": 12,
-        "name": "Xbox 360"
-      }
-    ],
-    "summary": "This bundle contains:\n\n- Halo 3\n- Halo Wars",
-    "game_type": 3
-  },
-  {
-    "id": 7348,
-    "cover": {
-      "id": 84569,
-      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co1t95.jpg"
-    },
-    "first_release_date": 1415664000,
-    "name": "Halo: The Master Chief Collection",
-    "platforms": [
-      {
-        "id": 169,
-        "name": "Xbox Series X|S"
-      },
-      {
-        "id": 6,
-        "name": "PC (Microsoft Windows)"
-      },
-      {
-        "id": 49,
-        "name": "Xbox One"
-      }
-    ],
-    "summary": "The improved and enhanced Halo: The Master Chief Collection features visual enhancements with up to 4K UHD resolution, improved matchmaking, offline LAN, customizable installation options, and faster load times, it’s the definitive way to experience the ultimate Halo saga. Includes the extensive suite of campaign, multiplayer and additional features from Halo: Combat Evolved Anniversary, Halo 2: Anniversary, Halo 3, and Halo 4 - all updated to run at 60FPS.",
-    "game_type": 3
-  },
-  {
     "id": 103281,
     "cover": {
       "id": 111228,
@@ -164,24 +122,6 @@
     "game_type": 0
   },
   {
-    "id": 324563,
-    "cover": {
-      "id": 425489,
-      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co94b5.jpg"
-    },
-    "first_release_date": 1732579200,
-    "name": "Halo: Combat Evolved VR",
-    "parent_game": 740,
-    "platforms": [
-      {
-        "id": 6,
-        "name": "PC (Microsoft Windows)"
-      }
-    ],
-    "summary": "A virtual reality conversion mod for the original PC version of Halo: Combat Evolved.",
-    "game_type": 5
-  },
-  {
     "id": 43955,
     "cover": {
       "id": 129808,
@@ -196,6 +136,90 @@
       }
     ],
     "summary": "The set includes:\n\n- A scaled-down replica model of a MJOLNIR Mark VI helmet.\n- A plastic holder for the three discs.\n- Three discs:\n-- Disc One is the game itself, Halo 3.\n-- Disc Two is the same Xbox 360 game disc that was in the Halo 3 Limited Collector's Edition.\n-- Disc Three, which is exclusive to the Legendary Edition, contains the cutscenes from Halo: Combat Evolved and Halo 2 in chronological order, with optional developer commentary featuring Joseph Staten, Martin O'Donnell, and Jason Jones. Also included on the disc is a guide to the 7 Steps to World Domination plan, included in a short history of Bungie, as well as a documentary chronicling Cortana voice actor Jen Taylor as she learns about the Bungie fan community. Also included was an episode of This Spartan Life which included footage made in Halo 3, and two episodes of Red vs Blue, \"The Call\" and a special edition of Red vs Blue Episode I. Included in the special edition of Red vs Blue Episode I was a short mockumentary about the time leading up to the creation of the series. Also on this disc is the expanded digital Bestiarum and also the surround sound test carried over from Halo 2.",
+    "game_type": 0
+  },
+  {
+    "id": 129018,
+    "cover": {
+      "id": 121533,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co2lrx.jpg"
+    },
+    "first_release_date": 1578009600,
+    "name": "Halo Beats!",
+    "platforms": [
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      }
+    ],
+    "summary": "＊これは、天使の輪っかの形をテーマにした音ゲーです ノーツが赤い判定線に重なったら、色に合わせてタップしましょう ハープちゃん達が天使の輪っかの輝きを、音楽の力を使って取り戻すストーリーが今始まろうとしてます…",
+    "game_type": 0
+  },
+  {
+    "id": 989,
+    "cover": {
+      "id": 90053,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co1xhh.jpg"
+    },
+    "first_release_date": 1253577600,
+    "name": "Halo 3: ODST",
+    "platforms": [
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 12,
+        "name": "Xbox 360"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
+    "summary": "Halo 3: ODST is a first-person shooter set in New Mombasa during the Covenant invasion. The campaign follows the Rookie, an Orbital Drop Shock Trooper, as he searches the city and reconstructs the events that separated his squad.\n\nThe game includes the complete Halo 3 multiplayer map collection, with three additional maps, and introduces Firefight, a cooperative mode in which players face waves of Covenant enemies.",
+    "game_type": 0
+  },
+  {
+    "id": 392735,
+    "cover": {
+      "id": 543539,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/cobneb.jpg"
+    },
+    "first_release_date": 1295827200,
+    "name": "Halo and Pixy",
+    "platforms": [
+      {
+        "id": 82,
+        "name": "Web browser"
+      }
+    ],
+    "summary": "Help Pixy to save the cat.",
+    "game_type": 0
+  },
+  {
+    "id": 987,
+    "cover": {
+      "id": 90048,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co1xhc.jpg"
+    },
+    "first_release_date": 1190678400,
+    "name": "Halo 3",
+    "platforms": [
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 12,
+        "name": "Xbox 360"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
+    "summary": "Halo 3 is a shooter game where players primarily experience gameplay from a first-person perspective. Much of the gameplay takes place on foot, but also includes segments focused on vehicular combat. The balance of weapons and objects in the game was adjusted to better adhere to the \"Golden Triangle of Halo\": these are weapons, grenades, and melee attacks, which are available to a player in most situations. Players may dual-wield some weapons, forgoing the use of grenades and melee attacks in favor of the combined firepower of two weapons. Many weapons available in previous installments of the series return with minor cosmetic and power alterations. Unlike previous installments, the player's secondary weapon is visible on their player model, holstered or slung across the player's back.\nHalo 3 introduces \"support weapons\", which are cumbersome two-handed weapons that slow the player, but offer greatly increased firepower in return. In addition to weapons, the game contains a new class of gear called equipment; these items have various effects, ranging from defensive screens to shield regeneration and flares. Only one piece of equipment can be carried at a time. The game's vehicular component has been expanded with new drivable and AI-only vehicles.",
     "game_type": 0
   }
 ]

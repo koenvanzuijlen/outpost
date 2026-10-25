@@ -70,6 +70,9 @@ func TestSearchGames(t *testing.T) {
 	if !strings.Contains(gotBody, "platforms != null") {
 		t.Errorf("SearchGames() request body = %v, want it to contain %q", gotBody, "platform != null")
 	}
+	if !strings.Contains(gotBody, "game_type = (0,4,8,9,10,11,12)") {
+		t.Errorf("SearchGames() request body = %v, want it to contain %q", gotBody, "game_type = (0,4,8,9,10,11,12)")
+	}
 	if len(games) == 0 {
 		t.Fatalf("SearchGames() returned no games, want at least one")
 	}

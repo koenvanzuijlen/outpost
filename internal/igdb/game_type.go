@@ -1,6 +1,11 @@
 package igdb
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+	"strconv"
+	"strings"
+)
 
 // GameType as defined by the IGDB API. See https://api-docs.igdb.com/#game
 type GameType int
@@ -23,6 +28,26 @@ const (
 	GameTypePack                GameType = 13
 	GameTypeUpdate              GameType = 14
 )
+
+// StandaloneGameTypes contains the GameTypes that are considered standalone games, and can be found in search and added to
+// a library directly.
+var StandaloneGameTypes = []GameType{
+	GameTypeMain,
+	GameTypeStandaloneExpansion,
+	GameTypeRemake,
+	GameTypeRemaster,
+	GameTypeExpandedGame,
+	GameTypePort,
+	GameTypeFork,
+}
+
+// DLCGameTypes contains the GameTypes that are considered downloadable content or add-ons, and can be added to the
+// library only from the parent game.
+var DLCGameTypes = []GameType{
+	GameTypeDLCAddon,
+	GameTypeExpansion,
+	GameTypeEpisode,
+}
 
 // String returns the human readable string representation of the GameType.
 func (gt GameType) String() string {
@@ -60,4 +85,18 @@ func (gt GameType) String() string {
 	default:
 		return fmt.Sprintf("Unknown (%d)", int(gt))
 	}
+}
+
+// Standalone returns true if the GameType is considered a standalone game.
+func (gt GameType) Standalone() bool {
+	return slices.Contains(StandaloneGameTypes, gt)
+}
+
+// gameTypeFilter returns a comma-separated string of game type IDs suitable for use in IGDB API queries.
+func gameTypeFilter(types []GameType) string {
+	str := make([]string, 0, len(types))
+	for _, t := range types {
+		str = append(str, strconv.Itoa(int(t)))
+	}
+	return strings.Join(str, ",")
 }

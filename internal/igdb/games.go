@@ -51,7 +51,7 @@ func (g Game) ReleaseYear() int {
 // SearchGames searches for games matching the given query string.
 func (c *Client) SearchGames(ctx context.Context, query string) ([]Game, error) {
 	escaped := strings.ReplaceAll(query, `"`, `\"`)
-	body := fmt.Sprintf(`search "%s"; where platforms != null; fields %s; limit 10;`, escaped, gameFields)
+	body := fmt.Sprintf(`search "%s"; where platforms != null & game_type = (%s); fields %s; limit 10;`, escaped, gameTypeFilter(StandaloneGameTypes), gameFields)
 
 	var games []Game
 	if err := c.query(ctx, "/games", body, &games); err != nil {
