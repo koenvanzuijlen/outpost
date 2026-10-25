@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestHandleStartPlaythrough(t *testing.T) {
@@ -228,6 +229,137 @@ func TestHandleSetPlaythroughOutcomeUnknownPlaythrough(t *testing.T) {
 
 	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID+1, 10) + "/outcome"
 	w := postForm(t, server, path, "outcome=completed")
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+	}
+}
+
+func TestHandleUpdatePlaythrough(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "", "")
+
+	// Finishing a playthrough requires an outcome other than playing.
+	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10)
+	w := postForm(t, server, path+"/outcome", "outcome=completed")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("set outcome status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	form := url.Values{
+		"platform":    {"11"},
+		"name":        {"  Second run  "},
+		"started_at":  {"2026-01-02"},
+		"finished_at": {"2026-03-04"},
+	}.Encode()
+	w = postForm(t, server, path, form)
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("update status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	location := w.Header().Get("Location")
+	if location != "/games/740" {
+		t.Errorf("Location header = %q, want %q", location, "/games/740")
+	}
+
+	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if len(libraryGame.Playthroughs) != 1 {
+		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
+	}
+	playthrough := libraryGame.Playthroughs[0]
+	if playthrough.PlatformName == nil || *playthrough.PlatformName != "Xbox" {
+		t.Errorf("platform name = %v, want %q", derefOrNil(playthrough.PlatformName), "Xbox")
+	}
+	if playthrough.Playthrough.Name == nil || *playthrough.Playthrough.Name != "Second run" {
+		t.Errorf("name = %v, want %q", derefOrNil(playthrough.Playthrough.Name), "Second run")
+	}
+	wantStarted := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+	if got := playthrough.Playthrough.StartedAt; got == nil || !got.Equal(wantStarted) {
+		t.Errorf("started at = %v, want %v", derefOrNil(got), wantStarted)
+	}
+	wantFinished := time.Date(2026, 3, 4, 0, 0, 0, 0, time.UTC)
+	if got := playthrough.Playthrough.FinishedAt; got == nil || !got.Equal(wantFinished) {
+		t.Errorf("finished at = %v, want %v", derefOrNil(got), wantFinished)
+	}
+}
+
+func TestHandleUpdatePlaythroughClearsFields(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "First run", "11")
+
+	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10)
+	w := postForm(t, server, path, "name=&platform=")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("update status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if len(libraryGame.Playthroughs) != 1 {
+		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
+	}
+	playthrough := libraryGame.Playthroughs[0]
+	if playthrough.Playthrough.Name != nil {
+		t.Errorf("name = %v, want %v", derefOrNil(playthrough.Playthrough.Name), nil)
+	}
+	if playthrough.Playthrough.PlatformID != nil {
+		t.Errorf("platform id = %v, want %v", derefOrNil(playthrough.Playthrough.PlatformID), nil)
+	}
+	if playthrough.PlatformName != nil {
+		t.Errorf("platform name = %v, want %v", derefOrNil(playthrough.PlatformName), nil)
+	}
+}
+
+func TestHandleUpdatePlaythroughValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+	}{
+		{"invalid start date", "started_at=02-01-2026"},
+		{"invalid finish date", "finished_at=not-a-date"},
+		{"finished on playing playthrough", "started_at=2026-01-02&finished_at=2026-03-04"},
+		{"unknown platform", "platform=6"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			playthroughID := startTestPlaythrough(t, server, "", "")
+
+			path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10)
+			w := postForm(t, server, path, tt.body)
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+			}
+		})
+	}
+}
+
+func TestHandleUpdatePlaythroughFinishedBeforeStarted(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "", "")
+
+	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10)
+	w := postForm(t, server, path+"/outcome", "outcome=completed")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("set outcome status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	w = postForm(t, server, path, "started_at=2026-03-04&finished_at=2026-01-02")
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+}
+
+func TestHandleUpdatePlaythroughUnknownPlaythrough(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "", "")
+
+	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID+1, 10)
+	w := postForm(t, server, path, "name=Other")
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
 	}

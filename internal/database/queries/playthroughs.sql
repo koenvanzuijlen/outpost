@@ -44,6 +44,17 @@ SET
 WHERE
     id = ?;
 
+-- name: UpdatePlaythroughDetails :exec
+UPDATE
+    playthroughs
+SET
+    platform_id = ?,
+    name = ?,
+    started_at = ?,
+    finished_at = ?
+WHERE
+    id = ?;
+
 -- name: DeletePlaythrough :execrows
 DELETE FROM playthroughs
 WHERE id = ?

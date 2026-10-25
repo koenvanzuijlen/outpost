@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"strconv"
+	"time"
 )
 
 // pathID extracts an integer ID from the URL path parameters. It returns the ID and a boolean indicating success.
@@ -19,13 +20,29 @@ func pathID(r *http.Request, name string) (int64, bool) {
 // form value can't be parsed as a positive integer, it returns nil and false.
 func formOptionalPositiveInt(r *http.Request, name string) (*int64, bool) {
 	formValue := r.PostFormValue(name)
-	var value *int64
-	if formValue != "" {
-		parsed, err := strconv.ParseInt(formValue, 10, 64)
-		if err != nil || parsed <= 0 {
-			return nil, false
-		}
-		value = &parsed
+	if formValue == "" {
+		return nil, true
 	}
-	return value, true
+
+	parsed, err := strconv.ParseInt(formValue, 10, 64)
+	if err != nil || parsed <= 0 {
+		return nil, false
+	}
+	return &parsed, true
+}
+
+// formOptionalDate extracts an optional date from the form values. It returns a pointer to the date and a boolean
+// indicating success. An empty form value is considered valid and results in nil and true. If the form value can't be
+// parsed as a date, it returns nil and false.
+func formOptionalDate(r *http.Request, name string) (*time.Time, bool) {
+	formValue := r.PostFormValue(name)
+	if formValue == "" {
+		return nil, true
+	}
+
+	parsed, err := time.Parse(time.DateOnly, formValue)
+	if err != nil {
+		return nil, false
+	}
+	return &parsed, true
 }

@@ -161,6 +161,37 @@ func (q *Queries) ListPlaythroughsForUserGameID(ctx context.Context, userGameID 
 	return items, nil
 }
 
+const updatePlaythroughDetails = `-- name: UpdatePlaythroughDetails :exec
+UPDATE
+    playthroughs
+SET
+    platform_id = ?,
+    name = ?,
+    started_at = ?,
+    finished_at = ?
+WHERE
+    id = ?
+`
+
+type UpdatePlaythroughDetailsParams struct {
+	PlatformID *int64
+	Name       *string
+	StartedAt  *time.Time
+	FinishedAt *time.Time
+	ID         int64
+}
+
+func (q *Queries) UpdatePlaythroughDetails(ctx context.Context, arg UpdatePlaythroughDetailsParams) error {
+	_, err := q.db.ExecContext(ctx, updatePlaythroughDetails,
+		arg.PlatformID,
+		arg.Name,
+		arg.StartedAt,
+		arg.FinishedAt,
+		arg.ID,
+	)
+	return err
+}
+
 const updatePlaythroughOutcome = `-- name: UpdatePlaythroughOutcome :exec
 UPDATE
     playthroughs

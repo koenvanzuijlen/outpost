@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestPathID(t *testing.T) {
@@ -52,8 +53,52 @@ func TestFormOptionalPositiveInt(t *testing.T) {
 			r := httptest.NewRequest(http.MethodPost, "/", body)
 			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			got, ok := formOptionalPositiveInt(r, "id")
-			if tt.ok != ok || derefOrNil(tt.want) != derefOrNil(got) {
-				t.Errorf("formOptionalPositiveInt() = %v, %v; want %v, %v", derefOrNil(got), ok, derefOrNil(tt.want), tt.ok)
+			if ok != tt.ok {
+				t.Errorf("formOptionalPositiveInt() ok = %v, want %v", ok, tt.ok)
+			}
+			switch {
+			case tt.want == nil && got != nil:
+				t.Errorf("formOptionalPositiveInt() = %v, want nil", *got)
+			case tt.want != nil && got == nil:
+				t.Errorf("formOptionalPositiveInt() = nil, want %v", *tt.want)
+			case tt.want != nil && *got != *tt.want:
+				t.Errorf("formOptionalPositiveInt() = %v, want %v", *got, *tt.want)
+			}
+		})
+	}
+}
+
+func TestFormOptionalDate(t *testing.T) {
+	want := time.Date(2026, 10, 24, 0, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name  string
+		value string
+		want  *time.Time
+		ok    bool
+	}{
+		{"valid", "2026-10-24", &want, true},
+		{"empty", "", nil, true},
+		{"format", "24-10-2026", nil, false},
+		{"impossible", "2026-02-30", nil, false},
+		{"non-numeric", "abc", nil, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := strings.NewReader(url.Values{"id": {tt.value}}.Encode())
+			r := httptest.NewRequest(http.MethodPost, "/", body)
+			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			got, ok := formOptionalDate(r, "id")
+			if ok != tt.ok {
+				t.Errorf("formOptionalDate() ok = %v, want %v", ok, tt.ok)
+			}
+			switch {
+			case tt.want == nil && got != nil:
+				t.Errorf("formOptionalDate() = %v, want nil", *got)
+			case tt.want != nil && got == nil:
+				t.Errorf("formOptionalDate() = nil, want %v", *tt.want)
+			case tt.want != nil && !got.Equal(*tt.want):
+				t.Errorf("formOptionalDate() = %v, want %v", *got, *tt.want)
 			}
 		})
 	}

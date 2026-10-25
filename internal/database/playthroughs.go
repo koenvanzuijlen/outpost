@@ -13,6 +13,9 @@ import (
 // ErrPlaythroughNotFound is returned when a playthrough is not found in the database.
 var ErrPlaythroughNotFound = errors.New("playthrough not found")
 
+// ErrInvalidPlaythroughDates is returned when the playthrough dates are invalid.
+var ErrInvalidPlaythroughDates = errors.New("invalid playthrough dates")
+
 // StartPlaythrough starts a new playthrough for a user's game, it also marks the game status itself as playing if it
 // was previously in the backlog. Returns the created playthrough, or ErrPlatformNotFound, ErrUserGameNotFound, or
 // another error if the operation fails.
@@ -36,16 +39,9 @@ func (s *Store) StartPlaythrough(
 		return dbgen.Playthrough{}, fmt.Errorf("get owned user game: %w", err)
 	}
 
-	var platformID *int64
-	if platformIGDBID != nil {
-		platform, err := q.GetPlatformByIGDBID(ctx, *platformIGDBID)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return dbgen.Playthrough{}, ErrPlatformNotFound
-			}
-			return dbgen.Playthrough{}, fmt.Errorf("get platform by igdb id: %w", err)
-		}
-		platformID = &platform.ID
+	platformID, err := platformIDFor(ctx, q, platformIGDBID)
+	if err != nil {
+		return dbgen.Playthrough{}, fmt.Errorf("resolve platform: %w", err)
 	}
 
 	pt, err := q.CreatePlaythrough(ctx, dbgen.CreatePlaythroughParams{
@@ -149,6 +145,67 @@ func (s *Store) SetPlaythroughOutcome(
 	return nil
 }
 
+// PlaythroughDetails represents the details of a playthrough that can be updated. Fields set to nil will be cleared.
+type PlaythroughDetails struct {
+	PlatformIGDBID *int64
+	Name           *string
+	StartedAt      *time.Time
+	FinishedAt     *time.Time
+}
+
+// UpdatePlaythroughDetails updates the details of an existing playthrough for a user's game. If fields are provided as
+// nil their data will be cleared. Returns ErrPlaythroughNotFound, ErrUserGameNotFound, ErrInvalidPlaythroughDates,
+// ErrPlatformNotFound, or another error if the operation fails.
+func (s *Store) UpdatePlaythroughDetails(ctx context.Context, userID, igdbID, playthroughID int64, details PlaythroughDetails) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := dbgen.New(tx)
+
+	row, err := getOwnedUserGame(ctx, q, userID, igdbID)
+	if err != nil {
+		return fmt.Errorf("get owned user game: %w", err)
+	}
+
+	playthrough, err := q.GetPlaythrough(ctx, dbgen.GetPlaythroughParams{
+		ID:         playthroughID,
+		UserGameID: row.UserGame.ID,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrPlaythroughNotFound
+		}
+		return fmt.Errorf("get playthrough: %w", err)
+	}
+
+	if !validPlaythroughDates(PlaythroughOutcome(playthrough.Outcome), details.StartedAt, details.FinishedAt) {
+		return ErrInvalidPlaythroughDates
+	}
+
+	platformID, err := platformIDFor(ctx, q, details.PlatformIGDBID)
+	if err != nil {
+		return fmt.Errorf("resolve platform: %w", err)
+	}
+
+	err = q.UpdatePlaythroughDetails(ctx, dbgen.UpdatePlaythroughDetailsParams{
+		ID:         playthroughID,
+		Name:       details.Name,
+		PlatformID: platformID,
+		StartedAt:  details.StartedAt,
+		FinishedAt: details.FinishedAt,
+	})
+	if err != nil {
+		return fmt.Errorf("update playthrough: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
+	}
+	return nil
+}
+
 // DeletePlaythrough deletes an existing playthrough for a user's game, the user game status remains unchanged. Returns
 // ErrPlaythroughNotFound, ErrUserGameNotFound, or another error if the operation fails.
 func (s *Store) DeletePlaythrough(
@@ -174,4 +231,16 @@ func (s *Store) DeletePlaythrough(
 	}
 
 	return nil
+}
+
+// validPlaythroughDates checks if the provided playthrough dates are valid based on the outcome. Returns true if the
+// dates are valid, false otherwise.
+func validPlaythroughDates(outcome PlaythroughOutcome, startedAt, finishedAt *time.Time) bool {
+	if outcome == PlaythroughOutcomePlaying && finishedAt != nil {
+		return false
+	}
+	if finishedAt != nil && startedAt != nil && finishedAt.Before(*startedAt) {
+		return false
+	}
+	return true
 }

@@ -10,6 +10,7 @@ func templateFuncs() template.FuncMap {
 	return template.FuncMap{
 		"ratingText":  ratingText,
 		"ratingLabel": ratingLabel,
+		"derefInt64":  derefOrZero[int64],
 	}
 }
 

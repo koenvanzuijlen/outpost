@@ -55,6 +55,32 @@
 								{{end}}
 							</form>
 						<details>
+							<summary>Edit</summary>
+							<form method="post" action="/games/{{$.LibraryGame.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}">
+								<label>Playthrough name
+									<input type="text" name="name" value="{{with .Playthrough.Name}}{{.}}{{end}}">
+								</label>
+								<label>Platform 
+									<select name="platform">
+										{{$platformID := derefInt64 .Playthrough.PlatformID}}
+										<option value="" {{if eq 0 $platformID}}selected{{end}}>No platform</option>
+										{{range $.LibraryGame.Platforms}}
+											<option value="{{.IgdbID}}" {{if eq .ID $platformID}}selected{{end}}>{{.Name}}</option>
+										{{end}}
+									</select>
+								</label>
+								<label>Started at
+									<input type="date" name="started_at" value="{{with .Playthrough.StartedAt}}{{.Format "2006-01-02"}}{{end}}">
+								</label>
+								{{if ne .Playthrough.Outcome "playing"}}
+									<label>Finished at
+										<input type="date" name="finished_at" value="{{with .Playthrough.FinishedAt}}{{.Format "2006-01-02"}}{{end}}">
+									</label>
+								{{end}}
+								<button type="submit">Update playthrough</button>
+							</form>
+						</details>
+						<details>
 							<summary>Delete</summary>
 							<form method="post" action="/games/{{$.LibraryGame.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/delete">
 								<button type="submit">Confirm deletion</button>

@@ -91,7 +91,20 @@ func TestHandleGameInLibraryWishlisted(t *testing.T) {
 
 func TestHandleGameActivePlaythrough(t *testing.T) {
 	server := newTestServer(t)
-	playthroughID := startTestPlaythrough(t, server, "Hard mode run", "11")
+	startTestPlaythrough(t, server, "Hard mode run", "11")
+
+	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if len(libraryGame.Playthroughs) != 1 {
+		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
+	}
+	playthrough := libraryGame.Playthroughs[0].Playthrough
+	if playthrough.StartedAt == nil {
+		t.Fatal("StartedAt = nil, want a date")
+	}
+	playthroughID := playthrough.ID
 
 	req := httptest.NewRequest(http.MethodGet, "/games/740", nil)
 	w := httptest.NewRecorder()
@@ -104,9 +117,13 @@ func TestHandleGameActivePlaythrough(t *testing.T) {
 	assertBodyContains(t, w, "Platform: Xbox")
 	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/outcome", playthroughID))
 	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID))
+	assertBodyContains(t, w, fmt.Sprintf(`action="/games/740/playthroughs/%d"`, playthroughID))
+	assertBodyContains(t, w, `<option value="11" selected>Xbox</option>`)
+	assertBodyContains(t, w, fmt.Sprintf(`value="%s"`, playthrough.StartedAt.Format("2006-01-02")))
+	assertBodyNotContains(t, w, `name="finished_at"`)
 }
 
-func TestHandleGameoutcomeedPlaythrough(t *testing.T) {
+func TestHandleGameCompletedPlaythrough(t *testing.T) {
 	server := newTestServer(t)
 	playthroughID := startTestPlaythrough(t, server, "Hard mode run", "11")
 
@@ -129,6 +146,7 @@ func TestHandleGameoutcomeedPlaythrough(t *testing.T) {
 	assertBodyContains(t, w, `value="playing" aria-pressed="false"`)
 	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/outcome", playthroughID))
 	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID))
+	assertBodyContains(t, w, `name="finished_at"`)
 }
 
 func TestHandleUpdateGameValidation(t *testing.T) {
