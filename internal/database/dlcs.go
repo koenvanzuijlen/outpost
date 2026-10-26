@@ -2,12 +2,17 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
+
+// ErrCopyDLCNotFound is returned when a specific copy of a DLC is not found in the database.
+var ErrCopyDLCNotFound = errors.New("DLC copy not found")
 
 // dlcGameTypes returns a slice of int64 representing the IGDB game types that are considered DLCs.
 func dlcGameTypes() []int64 {
@@ -73,6 +78,54 @@ func (s *Store) SaveDLCs(ctx context.Context, parentIGDBID int64, dlcs []DLC, fe
 	}
 	if updatedRows == 0 {
 		return fmt.Errorf("parent game %d not in database", parentIGDBID)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
+	}
+	return nil
+}
+
+// SetDLCOwned sets the ownership status of a DLC for a specific user's owned copy. If owned is true, the DLC is marked
+// as owned; otherwise, it is removed from the owned DLCs. Both directions are idempotent. "Returns ErrUserGameNotFound
+// if the game isn't owned, or ErrCopyDLCNotFound if the DLC isn't available for that copy
+func (s *Store) SetDLCOwned(ctx context.Context, userID, igdbID, platformIGDBID, dlcIGDBID int64, owned bool) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := dbgen.New(tx)
+
+	row, err := getOwnedUserGame(ctx, q, userID, igdbID)
+	if err != nil {
+		return fmt.Errorf("get owned user game: %w", err)
+	}
+
+	ownedCopy, err := q.GetCopyDLC(ctx, dbgen.GetCopyDLCParams{
+		UserGameID:     row.UserGame.ID,
+		PlatformIgdbID: platformIGDBID,
+		DlcIgdbID:      dlcIGDBID,
+		ParentIgdbID:   &igdbID,
+		GameTypes:      dlcGameTypes(),
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrCopyDLCNotFound
+		}
+		return fmt.Errorf("get copy dlc: %w", err)
+	}
+
+	if owned {
+		err = q.CreateOwnedDLC(ctx, dbgen.CreateOwnedDLCParams(ownedCopy))
+		if err != nil {
+			return fmt.Errorf("create owned dlc: %w", err)
+		}
+	} else {
+		err = q.DeleteOwnedDLC(ctx, dbgen.DeleteOwnedDLCParams(ownedCopy))
+		if err != nil {
+			return fmt.Errorf("delete owned dlc: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

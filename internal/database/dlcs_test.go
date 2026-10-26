@@ -207,11 +207,7 @@ func TestGetLibraryGameCopyDLCs(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
-	pc, err := store.AddToCollection(ctx, game, newPlatformParams(6, "PC"), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToCollection(PC) failed: %v", err)
-	}
-	for _, platform := range []dbgen.UpsertPlatformParams{newPlatformParams(48, "PS4"), newPlatformParams(130, "Switch")} {
+	for _, platform := range []dbgen.UpsertPlatformParams{newPlatformParams(6, "PC"), newPlatformParams(48, "PS4"), newPlatformParams(130, "Switch")} {
 		if _, err := store.AddToCollection(ctx, game, platform, 1, time.Now().UTC()); err != nil {
 			t.Fatalf("AddToCollection(%s) failed: %v", platform.Name, err)
 		}
@@ -226,15 +222,8 @@ func TestGetLibraryGameCopyDLCs(t *testing.T) {
 		t.Fatalf("SaveDLCs() failed: %v", err)
 	}
 
-	dlcA, err := store.queries.GetGameByIGDBID(ctx, 201)
-	if err != nil {
-		t.Fatalf("GetGameByIGDBID(201) failed: %v", err)
-	}
-	// No store method for DLC ownership yet, so insert it directly.
-	if _, err := store.db.ExecContext(ctx,
-		`INSERT INTO owned_dlc(owned_copy_id, dlc_game_id) VALUES (?, ?)`, pc.ID, dlcA.ID,
-	); err != nil {
-		t.Fatalf("insert owned_dlc failed: %v", err)
+	if err := store.SetDLCOwned(ctx, 1, 100, 6, 201, true); err != nil {
+		t.Fatalf("SetDLCOwned() failed: %v", err)
 	}
 
 	m := getLibraryGame(t, store, 100).CopyDLCs
@@ -262,6 +251,143 @@ func assertCopyDLCs(t *testing.T, got []CopyDLC, want map[int64]bool) {
 		if got[i].Owned != wantOwned {
 			t.Errorf("DLC %d Owned = %v, want %v", igdbID, got[i].Owned, wantOwned)
 		}
+	}
+}
+
+// setupDLCOwnership owns game 100 on PC (6) and PS4 (48) with DLC 201 (PC, PS4) and DLC 202 (PC only), and game 300
+// on PC with DLC 401 (PC).
+func setupDLCOwnership(t *testing.T, store *Store) {
+	t.Helper()
+	ctx := t.Context()
+	// Game 300 goes first so game 100's user game ID (2) differs from the user ID (1).
+	copies := []struct {
+		igdbID   int64
+		platform dbgen.UpsertPlatformParams
+	}{
+		{300, newPlatformParams(6, "PC")},
+		{100, newPlatformParams(6, "PC")},
+		{100, newPlatformParams(48, "PS4")},
+	}
+	for _, c := range copies {
+		if _, err := store.AddToCollection(ctx, newGameParams(c.igdbID, "Test Game"), c.platform, 1, time.Now().UTC()); err != nil {
+			t.Fatalf("AddToCollection(%d, %s) failed: %v", c.igdbID, c.platform.Name, err)
+		}
+	}
+
+	releasedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	dlcs := []DLC{
+		newDLC(201, 100, "DLC A", releasedAt, newPlatformParams(6, "PC"), newPlatformParams(48, "PS4")),
+		newDLC(202, 100, "DLC B", releasedAt, newPlatformParams(6, "PC")),
+	}
+	if err := store.SaveDLCs(ctx, 100, dlcs, time.Now().UTC()); err != nil {
+		t.Fatalf("SaveDLCs(100) failed: %v", err)
+	}
+	if err := store.SaveDLCs(ctx, 300, []DLC{newDLC(401, 300, "Other DLC", releasedAt, newPlatformParams(6, "PC"))}, time.Now().UTC()); err != nil {
+		t.Fatalf("SaveDLCs(300) failed: %v", err)
+	}
+}
+
+func TestSetDLCOwned(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupDLCOwnership(t, store)
+
+	if err := store.SetDLCOwned(ctx, 1, 100, 6, 201, true); err != nil {
+		t.Fatalf("SetDLCOwned() failed: %v", err)
+	}
+
+	m := getLibraryGame(t, store, 100).CopyDLCs
+	assertCopyDLCs(t, m[6], map[int64]bool{201: true, 202: false})
+	assertCopyDLCs(t, m[48], map[int64]bool{201: false})
+}
+
+func TestSetDLCOwnedTwice(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupDLCOwnership(t, store)
+
+	for i := range 2 {
+		if err := store.SetDLCOwned(ctx, 1, 100, 6, 201, true); err != nil {
+			t.Fatalf("SetDLCOwned() call %d failed: %v", i+1, err)
+		}
+	}
+
+	assertCopyDLCs(t, getLibraryGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: true, 202: false})
+}
+
+func TestSetDLCOwnedUnown(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupDLCOwnership(t, store)
+
+	if err := store.SetDLCOwned(ctx, 1, 100, 6, 201, true); err != nil {
+		t.Fatalf("SetDLCOwned(true) failed: %v", err)
+	}
+	if err := store.SetDLCOwned(ctx, 1, 100, 6, 201, false); err != nil {
+		t.Fatalf("SetDLCOwned(false) failed: %v", err)
+	}
+
+	assertCopyDLCs(t, getLibraryGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: false, 202: false})
+}
+
+func TestSetDLCOwnedUnownNotOwned(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupDLCOwnership(t, store)
+
+	if err := store.SetDLCOwned(ctx, 1, 100, 6, 201, false); err != nil {
+		t.Fatalf("SetDLCOwned(false) failed: %v", err)
+	}
+
+	assertCopyDLCs(t, getLibraryGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: false, 202: false})
+}
+
+func TestSetDLCOwnedCopyDLCNotFound(t *testing.T) {
+	tests := []struct {
+		name           string
+		platformIGDBID int64
+		dlcIGDBID      int64
+	}{
+		{"dlc not on platform", 48, 202},
+		{"no copy on platform", 130, 201},
+		{"other game's dlc", 6, 401},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newTestStore(t)
+			setupDLCOwnership(t, store)
+
+			err := store.SetDLCOwned(t.Context(), 1, 100, tt.platformIGDBID, tt.dlcIGDBID, true)
+			if !errors.Is(err, ErrCopyDLCNotFound) {
+				t.Errorf("SetDLCOwned() error = %v, want %v", err, ErrCopyDLCNotFound)
+			}
+		})
+	}
+}
+
+func TestSetDLCOwnedUserGameNotFound(t *testing.T) {
+	tests := []struct {
+		name   string
+		igdbID int64
+	}{
+		{"wishlisted", 500},
+		{"not in library", 999},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newTestStore(t)
+			setupDLCOwnership(t, store)
+			if err := store.AddToWishlist(t.Context(), newGameParams(500, "Wishlisted Game"), 1, time.Now().UTC()); err != nil {
+				t.Fatalf("AddToWishlist() failed: %v", err)
+			}
+
+			err := store.SetDLCOwned(t.Context(), 1, tt.igdbID, 6, 201, true)
+			if !errors.Is(err, ErrUserGameNotFound) {
+				t.Errorf("SetDLCOwned() error = %v, want %v", err, ErrUserGameNotFound)
+			}
+		})
 	}
 }
 

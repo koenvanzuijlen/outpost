@@ -8,11 +8,17 @@
 			<p>Owned on platforms:</p>
 			<ul>
 			{{range .}}
+				{{$platformIGDBID := .IgdbID}}
 				<li>{{.Name}}{{with index $.LibraryGame.CopyDLCs .IgdbID}}
 						<br>DLCs:
 						<ul>
 						{{range .}}
-							<li>{{.Game.Title}} - {{if .Owned}}Owned{{else}}Not owned{{end}}</li>
+							<li>
+								<form method="post" action="/games/{{$.LibraryGame.Game.IgdbID}}/platforms/{{$platformIGDBID}}/dlcs/{{.Game.IgdbID}}">
+									{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}} - {{if .Owned}}owned{{else}}not owned{{end}}
+									<button type="submit" name="owned" value="{{not .Owned}}" aria-pressed="{{.Owned}}">Toggle ownership</button>
+								</form>
+							</li>
 						{{end}}
 						</ul>
 					{{end}}

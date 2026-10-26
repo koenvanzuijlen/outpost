@@ -140,7 +140,7 @@ func TestHandleGameCopyDLCs(t *testing.T) {
 
 	w := getTestGamePage(t, server)
 	// Hearts of Stone (12503) is available on PC (6), the platform of the test copy.
-	assertBodyContains(t, w, "The Witcher 3: Wild Hunt - Hearts of Stone - Not owned")
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt - Hearts of Stone (12 October 2015) - not owned")
 }
 
 func TestHandleGameDLCsError(t *testing.T) {

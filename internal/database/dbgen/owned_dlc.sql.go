@@ -10,6 +10,90 @@ import (
 	"strings"
 )
 
+const createOwnedDLC = `-- name: CreateOwnedDLC :exec
+INSERT INTO owned_dlc(owned_copy_id, dlc_game_id)
+    VALUES (?, ?)
+ON CONFLICT
+    DO NOTHING
+`
+
+type CreateOwnedDLCParams struct {
+	OwnedCopyID int64
+	DlcGameID   int64
+}
+
+func (q *Queries) CreateOwnedDLC(ctx context.Context, arg CreateOwnedDLCParams) error {
+	_, err := q.db.ExecContext(ctx, createOwnedDLC, arg.OwnedCopyID, arg.DlcGameID)
+	return err
+}
+
+const deleteOwnedDLC = `-- name: DeleteOwnedDLC :exec
+DELETE FROM owned_dlc
+WHERE owned_copy_id = ?
+    AND dlc_game_id = ?
+`
+
+type DeleteOwnedDLCParams struct {
+	OwnedCopyID int64
+	DlcGameID   int64
+}
+
+func (q *Queries) DeleteOwnedDLC(ctx context.Context, arg DeleteOwnedDLCParams) error {
+	_, err := q.db.ExecContext(ctx, deleteOwnedDLC, arg.OwnedCopyID, arg.DlcGameID)
+	return err
+}
+
+const getCopyDLC = `-- name: GetCopyDLC :one
+SELECT
+    oc.id AS owned_copy_id,
+    g.id AS dlc_game_id
+FROM
+    owned_copies oc
+    JOIN platforms p ON p.id = oc.platform_id
+    JOIN game_platforms gp ON gp.platform_id = oc.platform_id
+    JOIN games g ON g.id = gp.game_id
+WHERE
+    oc.user_game_id = ?1
+    AND p.igdb_id = ?2
+    AND g.igdb_id = ?3
+    AND g.parent_igdb_id = ?4
+    AND g.game_type IN (/*SLICE:game_types*/?)
+`
+
+type GetCopyDLCParams struct {
+	UserGameID     int64
+	PlatformIgdbID int64
+	DlcIgdbID      int64
+	ParentIgdbID   *int64
+	GameTypes      []int64
+}
+
+type GetCopyDLCRow struct {
+	OwnedCopyID int64
+	DlcGameID   int64
+}
+
+func (q *Queries) GetCopyDLC(ctx context.Context, arg GetCopyDLCParams) (GetCopyDLCRow, error) {
+	query := getCopyDLC
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.UserGameID)
+	queryParams = append(queryParams, arg.PlatformIgdbID)
+	queryParams = append(queryParams, arg.DlcIgdbID)
+	queryParams = append(queryParams, arg.ParentIgdbID)
+	if len(arg.GameTypes) > 0 {
+		for _, v := range arg.GameTypes {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:game_types*/?", strings.Repeat(",?", len(arg.GameTypes))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:game_types*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, query, queryParams...)
+	var i GetCopyDLCRow
+	err := row.Scan(&i.OwnedCopyID, &i.DlcGameID)
+	return i, err
+}
+
 const listOwnedCopyDLCs = `-- name: ListOwnedCopyDLCs :many
 SELECT
     p.igdb_id AS platform_igdb_id,
