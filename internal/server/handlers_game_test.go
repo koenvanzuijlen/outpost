@@ -133,6 +133,16 @@ func TestHandleGameDLCs(t *testing.T) {
 	}
 }
 
+func TestHandleGameCopyDLCs(t *testing.T) {
+	server := newTestServer(t)
+	fake := addTestGame(t, server)
+	fake.dlcs = loadIGDBGames(t, "dlcs.json")
+
+	w := getTestGamePage(t, server)
+	// Hearts of Stone (12503) is available on PC (6), the platform of the test copy.
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt - Hearts of Stone - Not owned")
+}
+
 func TestHandleGameDLCsError(t *testing.T) {
 	server := newTestServer(t)
 	fake := addTestGame(t, server)

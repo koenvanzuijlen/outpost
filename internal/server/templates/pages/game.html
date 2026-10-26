@@ -8,7 +8,15 @@
 			<p>Owned on platforms:</p>
 			<ul>
 			{{range .}}
-				<li>{{.Name}}</li>
+				<li>{{.Name}}{{with index $.LibraryGame.CopyDLCs .IgdbID}}
+						<br>DLCs:
+						<ul>
+						{{range .}}
+							<li>{{.Game.Title}} - {{if .Owned}}Owned{{else}}Not owned{{end}}</li>
+						{{end}}
+						</ul>
+					{{end}}
+				</li>
 			{{end}}
 			</ul>
 		{{end}}

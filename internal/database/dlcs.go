@@ -24,6 +24,12 @@ type DLC struct {
 	Platforms []dbgen.UpsertPlatformParams
 }
 
+// CopyDLC represents a DLC for a parent game along with its ownership status for a specific owned copy.
+type CopyDLC struct {
+	Game  dbgen.Game
+	Owned bool
+}
+
 // SaveDLCs upserts the provided DLCs for the given parent IGDB ID and stores the fetched timestamp. If the parent game
 // is not in the database, an error is returned.
 func (s *Store) SaveDLCs(ctx context.Context, parentIGDBID int64, dlcs []DLC, fetchedAt time.Time) error {

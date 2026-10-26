@@ -13,12 +13,13 @@ import (
 var ErrUserGameNotFound = errors.New("game not found in library")
 
 // LibraryGame represents a game in the user's library, including the game details, its DLCs, the user's game entry,
-// the platforms the user owns it on, and the playthroughs associated with the game.
+// the platforms the user owns it on, the DLC the user owns per platform, and the playthroughs associated with the game.
 type LibraryGame struct {
 	Game         dbgen.Game
 	UserGame     dbgen.UserGame
 	Platforms    []dbgen.Platform
 	DLCs         []dbgen.Game
+	CopyDLCs     map[int64][]CopyDLC // key: platform IGDB ID
 	Playthroughs []dbgen.ListPlaythroughsForUserGameIDRow
 }
 
@@ -54,12 +55,29 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 		return LibraryGame{}, fmt.Errorf("list playthroughs: %w", err)
 	}
 
+	copyDLCs := make(map[int64][]CopyDLC)
+	ownedCopyDLCs, err := s.queries.ListOwnedCopyDLCs(ctx, dbgen.ListOwnedCopyDLCsParams{
+		UserGameID:   row.UserGame.ID,
+		ParentIgdbID: &igdbID,
+		GameTypes:    dlcGameTypes(),
+	})
+	if err != nil {
+		return LibraryGame{}, fmt.Errorf("list owned copy dlcs: %w", err)
+	}
+	for _, ownedCopyDLC := range ownedCopyDLCs {
+		copyDLCs[ownedCopyDLC.PlatformIgdbID] = append(copyDLCs[ownedCopyDLC.PlatformIgdbID], CopyDLC{
+			Game:  ownedCopyDLC.Game,
+			Owned: ownedCopyDLC.Owned,
+		})
+	}
+
 	return LibraryGame{
 		Game:         row.Game,
 		DLCs:         dlcs,
 		UserGame:     row.UserGame,
 		Platforms:    platforms,
 		Playthroughs: playthroughs,
+		CopyDLCs:     copyDLCs,
 	}, nil
 }
 

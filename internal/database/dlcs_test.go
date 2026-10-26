@@ -203,6 +203,68 @@ func TestSaveDLCsExcludesStandaloneExpansion(t *testing.T) {
 	}
 }
 
+func TestGetLibraryGameCopyDLCs(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	game := newGameParams(100, "Test Game")
+	pc, err := store.AddToCollection(ctx, game, newPlatformParams(6, "PC"), 1, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("AddToCollection(PC) failed: %v", err)
+	}
+	for _, platform := range []dbgen.UpsertPlatformParams{newPlatformParams(48, "PS4"), newPlatformParams(130, "Switch")} {
+		if _, err := store.AddToCollection(ctx, game, platform, 1, time.Now().UTC()); err != nil {
+			t.Fatalf("AddToCollection(%s) failed: %v", platform.Name, err)
+		}
+	}
+
+	releasedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	dlcs := []DLC{
+		newDLC(201, 100, "DLC A", releasedAt, newPlatformParams(6, "PC"), newPlatformParams(48, "PS4")),
+		newDLC(202, 100, "DLC B", releasedAt.AddDate(0, 1, 0), newPlatformParams(6, "PC")),
+	}
+	if err := store.SaveDLCs(ctx, 100, dlcs, time.Now().UTC()); err != nil {
+		t.Fatalf("SaveDLCs() failed: %v", err)
+	}
+
+	dlcA, err := store.queries.GetGameByIGDBID(ctx, 201)
+	if err != nil {
+		t.Fatalf("GetGameByIGDBID(201) failed: %v", err)
+	}
+	// No store method for DLC ownership yet, so insert it directly.
+	if _, err := store.db.ExecContext(ctx,
+		`INSERT INTO owned_dlc(owned_copy_id, dlc_game_id) VALUES (?, ?)`, pc.ID, dlcA.ID,
+	); err != nil {
+		t.Fatalf("insert owned_dlc failed: %v", err)
+	}
+
+	m := getLibraryGame(t, store, 100).CopyDLCs
+
+	assertCopyDLCs(t, m[6], map[int64]bool{201: true, 202: false})
+	assertCopyDLCs(t, m[48], map[int64]bool{201: false})
+
+	if len(m[130]) != 0 {
+		t.Errorf("len(CopyDLCs[130]) = %d, want 0", len(m[130]))
+	}
+}
+
+// assertCopyDLCs checks that got contains exactly the DLCs in want (keyed by IGDB ID) with the given owned state.
+func assertCopyDLCs(t *testing.T, got []CopyDLC, want map[int64]bool) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("len(CopyDLCs) = %d, want %d", len(got), len(want))
+	}
+	for igdbID, wantOwned := range want {
+		i := slices.IndexFunc(got, func(d CopyDLC) bool { return d.Game.IgdbID == igdbID })
+		if i == -1 {
+			t.Errorf("DLC %d not found", igdbID)
+			continue
+		}
+		if got[i].Owned != wantOwned {
+			t.Errorf("DLC %d Owned = %v, want %v", igdbID, got[i].Owned, wantOwned)
+		}
+	}
+}
+
 func TestAddToCollectionKeepsDLCsFetchedAt(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
