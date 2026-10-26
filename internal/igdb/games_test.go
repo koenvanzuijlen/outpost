@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -139,5 +140,58 @@ func TestGameByIDEmpty(t *testing.T) {
 	}
 	if !strings.Contains(gotBody, "where id = 740") {
 		t.Errorf("GameByID() request body = %v, want it to contain %q", gotBody, "where id = 740")
+	}
+}
+
+func TestDLCs(t *testing.T) {
+	dlcsResponseFixture, err := os.ReadFile("testdata/dlcs.json")
+	if err != nil {
+		t.Fatalf("os.ReadFile() failed: %v", err)
+	}
+	var gotBody string
+	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		gotBody = string(b)
+		_, _ = w.Write(dlcsResponseFixture)
+	})
+
+	dlcs, err := client.DLCs(t.Context(), 1942)
+	if err != nil {
+		t.Fatalf("DLCs() failed: %v", err)
+	}
+	if !strings.Contains(gotBody, "where parent_game = 1942") {
+		t.Errorf("DLCs() request body = %v, want it to contain %q", gotBody, "where parent_game = 1942")
+	}
+	if !strings.Contains(gotBody, "game_type = (1,2,6)") {
+		t.Errorf("DLCs() request body = %v, want it to contain %q", gotBody, "game_type = (1,2,6)")
+	}
+	if len(dlcs) != 8 {
+		t.Fatalf("DLCs() returned %d DLCs, want %d", len(dlcs), 8)
+	}
+	const wantName = "The Witcher 3: Wild Hunt - Blood and Wine"
+	i := slices.IndexFunc(dlcs, func(g Game) bool { return g.Name == wantName })
+	if i == -1 {
+		t.Fatalf("DLCs() = %v, want it to contain %q", dlcs, wantName)
+	}
+	if dlcs[i].ParentGameID != 1942 {
+		t.Errorf("DLCs() %q ParentGameID = %v, want %v", wantName, dlcs[i].ParentGameID, 1942)
+	}
+}
+
+func TestDLCsEmpty(t *testing.T) {
+	emptyResponseFixture, err := os.ReadFile("testdata/empty.json")
+	if err != nil {
+		t.Fatalf("os.ReadFile() failed: %v", err)
+	}
+	client := newTestClient(t, func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(emptyResponseFixture)
+	})
+
+	dlcs, err := client.DLCs(t.Context(), 1942)
+	if err != nil {
+		t.Fatalf("DLCs() failed: %v", err)
+	}
+	if len(dlcs) != 0 {
+		t.Errorf("DLCs() returned %d DLCs, want 0", len(dlcs))
 	}
 }

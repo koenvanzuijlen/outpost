@@ -1,0 +1,238 @@
+[
+  {
+    "id": 170450,
+    "cover": {
+      "id": 262954,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co5mwa.jpg"
+    },
+    "first_release_date": 1433808000,
+    "name": "The Witcher 3: Wild Hunt - New Quest 'Fool's Gold'",
+    "parent_game": 1942,
+    "platforms": [
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
+    "summary": "The Witcher 3: Wild Hunt – New Quest 'Fool's Gold' is a free DLC quest released by CD Projekt Red on June 3, 2015. In this humorous side quest, Geralt teams up with a character named Hystian to investigate a seemingly cursed village inhabited by pigs.",
+    "game_type": 1
+  },
+  {
+    "id": 170449,
+    "cover": {
+      "id": 265414,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co5osm.jpg"
+    },
+    "first_release_date": 1435622400,
+    "name": "The Witcher 3: Wild Hunt - New Quest 'Where the Cat and Wolf Play...'",
+    "parent_game": 1942,
+    "platforms": [
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
+    "summary": "The Witcher 3: Wild Hunt – New Quest \"Where the Cat and Wolf Play...\" is a free DLC quest released in July 2015. In this quest, Geralt investigates a village whose inhabitants have been mysteriously killed. The story centers on a confrontation with a Witcher from the School of the Cat and introduces choices that affect the outcome of the mission.\n\nIt adds a new standalone side quest with unique dialogue, a new location, and narrative ties to the broader Witcher lore.",
+    "game_type": 1
+  },
+  {
+    "id": 157580,
+    "cover": {
+      "id": 262953,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co5mw9.jpg"
+    },
+    "first_release_date": 1435017600,
+    "name": "The Witcher 3: Wild Hunt - New Quest 'Contract: Skellige's Most Wanted'",
+    "parent_game": 1942,
+    "platforms": [
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
+    "summary": "The Witcher 3: Wild Hunt – New Quest 'Contract: Skellige's Most Wanted' is a free DLC quest released in June 2015. It adds a new Witcher contract set on the Skellige Isles, where Geralt is hired to track down a dangerous creature responsible for attacking travelers.",
+    "game_type": 1
+  },
+  {
+    "id": 226413,
+    "cover": {
+      "id": 270594,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co5ssi.jpg"
+    },
+    "first_release_date": 1434412800,
+    "name": "The Witcher 3: Wild Hunt - New Quest: Scavenger Hunt: Wolf School Gear",
+    "parent_game": 1942,
+    "platforms": [
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
+    "summary": "Adventure awaits! Embark on an epic treasure hunt and get your hands on a long-lost elite set of Wolf School witcher gear!",
+    "game_type": 1
+  },
+  {
+    "id": 170451,
+    "cover": {
+      "id": 262955,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co5mwb.jpg"
+    },
+    "first_release_date": 1432598400,
+    "name": "The Witcher 3: Wild Hunt - New Quest 'Contract: Missing Miners'",
+    "parent_game": 1942,
+    "platforms": [
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      }
+    ],
+    "summary": "The Witcher 3: Wild Hunt – New Quest 'Contract: Missing Miners' is a free DLC quest released by CD Projekt Red in May 2015. In this contract, Geralt investigates the disappearance of miners near the village of Blandare in Skellige.",
+    "game_type": 1
+  },
+  {
+    "id": 12503,
+    "cover": {
+      "id": 84518,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co1t7q.jpg"
+    },
+    "first_release_date": 1444608000,
+    "name": "The Witcher 3: Wild Hunt - Hearts of Stone",
+    "parent_game": 1942,
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 167,
+        "name": "PlayStation 5"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      },
+      {
+        "id": 130,
+        "name": "Nintendo Switch"
+      }
+    ],
+    "summary": "The Witcher 3: Wild Hunt – Hearts of Stone is the first major expansion for The Witcher 3: Wild Hunt, released in October 2015. It adds a new storyline set in the existing game world, where Geralt is hired to deal with Olgierd von Everec, a nobleman with a mysterious and cursed past.\n\nThe expansion introduces new characters, quests, enemies, and the Runewords system, which enhances gear with powerful effects. It emphasises narrative depth and moral choices, consistent with the tone of the main game.",
+    "game_type": 2
+  },
+  {
+    "id": 403150,
+    "cover": {
+      "id": 565688,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/coc4hk.jpg"
+    },
+    "first_release_date": 1830211200,
+    "name": "The Witcher 3: Wild Hunt - Songs of the Past",
+    "parent_game": 1942,
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 508,
+        "name": "Nintendo Switch 2"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 167,
+        "name": "PlayStation 5"
+      }
+    ],
+    "summary": "Songs of the Past is a brand-new full-fledged expansion to The Witcher 3: Wild Hunt, one of the most acclaimed role-playing games of all time.\n\nCreated in partnership with Fool’s Theory, a team comprising veteran The Witcher 3 developers, players can once again take on the role of Geralt of Rivia and embark on a brand-new adventure before heading out on the Path as Ciri in the upcoming The Witcher 4.",
+    "game_type": 2
+  },
+  {
+    "id": 13166,
+    "cover": {
+      "id": 121128,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co2lgo.jpg"
+    },
+    "first_release_date": 1464566400,
+    "name": "The Witcher 3: Wild Hunt - Blood and Wine",
+    "parent_game": 1942,
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 167,
+        "name": "PlayStation 5"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      },
+      {
+        "id": 130,
+        "name": "Nintendo Switch"
+      }
+    ],
+    "summary": "Blood and Wine is the second major expansion to The Witcher 3: Wild Hunt.\n\nThe players will accompany Geralt of Rivia to the region of Toussaint, one of the few places in the Witcher universe which has remained largely untouched by the war. The calm, laid-back atmosphere holds a dark and bloody secret that only the White Wolf can uncover; the expansion features new items for players to collect on their adventure and introduces previously unknown characters.",
+    "game_type": 2
+  }
+]

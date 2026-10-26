@@ -74,3 +74,16 @@ func (c *Client) GameByID(ctx context.Context, id int) (Game, error) {
 	}
 	return games[0], nil
 }
+
+// DLCs retrieves the downloadable content (DLC) for a given parent game ID from the IGDB API. It returns a slice of
+// Game objects representing the DLCs, or an error if the query fails.
+func (c *Client) DLCs(ctx context.Context, parentID int) ([]Game, error) {
+	body := fmt.Sprintf(`where parent_game = %d & game_type = (%s); fields %s; limit 500;`, parentID, gameTypeFilter(DLCGameTypes), gameFields)
+
+	var dlcs []Game
+	if err := c.query(ctx, "/games", body, &dlcs); err != nil {
+		return nil, fmt.Errorf("query DLCs: %w", err)
+	}
+
+	return dlcs, nil
+}

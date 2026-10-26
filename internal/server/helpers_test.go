@@ -21,6 +21,8 @@ type fakeIGDB struct {
 	searchErr     error
 	game          igdb.Game
 	gameErr       error
+	dlcs          []igdb.Game
+	dlcsErr       error
 }
 
 func (c *fakeIGDB) SearchGames(_ context.Context, _ string) ([]igdb.Game, error) {
@@ -29,6 +31,10 @@ func (c *fakeIGDB) SearchGames(_ context.Context, _ string) ([]igdb.Game, error)
 
 func (c *fakeIGDB) GameByID(_ context.Context, _ int) (igdb.Game, error) {
 	return c.game, c.gameErr
+}
+
+func (c *fakeIGDB) DLCs(_ context.Context, _ int) ([]igdb.Game, error) {
+	return c.dlcs, c.dlcsErr
 }
 
 // loadIGDBGames loads a list of IGDB games from a fixture located in the testdata directory.

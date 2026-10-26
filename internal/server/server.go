@@ -19,6 +19,7 @@ const defaultUserID = 1
 type IGDBClient interface {
 	SearchGames(ctx context.Context, query string) ([]igdb.Game, error)
 	GameByID(ctx context.Context, id int) (igdb.Game, error)
+	DLCs(ctx context.Context, parentID int) ([]igdb.Game, error)
 }
 
 // Server holds the dependencies shared by all HTTP handlers and routes requests to them. It implements http.Handler.
