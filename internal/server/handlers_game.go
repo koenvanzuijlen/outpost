@@ -1,11 +1,15 @@
 package server
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
+	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
 
 // ratingOption represents a single rating option for a game.
@@ -55,6 +59,20 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if libraryGame.Game.DlcsFetchedAt == nil {
+		err := server.fetchDLCs(r.Context(), igdbID)
+		if err != nil {
+			server.logger.Warn("failed to fetch DLCs", "igdb_id", igdbID, "error", err)
+		} else {
+			libraryGame, err = server.store.GetLibraryGame(r.Context(), defaultUserID, igdbID)
+			if err != nil {
+				server.logger.Error("failed to get library game", "error", err)
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+
 	server.render(w, "game.html", gamePage{
 		LibraryGame:         libraryGame,
 		Statuses:            database.GameStatuses,
@@ -99,4 +117,27 @@ func (server *Server) handleUpdateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
+}
+
+// fetchDLCs retrieves the DLCs for a given game from IGDB and saves them to the database.
+func (server *Server) fetchDLCs(ctx context.Context, igdbID int64) error {
+	now := time.Now().UTC()
+
+	ctxTimeout, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	dlcs, err := server.igdbClient.DLCs(ctxTimeout, int(igdbID))
+	if err != nil {
+		return fmt.Errorf("fetch from igdb: %w", err)
+	}
+
+	dlcParams := make([]dbgen.UpsertGameParams, len(dlcs))
+	for i, dlc := range dlcs {
+		dlcParams[i] = upsertGameParamsFromIGDB(dlc, now)
+	}
+
+	err = server.store.SaveDLCs(ctx, igdbID, dlcParams, now)
+	if err != nil {
+		return fmt.Errorf("save dlcs: %w", err)
+	}
+	return nil
 }

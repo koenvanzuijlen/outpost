@@ -16,6 +16,20 @@
 		{{with .LibraryGame.Game.ReleasedAt}}<p>Released: {{.Format "2 January 2006"}}</p>{{end}}
 		{{with .LibraryGame.Game.Summary}}<p>Summary:<br>{{.}}</p>{{end}}
 	</div>
+	<div>
+		<h2>DLCs</h2>
+		{{if .LibraryGame.Game.DlcsFetchedAt}}
+			<ul>
+			{{range .LibraryGame.DLCs}}
+				<li>{{.Title}}{{with .ReleasedAt}} ({{.Format "2 January 2006"}}){{end}} - {{gameType .GameType}}</li>
+			{{else}}
+				<li>No DLC.</li>
+			{{end}}
+			</ul>
+		{{else}}
+			<p>DLC couldn't be loaded.</p>
+		{{end}}
+	</div>
 	{{if not .LibraryGame.UserGame.Wishlisted}}
 		<div>
 			<form method="post" action="/games/{{.LibraryGame.Game.IgdbID}}">

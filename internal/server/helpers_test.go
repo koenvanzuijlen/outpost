@@ -23,6 +23,7 @@ type fakeIGDB struct {
 	gameErr       error
 	dlcs          []igdb.Game
 	dlcsErr       error
+	dlcsCalls     int
 }
 
 func (c *fakeIGDB) SearchGames(_ context.Context, _ string) ([]igdb.Game, error) {
@@ -34,6 +35,7 @@ func (c *fakeIGDB) GameByID(_ context.Context, _ int) (igdb.Game, error) {
 }
 
 func (c *fakeIGDB) DLCs(_ context.Context, _ int) ([]igdb.Game, error) {
+	c.dlcsCalls++
 	return c.dlcs, c.dlcsErr
 }
 

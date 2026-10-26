@@ -1,10 +1,13 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
 func TestHandleGameValidation(t *testing.T) {
@@ -147,6 +150,81 @@ func TestHandleGameCompletedPlaythrough(t *testing.T) {
 	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/outcome", playthroughID))
 	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID))
 	assertBodyContains(t, w, `name="finished_at"`)
+}
+
+// addWitcher3 adds The Witcher 3 to the collection with the given DLCs and returns the fake IGDB client.
+func addWitcher3(t *testing.T, server *Server, dlcs []igdb.Game) *fakeIGDB {
+	t.Helper()
+	fake := &fakeIGDB{game: loadIGDBGames(t, "game_by_id_witcher3.json")[0], dlcs: dlcs}
+	server.igdbClient = fake
+	w := postForm(t, server, "/collection", "igdb_id=1942&platform_id=6")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	return fake
+}
+
+// getWitcher3Page requests the game page for The Witcher 3 and asserts a 200 response.
+func getWitcher3Page(t *testing.T, server *Server) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/games/1942", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+	return w
+}
+
+func TestHandleGameDLCs(t *testing.T) {
+	server := newTestServer(t)
+	fake := addWitcher3(t, server, loadIGDBGames(t, "dlcs.json"))
+
+	w := getWitcher3Page(t, server)
+	assertBodyContains(t, w, "Hearts of Stone (12 October 2015) - Expansion")
+	assertBodyNotContains(t, w, "couldn't be loaded")
+	if fake.dlcsCalls != 1 {
+		t.Errorf("dlcsCalls after first view = %d, want %d", fake.dlcsCalls, 1)
+	}
+
+	w = getWitcher3Page(t, server)
+	assertBodyContains(t, w, "Hearts of Stone")
+	if fake.dlcsCalls != 1 {
+		t.Errorf("dlcsCalls after second view = %d, want %d", fake.dlcsCalls, 1)
+	}
+}
+
+func TestHandleGameDLCsError(t *testing.T) {
+	server := newTestServer(t)
+	fake := addWitcher3(t, server, nil)
+	fake.dlcsErr = errors.New("igdb unavailable")
+
+	w := getWitcher3Page(t, server)
+	assertBodyContains(t, w, "couldn't be loaded")
+	if fake.dlcsCalls != 1 {
+		t.Errorf("dlcsCalls after first view = %d, want %d", fake.dlcsCalls, 1)
+	}
+
+	getWitcher3Page(t, server)
+	if fake.dlcsCalls != 2 {
+		t.Errorf("dlcsCalls after second view = %d, want %d", fake.dlcsCalls, 2)
+	}
+}
+
+func TestHandleGameNoDLCs(t *testing.T) {
+	server := newTestServer(t)
+	fake := addWitcher3(t, server, nil)
+
+	w := getWitcher3Page(t, server)
+	assertBodyContains(t, w, "No DLC")
+	if fake.dlcsCalls != 1 {
+		t.Errorf("dlcsCalls after first view = %d, want %d", fake.dlcsCalls, 1)
+	}
+
+	getWitcher3Page(t, server)
+	if fake.dlcsCalls != 1 {
+		t.Errorf("dlcsCalls after second view = %d, want %d", fake.dlcsCalls, 1)
+	}
 }
 
 func TestHandleUpdateGameValidation(t *testing.T) {
