@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
-	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
 
 // ratingOption represents a single rating option for a game.
@@ -130,12 +129,12 @@ func (server *Server) fetchDLCs(ctx context.Context, igdbID int64) error {
 		return fmt.Errorf("fetch from igdb: %w", err)
 	}
 
-	dlcParams := make([]dbgen.UpsertGameParams, len(dlcs))
+	dlcsToSave := make([]database.DLC, len(dlcs))
 	for i, dlc := range dlcs {
-		dlcParams[i] = upsertGameParamsFromIGDB(dlc, now)
+		dlcsToSave[i] = dlcFromIGDB(dlc, now)
 	}
 
-	err = server.store.SaveDLCs(ctx, igdbID, dlcParams, now)
+	err = server.store.SaveDLCs(ctx, igdbID, dlcsToSave, now)
 	if err != nil {
 		return fmt.Errorf("save dlcs: %w", err)
 	}

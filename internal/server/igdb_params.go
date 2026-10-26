@@ -3,6 +3,7 @@ package server
 import (
 	"time"
 
+	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
@@ -31,5 +32,17 @@ func upsertPlatformParamsFromIGDB(platform igdb.Platform, fetchedAt time.Time) d
 		IgdbID:    int64(platform.ID),
 		FetchedAt: fetchedAt,
 		Name:      platform.Name,
+	}
+}
+
+// dlcFromIGDB maps an IGDB game to the database.DLC structure, including its platforms.
+func dlcFromIGDB(game igdb.Game, fetchedAt time.Time) database.DLC {
+	platforms := make([]dbgen.UpsertPlatformParams, len(game.Platforms))
+	for i, platform := range game.Platforms {
+		platforms[i] = upsertPlatformParamsFromIGDB(platform, fetchedAt)
+	}
+	return database.DLC{
+		Game:      upsertGameParamsFromIGDB(game, fetchedAt),
+		Platforms: platforms,
 	}
 }

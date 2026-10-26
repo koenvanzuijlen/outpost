@@ -30,6 +30,14 @@ CREATE TABLE platforms(
     name text NOT NULL
 );
 
+CREATE TABLE game_platforms(
+    game_id integer NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+    platform_id integer NOT NULL REFERENCES platforms(id) ON DELETE RESTRICT,
+    PRIMARY KEY (game_id, platform_id)
+);
+
+CREATE INDEX idx_game_platforms_platform_id ON game_platforms(platform_id);
+
 CREATE TABLE user_games(
     id integer PRIMARY KEY,
     user_id integer NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
@@ -81,6 +89,8 @@ DROP TABLE owned_dlc;
 DROP TABLE owned_copies;
 
 DROP TABLE user_games;
+
+DROP TABLE game_platforms;
 
 DROP TABLE platforms;
 

@@ -21,6 +21,11 @@ type Game struct {
 	Summary       *string
 }
 
+type GamePlatform struct {
+	GameID     int64
+	PlatformID int64
+}
+
 type OwnedCopy struct {
 	ID         int64
 	UserGameID int64

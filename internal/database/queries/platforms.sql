@@ -27,3 +27,13 @@ ON CONFLICT (igdb_id)
     RETURNING
         *;
 
+-- name: CreateGamePlatform :exec
+INSERT INTO game_platforms(game_id, platform_id)
+    VALUES (?, ?)
+ON CONFLICT (game_id, platform_id)
+    DO NOTHING;
+
+-- name: DeleteGamePlatforms :exec
+DELETE FROM game_platforms
+WHERE game_id = ?;
+

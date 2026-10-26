@@ -18,9 +18,15 @@ func dlcGameTypes() []int64 {
 	return dlcTypes
 }
 
+// DLC represents a downloadable content (DLC) for a parent game, including its associated platforms.
+type DLC struct {
+	Game      dbgen.UpsertGameParams
+	Platforms []dbgen.UpsertPlatformParams
+}
+
 // SaveDLCs upserts the provided DLCs for the given parent IGDB ID and stores the fetched timestamp. If the parent game
 // is not in the database, an error is returned.
-func (s *Store) SaveDLCs(ctx context.Context, parentIGDBID int64, dlcs []dbgen.UpsertGameParams, fetchedAt time.Time) error {
+func (s *Store) SaveDLCs(ctx context.Context, parentIGDBID int64, dlcs []DLC, fetchedAt time.Time) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -29,8 +35,26 @@ func (s *Store) SaveDLCs(ctx context.Context, parentIGDBID int64, dlcs []dbgen.U
 	q := dbgen.New(tx)
 
 	for _, dlc := range dlcs {
-		if _, err := q.UpsertGame(ctx, dlc); err != nil {
+		storedGame, err := q.UpsertGame(ctx, dlc.Game)
+		if err != nil {
 			return fmt.Errorf("upsert game: %w", err)
+		}
+		err = q.DeleteGamePlatforms(ctx, storedGame.ID)
+		if err != nil {
+			return fmt.Errorf("delete game platform: %w", err)
+		}
+		for _, platform := range dlc.Platforms {
+			storedPlatform, err := q.UpsertPlatform(ctx, platform)
+			if err != nil {
+				return fmt.Errorf("upsert platform: %w", err)
+			}
+			err = q.CreateGamePlatform(ctx, dbgen.CreateGamePlatformParams{
+				GameID:     storedGame.ID,
+				PlatformID: storedPlatform.ID,
+			})
+			if err != nil {
+				return fmt.Errorf("create game platform: %w", err)
+			}
 		}
 	}
 

@@ -10,6 +10,33 @@ import (
 	"time"
 )
 
+const createGamePlatform = `-- name: CreateGamePlatform :exec
+INSERT INTO game_platforms(game_id, platform_id)
+    VALUES (?, ?)
+ON CONFLICT (game_id, platform_id)
+    DO NOTHING
+`
+
+type CreateGamePlatformParams struct {
+	GameID     int64
+	PlatformID int64
+}
+
+func (q *Queries) CreateGamePlatform(ctx context.Context, arg CreateGamePlatformParams) error {
+	_, err := q.db.ExecContext(ctx, createGamePlatform, arg.GameID, arg.PlatformID)
+	return err
+}
+
+const deleteGamePlatforms = `-- name: DeleteGamePlatforms :exec
+DELETE FROM game_platforms
+WHERE game_id = ?
+`
+
+func (q *Queries) DeleteGamePlatforms(ctx context.Context, gameID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteGamePlatforms, gameID)
+	return err
+}
+
 const getPlatformByIGDBID = `-- name: GetPlatformByIGDBID :one
 SELECT
     id, igdb_id, fetched_at, name
