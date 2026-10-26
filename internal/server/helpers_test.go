@@ -74,6 +74,52 @@ func newTestServer(t *testing.T) *Server {
 	return server
 }
 
+// addTestGame adds The Witcher 3 (1942) to the collection on PC (6) and returns the fake IGDB client.
+func addTestGame(t *testing.T, server *Server) *fakeIGDB {
+	t.Helper()
+	fake := &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
+	server.igdbClient = fake
+	w := postForm(t, server, "/collection", "igdb_id=1942&platform_id=6")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	return fake
+}
+
+// wishlistTestGame adds The Witcher 3 (1942) to the wishlist and returns the fake IGDB client.
+func wishlistTestGame(t *testing.T, server *Server) *fakeIGDB {
+	t.Helper()
+	fake := &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
+	server.igdbClient = fake
+	w := postForm(t, server, "/wishlist", "igdb_id=1942")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("wishlist status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	return fake
+}
+
+// getTestGamePage requests the game page for The Witcher 3 and asserts a 200 response.
+func getTestGamePage(t *testing.T, server *Server) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/games/1942", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+	return w
+}
+
+// getTestLibraryGame loads The Witcher 3 from the default user's library.
+func getTestLibraryGame(t *testing.T, server *Server) database.LibraryGame {
+	t.Helper()
+	libraryGame, err := server.store.GetLibraryGame(t.Context(), defaultUserID, 1942)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	return libraryGame
+}
+
 // postForm sends a POST request with the given form body to the specified URL and returns the response recorder.
 func postForm(t *testing.T, server *Server, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
@@ -97,6 +143,14 @@ func assertBodyNotContains(t *testing.T, w *httptest.ResponseRecorder, unwanted 
 	t.Helper()
 	if strings.Contains(w.Body.String(), unwanted) {
 		t.Errorf("body unexpectedly contains %q", unwanted)
+	}
+}
+
+// assertLocation reports an error if the Location header does not equal want.
+func assertLocation(t *testing.T, w *httptest.ResponseRecorder, want string) {
+	t.Helper()
+	if got := w.Header().Get("Location"); got != want {
+		t.Errorf("Location header = %q, want %q", got, want)
 	}
 }
 

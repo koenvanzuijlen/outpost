@@ -61,12 +61,12 @@ func TestSearchGames(t *testing.T) {
 		gotBody = string(b)
 		_, _ = w.Write(searchResponseFixture)
 	})
-	games, err := client.SearchGames(t.Context(), "halo")
+	games, err := client.SearchGames(t.Context(), "witcher")
 	if err != nil {
 		t.Fatalf("SearchGames() failed: %v", err)
 	}
-	if !strings.Contains(gotBody, "halo") {
-		t.Errorf("SearchGames() request body = %v, want it to contain %q", gotBody, "halo")
+	if !strings.Contains(gotBody, "witcher") {
+		t.Errorf("SearchGames() request body = %v, want it to contain %q", gotBody, "witcher")
 	}
 	if !strings.Contains(gotBody, "platforms != null") {
 		t.Errorf("SearchGames() request body = %v, want it to contain %q", gotBody, "platform != null")
@@ -77,11 +77,13 @@ func TestSearchGames(t *testing.T) {
 	if len(games) == 0 {
 		t.Fatalf("SearchGames() returned no games, want at least one")
 	}
-	if games[0].Name != "Halo: Combat Evolved" {
-		t.Errorf("SearchGames() first game = %v, want %v", games[0].Name, "Halo: Combat Evolved")
+	const wantName = "The Witcher 3: Wild Hunt"
+	i := slices.IndexFunc(games, func(g Game) bool { return g.Name == wantName })
+	if i == -1 {
+		t.Fatalf("SearchGames() = %v, want it to contain %q", games, wantName)
 	}
-	if games[0].Cover.URL == "" {
-		t.Errorf("SearchGames() first game cover URL = %v, want it to be non-empty", games[0].Cover.URL)
+	if games[i].Cover.URL == "" {
+		t.Errorf("SearchGames() %q cover URL = %v, want it to be non-empty", wantName, games[i].Cover.URL)
 	}
 
 }
@@ -98,27 +100,21 @@ func TestGameByID(t *testing.T) {
 		_, _ = w.Write(gameByIDResponseFixture)
 	})
 
-	game, err := client.GameByID(t.Context(), 740)
+	game, err := client.GameByID(t.Context(), 1942)
 	if err != nil {
 		t.Fatalf("GameByID() failed: %v", err)
 	}
-	if !strings.Contains(gotBody, "where id = 740") {
-		t.Errorf("GameByID() request body = %v, want it to contain %q", gotBody, "where id = 740")
+	if !strings.Contains(gotBody, "where id = 1942") {
+		t.Errorf("GameByID() request body = %v, want it to contain %q", gotBody, "where id = 1942")
 	}
-	if game.Name != "Halo: Combat Evolved" {
-		t.Errorf("GameByID() = %v, want %v", game.Name, "Halo: Combat Evolved")
+	if game.Name != "The Witcher 3: Wild Hunt" {
+		t.Errorf("GameByID() = %v, want %v", game.Name, "The Witcher 3: Wild Hunt")
 	}
 	if game.Cover.URL == "" {
 		t.Errorf("GameByID() cover URL = %v, want it to be non-empty", game.Cover.URL)
 	}
-	if len(game.Platforms) == 0 {
-		t.Fatalf("GameByID() platforms = %v, want it to be non-empty", game.Platforms)
-	}
-	if game.Platforms[0].ID != 11 {
-		t.Errorf("GameByID() first platform ID = %v, want %v", game.Platforms[0].ID, 11)
-	}
-	if game.Platforms[0].Name != "Xbox" {
-		t.Errorf("GameByID() first platform Name = %v, want %v", game.Platforms[0].Name, "Xbox")
+	if !slices.Contains(game.Platforms, Platform{ID: 6, Name: "PC (Microsoft Windows)"}) {
+		t.Errorf("GameByID() platforms = %v, want it to contain %v", game.Platforms, Platform{ID: 6, Name: "PC (Microsoft Windows)"})
 	}
 }
 
@@ -134,12 +130,12 @@ func TestGameByIDEmpty(t *testing.T) {
 		_, _ = w.Write(emptyResponseFixture)
 	})
 
-	_, err = client.GameByID(t.Context(), 740)
+	_, err = client.GameByID(t.Context(), 1942)
 	if !errors.Is(err, ErrGameNotFound) {
 		t.Errorf("GameByID() error = %v, want %v", err, ErrGameNotFound)
 	}
-	if !strings.Contains(gotBody, "where id = 740") {
-		t.Errorf("GameByID() request body = %v, want it to contain %q", gotBody, "where id = 740")
+	if !strings.Contains(gotBody, "where id = 1942") {
+		t.Errorf("GameByID() request body = %v, want it to contain %q", gotBody, "where id = 1942")
 	}
 }
 

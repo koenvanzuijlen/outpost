@@ -11,25 +11,15 @@ import (
 
 func TestHandleStartPlaythrough(t *testing.T) {
 	server := newTestServer(t)
-	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
-	if w.Code != http.StatusSeeOther {
-		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
-	}
+	addTestGame(t, server)
 
-	w = postForm(t, server, "/games/740/playthroughs", "platform=11&name=First+run")
+	w := postForm(t, server, "/games/1942/playthroughs", "platform=6&name=First+run")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	location := w.Header().Get("Location")
-	if location != "/games/740" {
-		t.Errorf("Location header = %q, want %q", location, "/games/740")
-	}
+	assertLocation(t, w, "/games/1942")
 
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	libraryGame := getTestLibraryGame(t, server)
 	if len(libraryGame.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
 	}
@@ -37,8 +27,8 @@ func TestHandleStartPlaythrough(t *testing.T) {
 	if playthrough.Playthrough.Name == nil || *playthrough.Playthrough.Name != "First run" {
 		t.Errorf("name = %v, want %q", derefOrNil(playthrough.Playthrough.Name), "First run")
 	}
-	if playthrough.PlatformName == nil || *playthrough.PlatformName != "Xbox" {
-		t.Errorf("platform name = %v, want %q", derefOrNil(playthrough.PlatformName), "Xbox")
+	if playthrough.PlatformName == nil || *playthrough.PlatformName != "PC (Microsoft Windows)" {
+		t.Errorf("platform name = %v, want %q", derefOrNil(playthrough.PlatformName), "PC (Microsoft Windows)")
 	}
 	if libraryGame.UserGame.Status == nil || *libraryGame.UserGame.Status != "playing" {
 		t.Errorf("status = %v, want %q", derefOrNil(libraryGame.UserGame.Status), "playing")
@@ -47,21 +37,14 @@ func TestHandleStartPlaythrough(t *testing.T) {
 
 func TestHandleStartPlaythroughBlankName(t *testing.T) {
 	server := newTestServer(t)
-	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
-	if w.Code != http.StatusSeeOther {
-		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
-	}
+	addTestGame(t, server)
 
-	w = postForm(t, server, "/games/740/playthroughs", "name=++")
+	w := postForm(t, server, "/games/1942/playthroughs", "name=++")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	libraryGame := getTestLibraryGame(t, server)
 	if len(libraryGame.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
 	}
@@ -76,19 +59,15 @@ func TestHandleStartPlaythroughValidation(t *testing.T) {
 		body string
 	}{
 		{"non-numeric platform", "platform=abc"},
-		{"unknown platform", "platform=6"},
+		{"unknown platform", "platform=48"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
-			server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-			w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
-			if w.Code != http.StatusSeeOther {
-				t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
-			}
+			addTestGame(t, server)
 
-			w = postForm(t, server, "/games/740/playthroughs", tt.body)
+			w := postForm(t, server, "/games/1942/playthroughs", tt.body)
 			if w.Code != http.StatusBadRequest {
 				t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
 			}
@@ -98,7 +77,7 @@ func TestHandleStartPlaythroughValidation(t *testing.T) {
 
 func TestHandleStartPlaythroughNotInLibrary(t *testing.T) {
 	server := newTestServer(t)
-	w := postForm(t, server, "/games/740/playthroughs", "")
+	w := postForm(t, server, "/games/1942/playthroughs", "")
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
 	}
@@ -106,37 +85,26 @@ func TestHandleStartPlaythroughNotInLibrary(t *testing.T) {
 
 func TestHandleStartPlaythroughWishlisted(t *testing.T) {
 	server := newTestServer(t)
-	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/wishlist", "igdb_id=740")
-	if w.Code != http.StatusSeeOther {
-		t.Fatalf("wishlist status = %d, want %d", w.Code, http.StatusSeeOther)
-	}
+	wishlistTestGame(t, server)
 
-	w = postForm(t, server, "/games/740/playthroughs", "")
+	w := postForm(t, server, "/games/1942/playthroughs", "")
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
 	}
 }
 
-// startTestPlaythrough adds game 740 to the collection, starts a playthrough for it and returns the playthrough ID.
+// startTestPlaythrough adds game 1942 to the collection, starts a playthrough for it and returns the playthrough ID.
 func startTestPlaythrough(t *testing.T, server *Server, name, platformIGDBID string) int64 {
 	t.Helper()
-	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
-	if w.Code != http.StatusSeeOther {
-		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
-	}
+	addTestGame(t, server)
 
 	form := url.Values{"name": {name}, "platform": {platformIGDBID}}.Encode()
-	w = postForm(t, server, "/games/740/playthroughs", form)
+	w := postForm(t, server, "/games/1942/playthroughs", form)
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	libraryGame := getTestLibraryGame(t, server)
 	if len(libraryGame.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
 	}
@@ -151,20 +119,14 @@ func TestHandleSetPlaythroughOutcome(t *testing.T) {
 			server := newTestServer(t)
 			playthroughID := startTestPlaythrough(t, server, "", "")
 
-			path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/outcome"
+			path := "/games/1942/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/outcome"
 			w := postForm(t, server, path, "outcome="+outcome)
 			if w.Code != http.StatusSeeOther {
 				t.Fatalf("set outcome status = %d, want %d", w.Code, http.StatusSeeOther)
 			}
-			location := w.Header().Get("Location")
-			if location != "/games/740" {
-				t.Errorf("Location header = %q, want %q", location, "/games/740")
-			}
+			assertLocation(t, w, "/games/1942")
 
-			libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-			if err != nil {
-				t.Fatalf("GetLibraryGame() failed: %v", err)
-			}
+			libraryGame := getTestLibraryGame(t, server)
 			if libraryGame.UserGame.Status == nil || *libraryGame.UserGame.Status != outcome {
 				t.Errorf("status = %v, want %q", derefOrNil(libraryGame.UserGame.Status), outcome)
 			}
@@ -179,7 +141,7 @@ func TestHandleSetPlaythroughOutcomeBackToPlaying(t *testing.T) {
 	server := newTestServer(t)
 	playthroughID := startTestPlaythrough(t, server, "", "")
 
-	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/outcome"
+	path := "/games/1942/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/outcome"
 	for _, outcome := range []string{"completed", "playing"} {
 		w := postForm(t, server, path, "outcome="+outcome)
 		if w.Code != http.StatusSeeOther {
@@ -187,10 +149,7 @@ func TestHandleSetPlaythroughOutcomeBackToPlaying(t *testing.T) {
 		}
 	}
 
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	libraryGame := getTestLibraryGame(t, server)
 	if len(libraryGame.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
 	}
@@ -205,8 +164,8 @@ func TestHandleSetPlaythroughOutcomeValidation(t *testing.T) {
 		path string
 		body string
 	}{
-		{"invalid outcome", "/games/740/playthroughs/{id}/outcome", "outcome=invalid"},
-		{"non-numeric playthrough id", "/games/740/playthroughs/abc/outcome", "outcome=completed"},
+		{"invalid outcome", "/games/1942/playthroughs/{id}/outcome", "outcome=invalid"},
+		{"non-numeric playthrough id", "/games/1942/playthroughs/abc/outcome", "outcome=completed"},
 	}
 
 	for _, tt := range tests {
@@ -227,7 +186,7 @@ func TestHandleSetPlaythroughOutcomeUnknownPlaythrough(t *testing.T) {
 	server := newTestServer(t)
 	playthroughID := startTestPlaythrough(t, server, "", "")
 
-	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID+1, 10) + "/outcome"
+	path := "/games/1942/playthroughs/" + strconv.FormatInt(playthroughID+1, 10) + "/outcome"
 	w := postForm(t, server, path, "outcome=completed")
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
@@ -239,14 +198,14 @@ func TestHandleUpdatePlaythrough(t *testing.T) {
 	playthroughID := startTestPlaythrough(t, server, "", "")
 
 	// Finishing a playthrough requires an outcome other than playing.
-	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10)
+	path := "/games/1942/playthroughs/" + strconv.FormatInt(playthroughID, 10)
 	w := postForm(t, server, path+"/outcome", "outcome=completed")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("set outcome status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
 	form := url.Values{
-		"platform":    {"11"},
+		"platform":    {"6"},
 		"name":        {"  Second run  "},
 		"started_at":  {"2026-01-02"},
 		"finished_at": {"2026-03-04"},
@@ -255,21 +214,15 @@ func TestHandleUpdatePlaythrough(t *testing.T) {
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("update status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	location := w.Header().Get("Location")
-	if location != "/games/740" {
-		t.Errorf("Location header = %q, want %q", location, "/games/740")
-	}
+	assertLocation(t, w, "/games/1942")
 
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	libraryGame := getTestLibraryGame(t, server)
 	if len(libraryGame.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
 	}
 	playthrough := libraryGame.Playthroughs[0]
-	if playthrough.PlatformName == nil || *playthrough.PlatformName != "Xbox" {
-		t.Errorf("platform name = %v, want %q", derefOrNil(playthrough.PlatformName), "Xbox")
+	if playthrough.PlatformName == nil || *playthrough.PlatformName != "PC (Microsoft Windows)" {
+		t.Errorf("platform name = %v, want %q", derefOrNil(playthrough.PlatformName), "PC (Microsoft Windows)")
 	}
 	if playthrough.Playthrough.Name == nil || *playthrough.Playthrough.Name != "Second run" {
 		t.Errorf("name = %v, want %q", derefOrNil(playthrough.Playthrough.Name), "Second run")
@@ -286,18 +239,15 @@ func TestHandleUpdatePlaythrough(t *testing.T) {
 
 func TestHandleUpdatePlaythroughClearsFields(t *testing.T) {
 	server := newTestServer(t)
-	playthroughID := startTestPlaythrough(t, server, "First run", "11")
+	playthroughID := startTestPlaythrough(t, server, "First run", "6")
 
-	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10)
+	path := "/games/1942/playthroughs/" + strconv.FormatInt(playthroughID, 10)
 	w := postForm(t, server, path, "name=&platform=")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("update status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	libraryGame := getTestLibraryGame(t, server)
 	if len(libraryGame.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
 	}
@@ -321,7 +271,7 @@ func TestHandleUpdatePlaythroughValidation(t *testing.T) {
 		{"invalid start date", "started_at=02-01-2026"},
 		{"invalid finish date", "finished_at=not-a-date"},
 		{"finished on playing playthrough", "started_at=2026-01-02&finished_at=2026-03-04"},
-		{"unknown platform", "platform=6"},
+		{"unknown platform", "platform=48"},
 	}
 
 	for _, tt := range tests {
@@ -329,7 +279,7 @@ func TestHandleUpdatePlaythroughValidation(t *testing.T) {
 			server := newTestServer(t)
 			playthroughID := startTestPlaythrough(t, server, "", "")
 
-			path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10)
+			path := "/games/1942/playthroughs/" + strconv.FormatInt(playthroughID, 10)
 			w := postForm(t, server, path, tt.body)
 			if w.Code != http.StatusBadRequest {
 				t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
@@ -342,7 +292,7 @@ func TestHandleUpdatePlaythroughFinishedBeforeStarted(t *testing.T) {
 	server := newTestServer(t)
 	playthroughID := startTestPlaythrough(t, server, "", "")
 
-	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10)
+	path := "/games/1942/playthroughs/" + strconv.FormatInt(playthroughID, 10)
 	w := postForm(t, server, path+"/outcome", "outcome=completed")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("set outcome status = %d, want %d", w.Code, http.StatusSeeOther)
@@ -358,7 +308,7 @@ func TestHandleUpdatePlaythroughUnknownPlaythrough(t *testing.T) {
 	server := newTestServer(t)
 	playthroughID := startTestPlaythrough(t, server, "", "")
 
-	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID+1, 10)
+	path := "/games/1942/playthroughs/" + strconv.FormatInt(playthroughID+1, 10)
 	w := postForm(t, server, path, "name=Other")
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
@@ -369,20 +319,14 @@ func TestHandleDeletePlaythrough(t *testing.T) {
 	server := newTestServer(t)
 	playthroughID := startTestPlaythrough(t, server, "", "")
 
-	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/delete"
+	path := "/games/1942/playthroughs/" + strconv.FormatInt(playthroughID, 10) + "/delete"
 	w := postForm(t, server, path, "")
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	location := w.Header().Get("Location")
-	if location != "/games/740" {
-		t.Errorf("Location header = %q, want %q", location, "/games/740")
-	}
+	assertLocation(t, w, "/games/1942")
 
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	libraryGame := getTestLibraryGame(t, server)
 	if len(libraryGame.Playthroughs) != 0 {
 		t.Errorf("playthroughs = %v, want empty", libraryGame.Playthroughs)
 	}
@@ -392,20 +336,14 @@ func TestHandleDeletePlaythroughUnknown(t *testing.T) {
 	server := newTestServer(t)
 	playthroughID := startTestPlaythrough(t, server, "", "")
 
-	path := "/games/740/playthroughs/" + strconv.FormatInt(playthroughID+1, 10) + "/delete"
+	path := "/games/1942/playthroughs/" + strconv.FormatInt(playthroughID+1, 10) + "/delete"
 	w := postForm(t, server, path, "")
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	location := w.Header().Get("Location")
-	if location != "/games/740" {
-		t.Errorf("Location header = %q, want %q", location, "/games/740")
-	}
+	assertLocation(t, w, "/games/1942")
 
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	libraryGame := getTestLibraryGame(t, server)
 	if len(libraryGame.Playthroughs) != 1 {
 		t.Errorf("playthroughs = %v, want 1", libraryGame.Playthroughs)
 	}
@@ -415,16 +353,13 @@ func TestHandleDeletePlaythroughInvalid(t *testing.T) {
 	server := newTestServer(t)
 	_ = startTestPlaythrough(t, server, "", "")
 
-	path := "/games/740/playthroughs/abc/delete"
+	path := "/games/1942/playthroughs/abc/delete"
 	w := postForm(t, server, path, "")
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	libraryGame := getTestLibraryGame(t, server)
 	if len(libraryGame.Playthroughs) != 1 {
 		t.Errorf("playthroughs = %v, want 1", libraryGame.Playthroughs)
 	}

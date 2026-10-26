@@ -10,13 +10,13 @@ func TestHandleLibraryRendersCollectionAndWishlist(t *testing.T) {
 	searchResponse := loadIGDBGames(t, "games_search.json")
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: searchResponse[0]}
-	w := postForm(t, server, "/wishlist", "igdb_id=740")
+	w := postForm(t, server, "/wishlist", "igdb_id=194662")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("wishlist status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
 	server.igdbClient = &fakeIGDB{game: searchResponse[1]}
-	w = postForm(t, server, "/collection", "igdb_id=2640&platform_id=6")
+	w = postForm(t, server, "/collection", "igdb_id=1942&platform_id=6")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
 	}

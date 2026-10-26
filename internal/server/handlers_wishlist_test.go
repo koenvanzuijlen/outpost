@@ -30,15 +30,12 @@ func TestHandleAddToWishlistValidation(t *testing.T) {
 func TestHandleAddToWishlist(t *testing.T) {
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/wishlist", "igdb_id=740")
+	w := postForm(t, server, "/wishlist", "igdb_id=1942")
 
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	location := w.Header().Get("Location")
-	if location != "/" {
-		t.Errorf("location header = %q, want %q", location, "/")
-	}
+	assertLocation(t, w, "/")
 }
 
 func TestHandleAddToWishlistDLC(t *testing.T) {
@@ -49,10 +46,7 @@ func TestHandleAddToWishlistDLC(t *testing.T) {
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
-	location := w.Header().Get("Location")
-	if location != "" {
-		t.Errorf("location header = %q, want empty", location)
-	}
+	assertLocation(t, w, "")
 
 	wishlist, err := server.store.ListWishlist(t.Context(), defaultUserID)
 	if err != nil {

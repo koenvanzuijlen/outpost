@@ -14,10 +14,10 @@ func TestHandleAddToCollectionValidation(t *testing.T) {
 		body string
 	}{
 		{"missing body", ""},
-		{"invalid id", "igdb_id=abc&platform_id=11"},
-		{"negative id", "igdb_id=-1&platform_id=11"},
-		{"invalid platform", "igdb_id=740&platform_id=abc"},
-		{"negative platform", "igdb_id=740&platform_id=-1"},
+		{"invalid id", "igdb_id=abc&platform_id=6"},
+		{"negative id", "igdb_id=-1&platform_id=6"},
+		{"invalid platform", "igdb_id=1942&platform_id=abc"},
+		{"negative platform", "igdb_id=1942&platform_id=-1"},
 	}
 
 	for _, tt := range tests {
@@ -40,11 +40,11 @@ func TestHandleAddToCollection(t *testing.T) {
 		wantStatus   int
 		wantLocation string
 	}{
-		{"added", "igdb_id=740&platform_id=11", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/"},
+		{"added", "igdb_id=1942&platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/"},
 		{"dlc game type", "igdb_id=13166&platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}, http.StatusBadRequest, ""},
-		{"game not on platform", "igdb_id=740&platform_id=999", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusBadRequest, ""},
-		{"not found", "igdb_id=740&platform_id=11", &fakeIGDB{gameErr: igdb.ErrGameNotFound}, http.StatusNotFound, ""},
-		{"igdb error", "igdb_id=740&platform_id=11", &fakeIGDB{gameErr: errors.New("IGDB failure")}, http.StatusInternalServerError, ""},
+		{"game not on platform", "igdb_id=1942&platform_id=999", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusBadRequest, ""},
+		{"not found", "igdb_id=1942&platform_id=6", &fakeIGDB{gameErr: igdb.ErrGameNotFound}, http.StatusNotFound, ""},
+		{"igdb error", "igdb_id=1942&platform_id=6", &fakeIGDB{gameErr: errors.New("IGDB failure")}, http.StatusInternalServerError, ""},
 	}
 
 	for _, tt := range tests {
@@ -57,10 +57,7 @@ func TestHandleAddToCollection(t *testing.T) {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
 			}
 
-			location := w.Header().Get("Location")
-			if location != tt.wantLocation {
-				t.Errorf("location = %q, want %q", location, tt.wantLocation)
-			}
+			assertLocation(t, w, tt.wantLocation)
 
 			ownedCopies, err := server.store.ListCollection(t.Context(), defaultUserID)
 			if err != nil {
@@ -80,13 +77,13 @@ func TestHandleAddToCollection(t *testing.T) {
 func TestHandleAddToCollectionTwice(t *testing.T) {
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
+	w := postForm(t, server, "/collection", "igdb_id=1942&platform_id=6")
 
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("first status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	w = postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
+	w = postForm(t, server, "/collection", "igdb_id=1942&platform_id=6")
 
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("second status = %d, want %d", w.Code, http.StatusSeeOther)
@@ -99,8 +96,8 @@ func TestHandleAddToCollectionTwice(t *testing.T) {
 	if len(ownedCopies) != 1 {
 		t.Fatalf("number of owned copies = %d, want %d", len(ownedCopies), 1)
 	}
-	if ownedCopies[0].Game.Title != "Halo: Combat Evolved" {
-		t.Errorf("owned copy title = %q, want %q", ownedCopies[0].Game.Title, "Halo: Combat Evolved")
+	if ownedCopies[0].Game.Title != "The Witcher 3: Wild Hunt" {
+		t.Errorf("owned copy title = %q, want %q", ownedCopies[0].Game.Title, "The Witcher 3: Wild Hunt")
 	}
 }
 
@@ -111,13 +108,10 @@ func TestHandleAddToCollectionDatabaseFailure(t *testing.T) {
 	// Simulate a database failure by closing the database connection.
 	_ = server.store.Close()
 
-	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
+	w := postForm(t, server, "/collection", "igdb_id=1942&platform_id=6")
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
 	}
-	location := w.Header().Get("Location")
-	if location != "" {
-		t.Errorf("location header = %q, want empty", location)
-	}
+	assertLocation(t, w, "")
 }

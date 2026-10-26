@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
 func TestHandleGameValidation(t *testing.T) {
@@ -47,59 +45,35 @@ func TestHandleGameNotInLibrary(t *testing.T) {
 
 func TestHandleGameInLibrary(t *testing.T) {
 	server := newTestServer(t)
-	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
+	addTestGame(t, server)
 
-	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
-	if w.Code != http.StatusSeeOther {
-		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
-	}
-
-	w = postForm(t, server, "/games/740", "status=completed&rating=9")
+	w := postForm(t, server, "/games/1942", "status=completed&rating=9")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("update games status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/games/740", nil)
-	w = httptest.NewRecorder()
-	server.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
-	}
-	assertBodyContains(t, w, "Halo: Combat Evolved")
-	assertBodyContains(t, w, "Xbox")
+	w = getTestGamePage(t, server)
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
+	assertBodyContains(t, w, "PC (Microsoft Windows)")
 	assertBodyContains(t, w, `name="status"`)
 	assertBodyContains(t, w, "4.5")
 }
 
 func TestHandleGameInLibraryWishlisted(t *testing.T) {
 	server := newTestServer(t)
-	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/wishlist", "igdb_id=740")
-	if w.Code != http.StatusSeeOther {
-		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
-	}
+	wishlistTestGame(t, server)
 
-	req := httptest.NewRequest(http.MethodGet, "/games/740", nil)
-	w = httptest.NewRecorder()
-	server.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
-	}
-	assertBodyContains(t, w, "Halo: Combat Evolved")
+	w := getTestGamePage(t, server)
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
 	assertBodyNotContains(t, w, `name="status"`)
 	assertBodyNotContains(t, w, "/playthroughs")
 }
 
 func TestHandleGameActivePlaythrough(t *testing.T) {
 	server := newTestServer(t)
-	startTestPlaythrough(t, server, "Hard mode run", "11")
+	startTestPlaythrough(t, server, "Hard mode run", "6")
 
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	libraryGame := getTestLibraryGame(t, server)
 	if len(libraryGame.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
 	}
@@ -109,85 +83,50 @@ func TestHandleGameActivePlaythrough(t *testing.T) {
 	}
 	playthroughID := playthrough.ID
 
-	req := httptest.NewRequest(http.MethodGet, "/games/740", nil)
-	w := httptest.NewRecorder()
-	server.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
-	}
+	w := getTestGamePage(t, server)
 	assertBodyContains(t, w, "Hard mode run")
-	assertBodyContains(t, w, "Platform: Xbox")
-	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/outcome", playthroughID))
-	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID))
-	assertBodyContains(t, w, fmt.Sprintf(`action="/games/740/playthroughs/%d"`, playthroughID))
-	assertBodyContains(t, w, `<option value="11" selected>Xbox</option>`)
+	assertBodyContains(t, w, "Platform: PC (Microsoft Windows)")
+	assertBodyContains(t, w, fmt.Sprintf("/games/1942/playthroughs/%d/outcome", playthroughID))
+	assertBodyContains(t, w, fmt.Sprintf("/games/1942/playthroughs/%d/delete", playthroughID))
+	assertBodyContains(t, w, fmt.Sprintf(`action="/games/1942/playthroughs/%d"`, playthroughID))
+	assertBodyContains(t, w, `<option value="6" selected>PC (Microsoft Windows)</option>`)
 	assertBodyContains(t, w, fmt.Sprintf(`value="%s"`, playthrough.StartedAt.Format("2006-01-02")))
 	assertBodyNotContains(t, w, `name="finished_at"`)
 }
 
 func TestHandleGameCompletedPlaythrough(t *testing.T) {
 	server := newTestServer(t)
-	playthroughID := startTestPlaythrough(t, server, "Hard mode run", "11")
+	playthroughID := startTestPlaythrough(t, server, "Hard mode run", "6")
 
-	w := postForm(t, server, fmt.Sprintf("/games/740/playthroughs/%d/outcome", playthroughID), "outcome=abandoned")
+	w := postForm(t, server, fmt.Sprintf("/games/1942/playthroughs/%d/outcome", playthroughID), "outcome=abandoned")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("set outcome status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/games/740", nil)
-	w = httptest.NewRecorder()
-	server.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
-	}
+	w = getTestGamePage(t, server)
 	assertBodyContains(t, w, "Hard mode run")
-	assertBodyContains(t, w, "Platform: Xbox")
+	assertBodyContains(t, w, "Platform: PC (Microsoft Windows)")
 	assertBodyContains(t, w, "Outcome: abandoned")
 	assertBodyContains(t, w, `value="abandoned" aria-pressed="true"`)
 	assertBodyContains(t, w, `value="playing" aria-pressed="false"`)
-	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/outcome", playthroughID))
-	assertBodyContains(t, w, fmt.Sprintf("/games/740/playthroughs/%d/delete", playthroughID))
+	assertBodyContains(t, w, fmt.Sprintf("/games/1942/playthroughs/%d/outcome", playthroughID))
+	assertBodyContains(t, w, fmt.Sprintf("/games/1942/playthroughs/%d/delete", playthroughID))
 	assertBodyContains(t, w, `name="finished_at"`)
-}
-
-// addWitcher3 adds The Witcher 3 to the collection with the given DLCs and returns the fake IGDB client.
-func addWitcher3(t *testing.T, server *Server, dlcs []igdb.Game) *fakeIGDB {
-	t.Helper()
-	fake := &fakeIGDB{game: loadIGDBGames(t, "game_by_id_witcher3.json")[0], dlcs: dlcs}
-	server.igdbClient = fake
-	w := postForm(t, server, "/collection", "igdb_id=1942&platform_id=6")
-	if w.Code != http.StatusSeeOther {
-		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
-	}
-	return fake
-}
-
-// getWitcher3Page requests the game page for The Witcher 3 and asserts a 200 response.
-func getWitcher3Page(t *testing.T, server *Server) *httptest.ResponseRecorder {
-	t.Helper()
-	req := httptest.NewRequest(http.MethodGet, "/games/1942", nil)
-	w := httptest.NewRecorder()
-	server.ServeHTTP(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
-	}
-	return w
 }
 
 func TestHandleGameDLCs(t *testing.T) {
 	server := newTestServer(t)
-	fake := addWitcher3(t, server, loadIGDBGames(t, "dlcs.json"))
+	fake := addTestGame(t, server)
+	fake.dlcs = loadIGDBGames(t, "dlcs.json")
 
-	w := getWitcher3Page(t, server)
+	w := getTestGamePage(t, server)
 	assertBodyContains(t, w, "Hearts of Stone (12 October 2015) - Expansion")
 	assertBodyNotContains(t, w, "couldn't be loaded")
 	if fake.dlcsCalls != 1 {
 		t.Errorf("dlcsCalls after first view = %d, want %d", fake.dlcsCalls, 1)
 	}
 
-	w = getWitcher3Page(t, server)
+	w = getTestGamePage(t, server)
 	assertBodyContains(t, w, "Hearts of Stone")
 	if fake.dlcsCalls != 1 {
 		t.Errorf("dlcsCalls after second view = %d, want %d", fake.dlcsCalls, 1)
@@ -196,16 +135,16 @@ func TestHandleGameDLCs(t *testing.T) {
 
 func TestHandleGameDLCsError(t *testing.T) {
 	server := newTestServer(t)
-	fake := addWitcher3(t, server, nil)
+	fake := addTestGame(t, server)
 	fake.dlcsErr = errors.New("igdb unavailable")
 
-	w := getWitcher3Page(t, server)
+	w := getTestGamePage(t, server)
 	assertBodyContains(t, w, "couldn't be loaded")
 	if fake.dlcsCalls != 1 {
 		t.Errorf("dlcsCalls after first view = %d, want %d", fake.dlcsCalls, 1)
 	}
 
-	getWitcher3Page(t, server)
+	getTestGamePage(t, server)
 	if fake.dlcsCalls != 2 {
 		t.Errorf("dlcsCalls after second view = %d, want %d", fake.dlcsCalls, 2)
 	}
@@ -213,15 +152,15 @@ func TestHandleGameDLCsError(t *testing.T) {
 
 func TestHandleGameNoDLCs(t *testing.T) {
 	server := newTestServer(t)
-	fake := addWitcher3(t, server, nil)
+	fake := addTestGame(t, server)
 
-	w := getWitcher3Page(t, server)
+	w := getTestGamePage(t, server)
 	assertBodyContains(t, w, "No DLC")
 	if fake.dlcsCalls != 1 {
 		t.Errorf("dlcsCalls after first view = %d, want %d", fake.dlcsCalls, 1)
 	}
 
-	getWitcher3Page(t, server)
+	getTestGamePage(t, server)
 	if fake.dlcsCalls != 1 {
 		t.Errorf("dlcsCalls after second view = %d, want %d", fake.dlcsCalls, 1)
 	}
@@ -234,11 +173,11 @@ func TestHandleUpdateGameValidation(t *testing.T) {
 		body string
 	}{
 		{"bad id", "/games/abc", "status=backlog&rating=10"},
-		{"no status", "/games/740", "rating=10"},
-		{"invalid status", "/games/740", "status=invalid&rating=10"},
-		{"low rating", "/games/740", "status=backlog&rating=0"},
-		{"high rating", "/games/740", "status=backlog&rating=11"},
-		{"invalid rating", "/games/740", "status=backlog&rating=abc"},
+		{"no status", "/games/1942", "rating=10"},
+		{"invalid status", "/games/1942", "status=invalid&rating=10"},
+		{"low rating", "/games/1942", "status=backlog&rating=0"},
+		{"high rating", "/games/1942", "status=backlog&rating=11"},
+		{"invalid rating", "/games/1942", "status=backlog&rating=abc"},
 	}
 
 	for _, tt := range tests {
@@ -255,24 +194,14 @@ func TestHandleUpdateGameValidation(t *testing.T) {
 
 func TestHandleUpdateGame(t *testing.T) {
 	server := newTestServer(t)
-	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
-	if w.Code != http.StatusSeeOther {
-		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
-	}
+	addTestGame(t, server)
 
-	w = postForm(t, server, "/games/740", "status=completed&rating=9")
+	w := postForm(t, server, "/games/1942", "status=completed&rating=9")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("update games status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	location := w.Header().Get("Location")
-	if location != "/games/740" {
-		t.Errorf("Location header = %q, want %q", location, "/games/740")
-	}
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	assertLocation(t, w, "/games/1942")
+	libraryGame := getTestLibraryGame(t, server)
 	if libraryGame.UserGame.Status == nil || *libraryGame.UserGame.Status != "completed" {
 		t.Errorf("status = %v, want %q", derefOrNil(libraryGame.UserGame.Status), "completed")
 	}
@@ -283,24 +212,14 @@ func TestHandleUpdateGame(t *testing.T) {
 
 func TestHandleUpdateGameNoRating(t *testing.T) {
 	server := newTestServer(t)
-	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/collection", "igdb_id=740&platform_id=11")
-	if w.Code != http.StatusSeeOther {
-		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
-	}
+	addTestGame(t, server)
 
-	w = postForm(t, server, "/games/740", "status=completed&rating=")
+	w := postForm(t, server, "/games/1942", "status=completed&rating=")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("update games status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	location := w.Header().Get("Location")
-	if location != "/games/740" {
-		t.Errorf("Location header = %q, want %q", location, "/games/740")
-	}
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), 1, 740)
-	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
-	}
+	assertLocation(t, w, "/games/1942")
+	libraryGame := getTestLibraryGame(t, server)
 	if libraryGame.UserGame.Status == nil || *libraryGame.UserGame.Status != "completed" {
 		t.Errorf("status = %v, want %q", derefOrNil(libraryGame.UserGame.Status), "completed")
 	}
@@ -311,13 +230,9 @@ func TestHandleUpdateGameNoRating(t *testing.T) {
 
 func TestHandleUpdateGameWishlisted(t *testing.T) {
 	server := newTestServer(t)
-	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/wishlist", "igdb_id=740")
-	if w.Code != http.StatusSeeOther {
-		t.Fatalf("wishlist status = %d, want %d", w.Code, http.StatusSeeOther)
-	}
+	wishlistTestGame(t, server)
 
-	w = postForm(t, server, "/games/740", "status=completed&rating=9")
+	w := postForm(t, server, "/games/1942", "status=completed&rating=9")
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("update games status = %d, want %d", w.Code, http.StatusNotFound)
 	}
