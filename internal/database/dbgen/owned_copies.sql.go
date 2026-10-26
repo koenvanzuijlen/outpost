@@ -32,7 +32,7 @@ const listOwnedCopies = `-- name: ListOwnedCopies :many
 SELECT
     oc.id, oc.user_game_id, oc.platform_id,
     ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
-    g.id, g.igdb_id, g.fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary,
+    g.id, g.igdb_id, g.fetched_at, g.dlcs_fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary,
     p.id, p.igdb_id, p.fetched_at, p.name
 FROM
     owned_copies oc
@@ -76,6 +76,7 @@ func (q *Queries) ListOwnedCopies(ctx context.Context, userID int64) ([]ListOwne
 			&i.Game.ID,
 			&i.Game.IgdbID,
 			&i.Game.FetchedAt,
+			&i.Game.DlcsFetchedAt,
 			&i.Game.ParentIgdbID,
 			&i.Game.Title,
 			&i.Game.GameType,

@@ -12,12 +12,13 @@ import (
 // ErrUserGameNotFound is returned when a game is not found in the user's library.
 var ErrUserGameNotFound = errors.New("game not found in library")
 
-// LibraryGame represents a game in the user's library, including the game details, the user's game entry, the platforms
-// the user owns it on, and the playthroughs associated with the game.
+// LibraryGame represents a game in the user's library, including the game details, its DLCs, the user's game entry,
+// the platforms the user owns it on, and the playthroughs associated with the game.
 type LibraryGame struct {
 	Game         dbgen.Game
 	UserGame     dbgen.UserGame
 	Platforms    []dbgen.Platform
+	DLCs         []dbgen.Game
 	Playthroughs []dbgen.ListPlaythroughsForUserGameIDRow
 }
 
@@ -35,6 +36,14 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 		return LibraryGame{}, fmt.Errorf("get user game: %w", err)
 	}
 
+	dlcs, err := s.queries.ListDLCGames(ctx, dbgen.ListDLCGamesParams{
+		ParentIgdbID: &igdbID,
+		GameTypes:    dlcGameTypes(),
+	})
+	if err != nil {
+		return LibraryGame{}, fmt.Errorf("list dlc games: %w", err)
+	}
+
 	platforms, err := s.queries.ListPlatformsForUserGameID(ctx, row.UserGame.ID)
 	if err != nil {
 		return LibraryGame{}, fmt.Errorf("list owned platforms: %w", err)
@@ -47,6 +56,7 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 
 	return LibraryGame{
 		Game:         row.Game,
+		DLCs:         dlcs,
 		UserGame:     row.UserGame,
 		Platforms:    platforms,
 		Playthroughs: playthroughs,

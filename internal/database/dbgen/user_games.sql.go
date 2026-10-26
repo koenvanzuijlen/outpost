@@ -34,7 +34,7 @@ func (q *Queries) CreateWishlistedUserGame(ctx context.Context, arg CreateWishli
 const getUserGameByIGDBID = `-- name: GetUserGameByIGDBID :one
 SELECT
     ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
-    g.id, g.igdb_id, g.fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary
+    g.id, g.igdb_id, g.fetched_at, g.dlcs_fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary
 FROM
     user_games ug
     JOIN games g ON ug.game_id = g.id
@@ -68,6 +68,7 @@ func (q *Queries) GetUserGameByIGDBID(ctx context.Context, arg GetUserGameByIGDB
 		&i.Game.ID,
 		&i.Game.IgdbID,
 		&i.Game.FetchedAt,
+		&i.Game.DlcsFetchedAt,
 		&i.Game.ParentIgdbID,
 		&i.Game.Title,
 		&i.Game.GameType,
@@ -81,7 +82,7 @@ func (q *Queries) GetUserGameByIGDBID(ctx context.Context, arg GetUserGameByIGDB
 const listWishlistedUserGames = `-- name: ListWishlistedUserGames :many
 SELECT
     ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
-    g.id, g.igdb_id, g.fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary
+    g.id, g.igdb_id, g.fetched_at, g.dlcs_fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary
 FROM
     user_games ug
     JOIN games g ON ug.game_id = g.id
@@ -118,6 +119,7 @@ func (q *Queries) ListWishlistedUserGames(ctx context.Context, userID int64) ([]
 			&i.Game.ID,
 			&i.Game.IgdbID,
 			&i.Game.FetchedAt,
+			&i.Game.DlcsFetchedAt,
 			&i.Game.ParentIgdbID,
 			&i.Game.Title,
 			&i.Game.GameType,

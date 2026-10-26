@@ -7,12 +7,13 @@ package dbgen
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
 const getGameByIGDBID = `-- name: GetGameByIGDBID :one
 SELECT
-    id, igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary
+    id, igdb_id, fetched_at, dlcs_fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary
 FROM
     games
 WHERE
@@ -27,6 +28,7 @@ func (q *Queries) GetGameByIGDBID(ctx context.Context, igdbID int64) (Game, erro
 		&i.ID,
 		&i.IgdbID,
 		&i.FetchedAt,
+		&i.DlcsFetchedAt,
 		&i.ParentIgdbID,
 		&i.Title,
 		&i.GameType,
@@ -35,6 +37,91 @@ func (q *Queries) GetGameByIGDBID(ctx context.Context, igdbID int64) (Game, erro
 		&i.Summary,
 	)
 	return i, err
+}
+
+const listDLCGames = `-- name: ListDLCGames :many
+SELECT
+    id, igdb_id, fetched_at, dlcs_fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary
+FROM
+    games
+WHERE
+    parent_igdb_id = ?
+    AND game_type IN (/*SLICE:game_types*/?)
+ORDER BY
+    released_at ASC NULLS LAST,
+    title
+`
+
+type ListDLCGamesParams struct {
+	ParentIgdbID *int64
+	GameTypes    []int64
+}
+
+func (q *Queries) ListDLCGames(ctx context.Context, arg ListDLCGamesParams) ([]Game, error) {
+	query := listDLCGames
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.ParentIgdbID)
+	if len(arg.GameTypes) > 0 {
+		for _, v := range arg.GameTypes {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:game_types*/?", strings.Repeat(",?", len(arg.GameTypes))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:game_types*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Game
+	for rows.Next() {
+		var i Game
+		if err := rows.Scan(
+			&i.ID,
+			&i.IgdbID,
+			&i.FetchedAt,
+			&i.DlcsFetchedAt,
+			&i.ParentIgdbID,
+			&i.Title,
+			&i.GameType,
+			&i.CoverUrl,
+			&i.ReleasedAt,
+			&i.Summary,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markDLCsFetched = `-- name: MarkDLCsFetched :execrows
+UPDATE
+    games
+SET
+    dlcs_fetched_at = ?
+WHERE
+    igdb_id = ?
+`
+
+type MarkDLCsFetchedParams struct {
+	DlcsFetchedAt *time.Time
+	IgdbID        int64
+}
+
+func (q *Queries) MarkDLCsFetched(ctx context.Context, arg MarkDLCsFetchedParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, markDLCsFetched, arg.DlcsFetchedAt, arg.IgdbID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const upsertGame = `-- name: UpsertGame :one
@@ -50,7 +137,7 @@ ON CONFLICT (igdb_id)
         released_at = excluded.released_at,
         summary = excluded.summary
     RETURNING
-        id, igdb_id, fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary
+        id, igdb_id, fetched_at, dlcs_fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary
 `
 
 type UpsertGameParams struct {
@@ -80,6 +167,7 @@ func (q *Queries) UpsertGame(ctx context.Context, arg UpsertGameParams) (Game, e
 		&i.ID,
 		&i.IgdbID,
 		&i.FetchedAt,
+		&i.DlcsFetchedAt,
 		&i.ParentIgdbID,
 		&i.Title,
 		&i.GameType,

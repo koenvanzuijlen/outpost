@@ -12,6 +12,7 @@ CREATE TABLE games(
     id integer PRIMARY KEY,
     igdb_id integer NOT NULL UNIQUE,
     fetched_at datetime NOT NULL,
+    dlcs_fetched_at datetime,
     parent_igdb_id integer,
     title text NOT NULL,
     game_type integer NOT NULL,

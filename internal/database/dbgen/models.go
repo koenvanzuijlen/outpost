@@ -9,15 +9,16 @@ import (
 )
 
 type Game struct {
-	ID           int64
-	IgdbID       int64
-	FetchedAt    time.Time
-	ParentIgdbID *int64
-	Title        string
-	GameType     int64
-	CoverUrl     *string
-	ReleasedAt   *time.Time
-	Summary      *string
+	ID            int64
+	IgdbID        int64
+	FetchedAt     time.Time
+	DlcsFetchedAt *time.Time
+	ParentIgdbID  *int64
+	Title         string
+	GameType      int64
+	CoverUrl      *string
+	ReleasedAt    *time.Time
+	Summary       *string
 }
 
 type OwnedCopy struct {
