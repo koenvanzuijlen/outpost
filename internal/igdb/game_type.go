@@ -92,6 +92,11 @@ func (gt GameType) Standalone() bool {
 	return slices.Contains(StandaloneGameTypes, gt)
 }
 
+// DLC returns true if the GameType is considered downloadable content or an add-on.
+func (gt GameType) DLC() bool {
+	return slices.Contains(DLCGameTypes, gt)
+}
+
 // gameTypeFilter returns a comma-separated string of game type IDs suitable for use in IGDB API queries.
 func gameTypeFilter(types []GameType) string {
 	str := make([]string, 0, len(types))

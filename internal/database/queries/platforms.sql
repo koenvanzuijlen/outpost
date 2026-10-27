@@ -9,6 +9,20 @@ WHERE
 ORDER BY
     p.name;
 
+-- name: ListPlatformsForOwnedDLC :many
+SELECT
+    p.*
+FROM
+    owned_dlc od
+    JOIN owned_copies oc ON oc.id = od.owned_copy_id
+    JOIN user_games ug ON ug.id = oc.user_game_id
+    JOIN platforms p ON p.id = oc.platform_id
+WHERE
+    od.dlc_game_id = ?
+    AND ug.user_id = ?
+ORDER BY
+    p.name;
+
 -- name: GetPlatformByIGDBID :one
 SELECT
     *

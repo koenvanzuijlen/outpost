@@ -33,12 +33,36 @@ func TestGameTypeStandalone(t *testing.T) {
 		{"dlc", GameTypeDLCAddon, false},
 		{"bundle", GameTypeBundle, false},
 		{"update", GameTypeUpdate, false},
+		{"episode", GameTypeEpisode, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.gameType.Standalone()
 			if got != tt.want {
 				t.Errorf("Standalone() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGameTypeDLC(t *testing.T) {
+	tests := []struct {
+		name     string
+		gameType GameType
+		want     bool
+	}{
+		{"main game", GameTypeMain, false},
+		{"fork", GameTypeFork, false},
+		{"dlc", GameTypeDLCAddon, true},
+		{"bundle", GameTypeBundle, false},
+		{"update", GameTypeUpdate, false},
+		{"episode", GameTypeEpisode, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.gameType.DLC()
+			if got != tt.want {
+				t.Errorf("DLC() = %v, want %v", got, tt.want)
 			}
 		})
 	}

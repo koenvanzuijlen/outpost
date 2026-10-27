@@ -58,6 +58,54 @@ func (q *Queries) GetPlatformByIGDBID(ctx context.Context, igdbID int64) (Platfo
 	return i, err
 }
 
+const listPlatformsForOwnedDLC = `-- name: ListPlatformsForOwnedDLC :many
+SELECT
+    p.id, p.igdb_id, p.fetched_at, p.name
+FROM
+    owned_dlc od
+    JOIN owned_copies oc ON oc.id = od.owned_copy_id
+    JOIN user_games ug ON ug.id = oc.user_game_id
+    JOIN platforms p ON p.id = oc.platform_id
+WHERE
+    od.dlc_game_id = ?
+    AND ug.user_id = ?
+ORDER BY
+    p.name
+`
+
+type ListPlatformsForOwnedDLCParams struct {
+	DlcGameID int64
+	UserID    int64
+}
+
+func (q *Queries) ListPlatformsForOwnedDLC(ctx context.Context, arg ListPlatformsForOwnedDLCParams) ([]Platform, error) {
+	rows, err := q.db.QueryContext(ctx, listPlatformsForOwnedDLC, arg.DlcGameID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Platform
+	for rows.Next() {
+		var i Platform
+		if err := rows.Scan(
+			&i.ID,
+			&i.IgdbID,
+			&i.FetchedAt,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPlatformsForUserGameID = `-- name: ListPlatformsForUserGameID :many
 SELECT
     p.id, p.igdb_id, p.fetched_at, p.name

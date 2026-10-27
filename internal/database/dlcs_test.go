@@ -514,6 +514,86 @@ func TestTrackDLCUserGameNotFound(t *testing.T) {
 	}
 }
 
+// assertPlatformIDs checks that got contains exactly the platforms with the given IGDB IDs, in any order.
+func assertPlatformIDs(t *testing.T, got []dbgen.Platform, want ...int64) {
+	t.Helper()
+	ids := make([]int64, 0, len(got))
+	for _, p := range got {
+		ids = append(ids, p.IgdbID)
+	}
+	slices.Sort(ids)
+	slices.Sort(want)
+	if !slices.Equal(ids, want) {
+		t.Errorf("Platforms IGDB IDs = %v, want %v", ids, want)
+	}
+}
+
+// setupTrackedDLCs extends setupDLCOwnership by owning DLC 201 on PC and tracking DLCs 201 and 202.
+func setupTrackedDLCs(t *testing.T, store *Store) {
+	t.Helper()
+	ctx := t.Context()
+	setupDLCOwnership(t, store)
+	if err := store.SetDLCOwned(ctx, 1, 100, 6, 201, true); err != nil {
+		t.Fatalf("SetDLCOwned() failed: %v", err)
+	}
+	for _, dlcIGDBID := range []int64{201, 202} {
+		if err := store.TrackDLC(ctx, 1, 100, dlcIGDBID, time.Now().UTC()); err != nil {
+			t.Fatalf("TrackDLC(%d) failed: %v", dlcIGDBID, err)
+		}
+	}
+}
+
+func TestGetLibraryGameOwnedDLC(t *testing.T) {
+	store := newTestStore(t)
+	setupTrackedDLCs(t, store)
+
+	game := getLibraryGame(t, store, 201)
+	if game.Parent == nil || game.Parent.IgdbID != 100 {
+		t.Errorf("Parent = %v, want game 100", derefOrNil(game.Parent))
+	}
+	assertPlatformIDs(t, game.Platforms, 6)
+}
+
+func TestGetLibraryGameTrackedUnownedDLC(t *testing.T) {
+	store := newTestStore(t)
+	setupTrackedDLCs(t, store)
+
+	game := getLibraryGame(t, store, 202)
+	if game.Parent == nil || game.Parent.IgdbID != 100 {
+		t.Errorf("Parent = %v, want game 100", derefOrNil(game.Parent))
+	}
+	assertPlatformIDs(t, game.Platforms)
+}
+
+func TestGetLibraryGameParentOfTrackedDLC(t *testing.T) {
+	store := newTestStore(t)
+	setupTrackedDLCs(t, store)
+
+	game := getLibraryGame(t, store, 100)
+	if game.Parent != nil {
+		t.Errorf("Parent = %v, want nil", *game.Parent)
+	}
+	assertPlatformIDs(t, game.Platforms, 6, 48)
+}
+
+func TestGetLibraryGameStandaloneExpansion(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupTrackedDLCs(t, store)
+
+	standalone := newDLC(501, 100, "Standalone Expansion", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)).Game
+	standalone.GameType = int64(igdb.GameTypeStandaloneExpansion)
+	if _, err := store.AddToCollection(ctx, standalone, newPlatformParams(130, "Switch"), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToCollection() failed: %v", err)
+	}
+
+	game := getLibraryGame(t, store, 501)
+	if game.Parent != nil {
+		t.Errorf("Parent = %v, want nil", *game.Parent)
+	}
+	assertPlatformIDs(t, game.Platforms, 130)
+}
+
 func TestAddToCollectionKeepsDLCsFetchedAt(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)

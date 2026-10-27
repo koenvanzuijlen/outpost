@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
+	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
 // ratingOption represents a single rating option for a game.
@@ -58,7 +59,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if libraryGame.Game.DlcsFetchedAt == nil {
+	if libraryGame.Game.DlcsFetchedAt == nil && !igdb.GameType(libraryGame.Game.GameType).DLC() {
 		err := server.fetchDLCs(r.Context(), igdbID)
 		if err != nil {
 			server.logger.Warn("failed to fetch DLCs", "igdb_id", igdbID, "error", err)
