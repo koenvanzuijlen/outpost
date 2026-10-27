@@ -28,6 +28,31 @@ func (q *Queries) CreateOwnedCopy(ctx context.Context, arg CreateOwnedCopyParams
 	return i, err
 }
 
+const deleteOwnedCopy = `-- name: DeleteOwnedCopy :execrows
+DELETE FROM owned_copies
+WHERE user_game_id = ?
+    AND platform_id =(
+        SELECT
+            id
+        FROM
+            platforms
+        WHERE
+            igdb_id = ?)
+`
+
+type DeleteOwnedCopyParams struct {
+	UserGameID int64
+	IgdbID     int64
+}
+
+func (q *Queries) DeleteOwnedCopy(ctx context.Context, arg DeleteOwnedCopyParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteOwnedCopy, arg.UserGameID, arg.IgdbID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const listOwnedCopies = `-- name: ListOwnedCopies :many
 SELECT
     oc.id, oc.user_game_id, oc.platform_id,

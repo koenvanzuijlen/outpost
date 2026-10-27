@@ -25,6 +25,15 @@
 						{{end}}
 						</ul>
 					{{end}}
+					{{if not $.LibraryGame.Parent}}
+						<details>
+							<summary>Remove copy</summary>
+							<form method="post" action="/games/{{$.LibraryGame.Game.IgdbID}}/platforms/{{.IgdbID}}/delete">
+								<p>This also removes the DLC you marked as owned on this copy.</p>
+								<button type="submit">Really remove</button>
+							</form>
+						</details>
+					{{end}}
 				</li>
 			{{end}}
 			</ul>
