@@ -59,16 +59,16 @@ func TestHandleAddToCollection(t *testing.T) {
 
 			assertLocation(t, w, tt.wantLocation)
 
-			ownedCopies, err := server.store.ListCollection(t.Context(), defaultUserID)
+			games, err := server.store.ListGames(t.Context(), defaultUserID)
 			if err != nil {
-				t.Fatalf("ListCollection() failed: %v", err)
+				t.Fatalf("ListGames() failed: %v", err)
 			}
 			wantCount := 0
 			if tt.wantStatus == http.StatusSeeOther {
 				wantCount = 1
 			}
-			if len(ownedCopies) != wantCount {
-				t.Errorf("number of owned copies = %d, want %d", len(ownedCopies), wantCount)
+			if len(games) != wantCount {
+				t.Errorf("number of games = %d, want %d", len(games), wantCount)
 			}
 		})
 	}
@@ -89,15 +89,15 @@ func TestHandleAddToCollectionTwice(t *testing.T) {
 		t.Errorf("second status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	ownedCopies, err := server.store.ListCollection(t.Context(), defaultUserID)
+	games, err := server.store.ListGames(t.Context(), defaultUserID)
 	if err != nil {
-		t.Fatalf("ListCollection() failed: %v", err)
+		t.Fatalf("ListGames() failed: %v", err)
 	}
-	if len(ownedCopies) != 1 {
-		t.Fatalf("number of owned copies = %d, want %d", len(ownedCopies), 1)
+	if len(games) != 1 {
+		t.Fatalf("number of games = %d, want %d", len(games), 1)
 	}
-	if ownedCopies[0].Game.Title != "The Witcher 3: Wild Hunt" {
-		t.Errorf("owned copy title = %q, want %q", ownedCopies[0].Game.Title, "The Witcher 3: Wild Hunt")
+	if games[0].Game.Title != "The Witcher 3: Wild Hunt" {
+		t.Errorf("game title = %q, want %q", games[0].Game.Title, "The Witcher 3: Wild Hunt")
 	}
 }
 

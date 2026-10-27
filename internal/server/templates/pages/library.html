@@ -2,12 +2,12 @@
   <h1>Outpost</h1>
   {{template "searchForm" ""}}
   <div>
-    <h2>Your Collection</h2>
+    <h2>Your Games</h2>
     <ul>
-      {{range .OwnedCopies}}
-        <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}} - {{.Platform.Name}}{{with .UserGame.Status}} - {{.}}{{end}}</li>
+      {{range .Games}}
+        <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}} - {{with .PlatformName}}{{.}}{{else}}not owned{{end}}{{with .UserGame.Status}} - {{.}}{{end}}</li>
       {{else}}
-        <li>Your collection is empty.</li>
+        <li>No games yet.</li>
       {{end}}
     </ul>
   </div>

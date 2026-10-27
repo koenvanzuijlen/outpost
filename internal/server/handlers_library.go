@@ -3,20 +3,21 @@ package server
 import (
 	"net/http"
 
+	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
 
 type libraryPage struct {
-	OwnedCopies     []dbgen.ListOwnedCopiesRow
+	Games           []database.GameListEntry
 	WishlistedGames []dbgen.ListWishlistedUserGamesRow
 }
 
-// handleLibrary serves the user's library page, displaying owned copies and wishlisted games.
+// handleLibrary serves the user's library page, displaying tracked games and wishlisted games.
 func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	ownedCopies, err := server.store.ListCollection(ctx, defaultUserID)
+	games, err := server.store.ListGames(ctx, defaultUserID)
 	if err != nil {
-		server.logger.Error("failed to list owned copies", "error", err)
+		server.logger.Error("failed to list games", "error", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -28,7 +29,7 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	server.render(w, "library.html", libraryPage{
-		OwnedCopies:     ownedCopies,
+		Games:           games,
 		WishlistedGames: wishlistedGames,
 	})
 }

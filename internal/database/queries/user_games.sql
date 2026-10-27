@@ -11,6 +11,29 @@ WHERE
 ORDER BY
     g.released_at ASC NULLS LAST;
 
+-- name: ListTrackedDLCs :many
+SELECT
+    sqlc.embed(ug),
+    sqlc.embed(g),
+    p.name AS platform_name
+FROM
+    user_games ug
+    JOIN games g ON g.id = ug.game_id
+    LEFT JOIN owned_dlc od ON od.dlc_game_id = g.id
+        AND od.owned_copy_id IN (
+            SELECT
+                oc.id
+            FROM
+                owned_copies oc
+            JOIN user_games base ON base.id = oc.user_game_id
+        WHERE
+            base.user_id = ug.user_id)
+    LEFT JOIN owned_copies oc ON oc.id = od.owned_copy_id
+    LEFT JOIN platforms p ON p.id = oc.platform_id
+WHERE
+    ug.user_id = sqlc.arg(user_id)
+    AND g.game_type IN (sqlc.slice(game_types));
+
 -- name: GetUserGameByIGDBID :one
 SELECT
     sqlc.embed(ug),

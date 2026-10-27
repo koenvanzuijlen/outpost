@@ -29,3 +29,20 @@ func TestHandleLibraryRendersCollectionAndWishlist(t *testing.T) {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
 	}
 }
+
+func TestHandleLibraryRendersTrackedUnownedDLC(t *testing.T) {
+	server := newTestServer(t)
+	addTestGameWithDLCs(t, server)
+	if w := postForm(t, server, testTrackDLCPath, ""); w.Code != http.StatusSeeOther {
+		t.Fatalf("track status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+	assertBodyContains(t, w, `<a href="/games/12503">`)
+	assertBodyContains(t, w, "not owned")
+}
