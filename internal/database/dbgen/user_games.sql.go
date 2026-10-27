@@ -104,6 +104,87 @@ func (q *Queries) GetUserGameByIGDBID(ctx context.Context, arg GetUserGameByIGDB
 	return i, err
 }
 
+const listLibraryGames = `-- name: ListLibraryGames :many
+SELECT
+    ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
+    g.id, g.igdb_id, g.fetched_at, g.dlcs_fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary,
+    p.name AS platform_name
+FROM
+    user_games ug
+    JOIN games g ON g.id = ug.game_id
+    LEFT JOIN owned_copies oc ON oc.user_game_id = ug.id
+    LEFT JOIN platforms p ON p.id = oc.platform_id
+WHERE
+    ug.user_id = ?1
+    AND NOT ug.wishlisted
+    AND g.game_type NOT IN (/*SLICE:dlc_game_types*/?)
+`
+
+type ListLibraryGamesParams struct {
+	UserID       int64
+	DlcGameTypes []int64
+}
+
+type ListLibraryGamesRow struct {
+	UserGame     UserGame
+	Game         Game
+	PlatformName *string
+}
+
+func (q *Queries) ListLibraryGames(ctx context.Context, arg ListLibraryGamesParams) ([]ListLibraryGamesRow, error) {
+	query := listLibraryGames
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.UserID)
+	if len(arg.DlcGameTypes) > 0 {
+		for _, v := range arg.DlcGameTypes {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:dlc_game_types*/?", strings.Repeat(",?", len(arg.DlcGameTypes))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:dlc_game_types*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLibraryGamesRow
+	for rows.Next() {
+		var i ListLibraryGamesRow
+		if err := rows.Scan(
+			&i.UserGame.ID,
+			&i.UserGame.UserID,
+			&i.UserGame.GameID,
+			&i.UserGame.Status,
+			&i.UserGame.Rating,
+			&i.UserGame.Wishlisted,
+			&i.UserGame.Notes,
+			&i.UserGame.AddedAt,
+			&i.Game.ID,
+			&i.Game.IgdbID,
+			&i.Game.FetchedAt,
+			&i.Game.DlcsFetchedAt,
+			&i.Game.ParentIgdbID,
+			&i.Game.Title,
+			&i.Game.GameType,
+			&i.Game.CoverUrl,
+			&i.Game.ReleasedAt,
+			&i.Game.Summary,
+			&i.PlatformName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTrackedDLCs = `-- name: ListTrackedDLCs :many
 SELECT
     ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,

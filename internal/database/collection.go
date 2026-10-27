@@ -27,13 +27,16 @@ type GameListEntry struct {
 	PlatformName *string
 }
 
-// ListGames returns the user's collection of owned copies and tracked DLC games. It returns one row per owned copy or
-// tracked DLC, so a game owned on multiple platforms will appear multiple times. If a DLC is tracked but not owned on
-// any platform, it will still appear with PlatformName set to nil.
+// ListGames returns the user's collection of standalone games and DLC, whether owned or not. It returns one row per
+// owned copy of a game, so a game owned on multiple platforms will appear multiple times. If a game is tracked but not
+// owned on any platform, it will still appear with PlatformName set to nil.
 func (s *Store) ListGames(ctx context.Context, userID int64) ([]GameListEntry, error) {
-	ownedCopies, err := s.queries.ListOwnedCopies(ctx, userID)
+	libraryGames, err := s.queries.ListLibraryGames(ctx, dbgen.ListLibraryGamesParams{
+		UserID:       userID,
+		DlcGameTypes: dlcGameTypes(),
+	})
 	if err != nil {
-		return nil, fmt.Errorf("list owned copies: %w", err)
+		return nil, fmt.Errorf("list library games: %w", err)
 	}
 
 	trackedDLCs, err := s.queries.ListTrackedDLCs(ctx, dbgen.ListTrackedDLCsParams{
@@ -44,12 +47,12 @@ func (s *Store) ListGames(ctx context.Context, userID int64) ([]GameListEntry, e
 		return nil, fmt.Errorf("list tracked dlcs: %w", err)
 	}
 
-	collection := make([]GameListEntry, 0, len(ownedCopies)+len(trackedDLCs))
-	for _, oc := range ownedCopies {
+	collection := make([]GameListEntry, 0, len(libraryGames)+len(trackedDLCs))
+	for _, game := range libraryGames {
 		collection = append(collection, GameListEntry{
-			Game:         oc.Game,
-			UserGame:     oc.UserGame,
-			PlatformName: &oc.Platform.Name,
+			Game:         game.Game,
+			UserGame:     game.UserGame,
+			PlatformName: game.PlatformName,
 		})
 	}
 	for _, dlc := range trackedDLCs {

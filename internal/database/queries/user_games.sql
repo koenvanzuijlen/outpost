@@ -11,6 +11,21 @@ WHERE
 ORDER BY
     g.released_at ASC NULLS LAST;
 
+-- name: ListLibraryGames :many
+SELECT
+    sqlc.embed(ug),
+    sqlc.embed(g),
+    p.name AS platform_name
+FROM
+    user_games ug
+    JOIN games g ON g.id = ug.game_id
+    LEFT JOIN owned_copies oc ON oc.user_game_id = ug.id
+    LEFT JOIN platforms p ON p.id = oc.platform_id
+WHERE
+    ug.user_id = sqlc.arg(user_id)
+    AND NOT ug.wishlisted
+    AND g.game_type NOT IN (sqlc.slice(dlc_game_types));
+
 -- name: ListTrackedDLCs :many
 SELECT
     sqlc.embed(ug),

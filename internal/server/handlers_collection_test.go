@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
@@ -146,6 +147,26 @@ func TestHandleRemoveFromCollection(t *testing.T) {
 	w = getTestGamePage(t, server)
 	assertBodyNotContains(t, w, `action="`+testRemovePCPath+`"`)
 	assertBodyContains(t, w, `action="`+testRemovePS4Path+`"`)
+}
+
+func TestHandleRemoveOnlyCopy(t *testing.T) {
+	server := newTestServer(t)
+	addTestGame(t, server)
+
+	if w := postForm(t, server, testRemovePCPath, ""); w.Code != http.StatusSeeOther {
+		t.Fatalf("remove status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("library status = %d, want %d", w.Code, http.StatusOK)
+	}
+	assertBodyContains(t, w, `<a href="/games/1942">`)
+	assertBodyContains(t, w, "not owned")
+
+	w = getTestGamePage(t, server)
+	assertBodyContains(t, w, "Not owned on any platform.")
 }
 
 func TestHandleRemoveFromCollectionTwice(t *testing.T) {

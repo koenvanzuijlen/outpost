@@ -543,51 +543,6 @@ func setupTrackedDLCs(t *testing.T, store *Store) {
 	}
 }
 
-func TestListGamesTrackedDLCs(t *testing.T) {
-	ctx := t.Context()
-	store := newTestStore(t)
-	setupTrackedDLCs(t, store)
-	if err := store.SetDLCOwned(ctx, 1, 100, 48, 201, true); err != nil {
-		t.Fatalf("SetDLCOwned(201, PS4) failed: %v", err)
-	}
-	if err := store.SetDLCOwned(ctx, 1, 300, 6, 401, true); err != nil {
-		t.Fatalf("SetDLCOwned(401, PC) failed: %v", err)
-	}
-	// Both main games are titled "Test Game"; rename 300 so their PC copies don't tie on (title, platform).
-	if _, err := store.queries.UpsertGame(ctx, newGameParams(300, "Other Game")); err != nil {
-		t.Fatalf("UpsertGame(300) failed: %v", err)
-	}
-
-	games, err := store.ListGames(ctx, 1)
-	if err != nil {
-		t.Fatalf("ListGames() failed: %v", err)
-	}
-
-	type entry struct {
-		igdbID   int64
-		platform string
-	}
-	got := make([]entry, 0, len(games))
-	for _, g := range games {
-		e := entry{igdbID: g.Game.IgdbID, platform: "<nil>"}
-		if g.PlatformName != nil {
-			e.platform = *g.PlatformName
-		}
-		got = append(got, e)
-	}
-	want := []entry{
-		{201, "PC"},
-		{201, "PS4"},
-		{202, "<nil>"},
-		{300, "PC"},
-		{100, "PC"},
-		{100, "PS4"},
-	}
-	if !slices.Equal(got, want) {
-		t.Errorf("ListGames() = %v, want %v", got, want)
-	}
-}
-
 func TestGetLibraryGameOwnedDLC(t *testing.T) {
 	store := newTestStore(t)
 	setupTrackedDLCs(t, store)

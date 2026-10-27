@@ -69,14 +69,9 @@ func TestAddToWishlistOwnedGame(t *testing.T) {
 	}
 
 	// Ensure the game is still in the collection
-	collected, err := store.queries.ListOwnedCopies(ctx, 1)
-	if err != nil {
-		t.Fatalf("ListOwnedCopies() failed: %v", err)
+	collected := getLibraryGame(t, store, 100)
+	if collected.UserGame.Wishlisted {
+		t.Errorf("Wishlisted = true, want false")
 	}
-	if len(collected) != 1 {
-		t.Fatalf("len(collected) = %d, want 1", len(collected))
-	}
-	if collected[0].Game.Title != "Test Game" {
-		t.Errorf("collected[0].Game.Title = %q, want %q", collected[0].Game.Title, "Test Game")
-	}
+	assertPlatformIDs(t, collected.Platforms, 6)
 }

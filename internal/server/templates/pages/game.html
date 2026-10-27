@@ -37,6 +37,10 @@
 				</li>
 			{{end}}
 			</ul>
+		{{else}}
+			{{if not .LibraryGame.Parent}}
+				<p>Not owned on any platform.</p>
+			{{end}}
 		{{end}}
 		{{with .LibraryGame.Parent}}
 			<p>

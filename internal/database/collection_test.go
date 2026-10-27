@@ -2,9 +2,65 @@ package database
 
 import (
 	"errors"
+	"slices"
 	"testing"
 	"time"
 )
+
+func TestListGamesOrder(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupTrackedDLCs(t, store)
+	if err := store.SetDLCOwned(ctx, 1, 100, 48, 201, true); err != nil {
+		t.Fatalf("SetDLCOwned(201, PS4) failed: %v", err)
+	}
+	if err := store.SetDLCOwned(ctx, 1, 300, 6, 401, true); err != nil {
+		t.Fatalf("SetDLCOwned(401, PC) failed: %v", err)
+	}
+	// Both main games are titled "Test Game"; rename 300 so their PC copies don't tie on (title, platform).
+	if _, err := store.queries.UpsertGame(ctx, newGameParams(300, "Other Game")); err != nil {
+		t.Fatalf("UpsertGame(300) failed: %v", err)
+	}
+	if _, err := store.AddToCollection(ctx, newGameParams(500, "Removed Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToCollection(500) failed: %v", err)
+	}
+	if err := store.RemoveOwnedCopy(ctx, 1, 500, 11); err != nil {
+		t.Fatalf("RemoveOwnedCopy(500) failed: %v", err)
+	}
+	if err := store.AddToWishlist(ctx, newGameParams(600, "Wishlisted Game"), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToWishlist(600) failed: %v", err)
+	}
+
+	games, err := store.ListGames(ctx, 1)
+	if err != nil {
+		t.Fatalf("ListGames() failed: %v", err)
+	}
+
+	type entry struct {
+		igdbID   int64
+		platform string
+	}
+	got := make([]entry, 0, len(games))
+	for _, g := range games {
+		e := entry{igdbID: g.Game.IgdbID, platform: "<nil>"}
+		if g.PlatformName != nil {
+			e.platform = *g.PlatformName
+		}
+		got = append(got, e)
+	}
+	want := []entry{
+		{201, "PC"},
+		{201, "PS4"},
+		{202, "<nil>"},
+		{300, "PC"},
+		{500, "<nil>"},
+		{100, "PC"},
+		{100, "PS4"},
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("ListGames() = %v, want %v", got, want)
+	}
+}
 
 func TestAddToCollectionClearsWishlist(t *testing.T) {
 	ctx := t.Context()
@@ -26,13 +82,7 @@ func TestAddToCollectionClearsWishlist(t *testing.T) {
 		t.Errorf("len(wishlisted) = %d, want 0", len(wishlisted))
 	}
 
-	owned, err := store.queries.ListOwnedCopies(ctx, 1)
-	if err != nil {
-		t.Fatalf("ListOwnedCopies() failed: %v", err)
-	}
-	if len(owned) != 1 {
-		t.Errorf("len(owned) = %d, want 1", len(owned))
-	}
+	assertPlatformIDs(t, getLibraryGame(t, store, 100).Platforms, 6)
 }
 
 func TestAddToCollectionSameGameDifferentPlatforms(t *testing.T) {
@@ -97,13 +147,7 @@ func TestAddToCollectionSameGameSamePlatform(t *testing.T) {
 		t.Fatalf("AddToCollection() error = %v, want %v", err, ErrAlreadyOwnedOnPlatform)
 	}
 
-	items, err := store.queries.ListOwnedCopies(ctx, 1)
-	if err != nil {
-		t.Fatalf("ListOwnedCopies() failed: %v", err)
-	}
-	if len(items) != 1 {
-		t.Errorf("len(items) = %d, want 1", len(items))
-	}
+	assertPlatformIDs(t, getLibraryGame(t, store, 100).Platforms, 6)
 }
 
 func TestAddToCollectionPreservesStatus(t *testing.T) {
@@ -130,16 +174,10 @@ func TestAddToCollectionPreservesStatus(t *testing.T) {
 		t.Errorf("UserGameID = %d and %d, want same game", first.UserGameID, second.UserGameID)
 	}
 
-	ownedCopies, err := store.queries.ListOwnedCopies(ctx, 1)
-	if err != nil {
-		t.Fatalf("ListOwnedCopies() failed: %v", err)
-	}
-	if len(ownedCopies) != 2 {
-		t.Fatalf("ListOwnedCopies() returned %d items, want 2", len(ownedCopies))
-	}
-	status := ownedCopies[0].UserGame.Status
-	if status == nil || *status != "completed" {
-		t.Errorf("Status = %v, want %q", status, "completed")
+	libraryGame := getLibraryGame(t, store, 100)
+	assertPlatformIDs(t, libraryGame.Platforms, 6, 11)
+	if s := libraryGame.UserGame.Status; s == nil || *s != "completed" {
+		t.Errorf("Status = %v, want %q", derefOrNil(s), "completed")
 	}
 }
 
