@@ -1,5 +1,8 @@
 {{define "content"}}
 	<h1>{{.LibraryGame.Game.Title}}</h1>
+	{{with .LibraryGame.Parent}}
+		<p>DLC of <a href="/games/{{.IgdbID}}">{{.Title}}</a></p>
+	{{end}}
 	<div>
 		{{if .LibraryGame.Game.CoverUrl}}<img alt="{{.LibraryGame.Game.Title}}" src="{{.LibraryGame.Game.CoverUrl}}">{{end}}
 		{{if .LibraryGame.UserGame.Wishlisted}}<p>On your wishlist</p>{{end}}
@@ -26,6 +29,12 @@
 			{{end}}
 			</ul>
 		{{end}}
+		{{with .LibraryGame.Parent}}
+			<p>
+				{{if not $.LibraryGame.Platforms}}Not owned on any platform. {{end}}
+				Ownership of this DLC is managed on the page of <a href="/games/{{.IgdbID}}">{{.Title}}</a>.
+			</p>
+		{{end}}
 		{{with .LibraryGame.UserGame.Rating}}<span title="{{ratingLabel .}}" aria-label="{{ratingLabel .}}" role="img">{{ratingText .}}</span>{{end}}
 		{{with .LibraryGame.Game.ReleasedAt}}<p>Released: {{.Format "2 January 2006"}}</p>{{end}}
 		{{with .LibraryGame.Game.Summary}}<p>Summary:<br>{{.}}</p>{{end}}
@@ -36,7 +45,16 @@
 			{{if .LibraryGame.Game.DlcsFetchedAt}}
 				<ul>
 				{{range .LibraryGame.DLCs}}
-					<li>{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}} - {{gameType .Game.GameType}}</li>
+					<li>
+						{{if .Tracked}}
+							<a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}</a> – {{.Status}}
+						{{else}}
+							{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}
+							<form method="post" action="/games/{{$.LibraryGame.Game.IgdbID}}/dlcs/{{.Game.IgdbID}}/track">
+								<button type="submit">Track</button>
+							</form>
+						{{end}}
+					</li>
 				{{else}}
 					<li>No DLC.</li>
 				{{end}}

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -101,7 +102,13 @@ func wishlistTestGame(t *testing.T, server *Server) *fakeIGDB {
 // getTestGamePage requests the game page for The Witcher 3 and asserts a 200 response.
 func getTestGamePage(t *testing.T, server *Server) *httptest.ResponseRecorder {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodGet, "/games/1942", nil)
+	return getGamePage(t, server, 1942)
+}
+
+// getGamePage requests the game page for igdbID and asserts a 200 response.
+func getGamePage(t *testing.T, server *Server, igdbID int64) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/games/"+strconv.FormatInt(igdbID, 10), nil)
 	w := httptest.NewRecorder()
 	server.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {

@@ -120,7 +120,7 @@ func TestHandleGameDLCs(t *testing.T) {
 	fake.dlcs = loadIGDBGames(t, "dlcs.json")
 
 	w := getTestGamePage(t, server)
-	assertBodyContains(t, w, "Hearts of Stone (12 October 2015) - Expansion")
+	assertBodyContains(t, w, "Hearts of Stone (12 October 2015)")
 	assertBodyNotContains(t, w, "couldn't be loaded")
 	if fake.dlcsCalls != 1 {
 		t.Errorf("dlcsCalls after first view = %d, want %d", fake.dlcsCalls, 1)

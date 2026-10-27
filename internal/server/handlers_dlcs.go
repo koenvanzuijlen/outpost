@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
 )
@@ -51,4 +52,35 @@ func (server *Server) handleSetDLCOwned(w http.ResponseWriter, r *http.Request) 
 	}
 
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
+}
+
+// handleTrackDLC handles the HTTP request to track a DLC separately for the current user. It redirects to the DLC's
+// page after tracking.
+func (server *Server) handleTrackDLC(w http.ResponseWriter, r *http.Request) {
+	igdbID, ok := pathID(r, "igdbID")
+	if !ok {
+		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		return
+	}
+
+	dlcIGDBID, ok := pathID(r, "dlcIGDBID")
+	if !ok {
+		http.Error(w, "Invalid DLC IGDB ID", http.StatusBadRequest)
+		return
+	}
+
+	err := server.store.TrackDLC(r.Context(), defaultUserID, igdbID, dlcIGDBID, time.Now().UTC())
+	if err != nil {
+		if errors.Is(err, database.ErrUserGameNotFound) {
+			http.Error(w, "Game not in library", http.StatusNotFound)
+		} else if errors.Is(err, database.ErrDLCNotFound) {
+			http.Error(w, "DLC not found for this game", http.StatusNotFound)
+		} else {
+			server.logger.Error("failed to track dlc", "error", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	http.Redirect(w, r, "/games/"+strconv.FormatInt(dlcIGDBID, 10), http.StatusSeeOther)
 }
