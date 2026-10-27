@@ -11,6 +11,53 @@ import (
 	"time"
 )
 
+const getDLCGame = `-- name: GetDLCGame :one
+SELECT
+    id, igdb_id, fetched_at, dlcs_fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary
+FROM
+    games
+WHERE
+    igdb_id = ?1
+    AND parent_igdb_id = ?2
+    AND game_type IN (/*SLICE:game_types*/?)
+`
+
+type GetDLCGameParams struct {
+	DlcIgdbID    int64
+	ParentIgdbID *int64
+	GameTypes    []int64
+}
+
+func (q *Queries) GetDLCGame(ctx context.Context, arg GetDLCGameParams) (Game, error) {
+	query := getDLCGame
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.DlcIgdbID)
+	queryParams = append(queryParams, arg.ParentIgdbID)
+	if len(arg.GameTypes) > 0 {
+		for _, v := range arg.GameTypes {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:game_types*/?", strings.Repeat(",?", len(arg.GameTypes))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:game_types*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, query, queryParams...)
+	var i Game
+	err := row.Scan(
+		&i.ID,
+		&i.IgdbID,
+		&i.FetchedAt,
+		&i.DlcsFetchedAt,
+		&i.ParentIgdbID,
+		&i.Title,
+		&i.GameType,
+		&i.CoverUrl,
+		&i.ReleasedAt,
+		&i.Summary,
+	)
+	return i, err
+}
+
 const getGameByIGDBID = `-- name: GetGameByIGDBID :one
 SELECT
     id, igdb_id, fetched_at, dlcs_fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary
@@ -41,25 +88,37 @@ func (q *Queries) GetGameByIGDBID(ctx context.Context, igdbID int64) (Game, erro
 
 const listDLCGames = `-- name: ListDLCGames :many
 SELECT
-    id, igdb_id, fetched_at, dlcs_fetched_at, parent_igdb_id, title, game_type, cover_url, released_at, summary
+    g.id, g.igdb_id, g.fetched_at, g.dlcs_fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary,
+    ug.id IS NOT NULL AS tracked,
+    ug.status
 FROM
-    games
+    games g
+    LEFT JOIN user_games ug ON g.id = ug.game_id
+        AND ug.user_id = ?1
 WHERE
-    parent_igdb_id = ?
-    AND game_type IN (/*SLICE:game_types*/?)
+    g.parent_igdb_id = ?2
+    AND g.game_type IN (/*SLICE:game_types*/?)
 ORDER BY
-    released_at ASC NULLS LAST,
-    title
+    g.released_at ASC NULLS LAST,
+    g.title
 `
 
 type ListDLCGamesParams struct {
+	UserID       int64
 	ParentIgdbID *int64
 	GameTypes    []int64
 }
 
-func (q *Queries) ListDLCGames(ctx context.Context, arg ListDLCGamesParams) ([]Game, error) {
+type ListDLCGamesRow struct {
+	Game    Game
+	Tracked bool
+	Status  *string
+}
+
+func (q *Queries) ListDLCGames(ctx context.Context, arg ListDLCGamesParams) ([]ListDLCGamesRow, error) {
 	query := listDLCGames
 	var queryParams []interface{}
+	queryParams = append(queryParams, arg.UserID)
 	queryParams = append(queryParams, arg.ParentIgdbID)
 	if len(arg.GameTypes) > 0 {
 		for _, v := range arg.GameTypes {
@@ -74,20 +133,22 @@ func (q *Queries) ListDLCGames(ctx context.Context, arg ListDLCGamesParams) ([]G
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Game
+	var items []ListDLCGamesRow
 	for rows.Next() {
-		var i Game
+		var i ListDLCGamesRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.IgdbID,
-			&i.FetchedAt,
-			&i.DlcsFetchedAt,
-			&i.ParentIgdbID,
-			&i.Title,
-			&i.GameType,
-			&i.CoverUrl,
-			&i.ReleasedAt,
-			&i.Summary,
+			&i.Game.ID,
+			&i.Game.IgdbID,
+			&i.Game.FetchedAt,
+			&i.Game.DlcsFetchedAt,
+			&i.Game.ParentIgdbID,
+			&i.Game.Title,
+			&i.Game.GameType,
+			&i.Game.CoverUrl,
+			&i.Game.ReleasedAt,
+			&i.Game.Summary,
+			&i.Tracked,
+			&i.Status,
 		); err != nil {
 			return nil, err
 		}

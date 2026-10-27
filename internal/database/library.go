@@ -18,7 +18,7 @@ type LibraryGame struct {
 	Game         dbgen.Game
 	UserGame     dbgen.UserGame
 	Platforms    []dbgen.Platform
-	DLCs         []dbgen.Game
+	DLCs         []dbgen.ListDLCGamesRow
 	CopyDLCs     map[int64][]CopyDLC // key: platform IGDB ID
 	Playthroughs []dbgen.ListPlaythroughsForUserGameIDRow
 }
@@ -38,6 +38,7 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 	}
 
 	dlcs, err := s.queries.ListDLCGames(ctx, dbgen.ListDLCGamesParams{
+		UserID:       userID,
 		ParentIgdbID: &igdbID,
 		GameTypes:    dlcGameTypes(),
 	})

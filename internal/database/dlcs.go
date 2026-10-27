@@ -11,6 +11,9 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
+// ErrDLCNotFound is returned when a DLC is not a DLC for the given parent game.
+var ErrDLCNotFound = errors.New("DLC not found")
+
 // ErrCopyDLCNotFound is returned when a specific copy of a DLC is not found in the database.
 var ErrCopyDLCNotFound = errors.New("DLC copy not found")
 
@@ -126,6 +129,50 @@ func (s *Store) SetDLCOwned(ctx context.Context, userID, igdbID, platformIGDBID,
 		if err != nil {
 			return fmt.Errorf("delete owned dlc: %w", err)
 		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
+	}
+	return nil
+}
+
+// TrackDLC gives a DLC of an owned game its own library entry with status backlog, so it gets its own status, rating
+// and playthroughs. Tracking twice has no additional effect. Returns ErrUserGameNotFound if the user doesn't own the
+// parent game, or ErrDLCNotFound if the DLC isn't available for the parent game.
+func (s *Store) TrackDLC(ctx context.Context, userID, parentIGDBID, dlcIGDBID int64, addedAt time.Time) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := dbgen.New(tx)
+
+	_, err = getOwnedUserGame(ctx, q, userID, parentIGDBID)
+	if err != nil {
+		return fmt.Errorf("get owned user game: %w", err)
+	}
+
+	dlc, err := q.GetDLCGame(ctx, dbgen.GetDLCGameParams{
+		DlcIgdbID:    dlcIGDBID,
+		ParentIgdbID: &parentIGDBID,
+		GameTypes:    dlcGameTypes(),
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrDLCNotFound
+		}
+		return fmt.Errorf("get dlc game: %w", err)
+	}
+
+	err = q.CreateTrackedUserGame(ctx, dbgen.CreateTrackedUserGameParams{
+		UserID:  userID,
+		GameID:  dlc.ID,
+		Status:  GameStatusBacklog.StringPtr(),
+		AddedAt: addedAt,
+	})
+	if err != nil {
+		return fmt.Errorf("create tracked user game: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

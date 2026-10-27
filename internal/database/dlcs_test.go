@@ -56,8 +56,8 @@ func TestSaveDLCs(t *testing.T) {
 	}
 	want := []int64{201, 202, 203}
 	for i, dlc := range game.DLCs {
-		if dlc.IgdbID != want[i] {
-			t.Errorf("DLCs[%d].IgdbID = %d, want %d", i, dlc.IgdbID, want[i])
+		if dlc.Game.IgdbID != want[i] {
+			t.Errorf("DLCs[%d].IgdbID = %d, want %d", i, dlc.Game.IgdbID, want[i])
 		}
 	}
 }
@@ -170,12 +170,12 @@ func TestSaveDLCsTwice(t *testing.T) {
 	if len(game.DLCs) != 2 {
 		t.Fatalf("len(DLCs) = %d, want 2", len(game.DLCs))
 	}
-	i := slices.IndexFunc(game.DLCs, func(g dbgen.Game) bool { return g.IgdbID == 201 })
+	i := slices.IndexFunc(game.DLCs, func(g dbgen.ListDLCGamesRow) bool { return g.Game.IgdbID == 201 })
 	if i == -1 {
 		t.Fatalf("DLC 201 not found in DLCs")
 	}
-	if game.DLCs[i].Title != "DLC A Renamed" {
-		t.Errorf("DLC 201 Title = %q, want %q", game.DLCs[i].Title, "DLC A Renamed")
+	if game.DLCs[i].Game.Title != "DLC A Renamed" {
+		t.Errorf("DLC 201 Title = %q, want %q", game.DLCs[i].Game.Title, "DLC A Renamed")
 	}
 }
 
@@ -198,7 +198,7 @@ func TestSaveDLCsExcludesStandaloneExpansion(t *testing.T) {
 	if len(game.DLCs) != 1 {
 		t.Fatalf("len(DLCs) = %d, want 1", len(game.DLCs))
 	}
-	if slices.ContainsFunc(game.DLCs, func(g dbgen.Game) bool { return g.IgdbID == 300 }) {
+	if slices.ContainsFunc(game.DLCs, func(g dbgen.ListDLCGamesRow) bool { return g.Game.IgdbID == 300 }) {
 		t.Errorf("DLCs contains standalone expansion 300, want it excluded")
 	}
 }
@@ -386,6 +386,129 @@ func TestSetDLCOwnedUserGameNotFound(t *testing.T) {
 			err := store.SetDLCOwned(t.Context(), 1, tt.igdbID, 6, 201, true)
 			if !errors.Is(err, ErrUserGameNotFound) {
 				t.Errorf("SetDLCOwned() error = %v, want %v", err, ErrUserGameNotFound)
+			}
+		})
+	}
+}
+
+// findDLC returns the DLC row with the given IGDB ID from the library game, failing the test if it's missing.
+func findDLC(t *testing.T, game LibraryGame, igdbID int64) dbgen.ListDLCGamesRow {
+	t.Helper()
+	i := slices.IndexFunc(game.DLCs, func(g dbgen.ListDLCGamesRow) bool { return g.Game.IgdbID == igdbID })
+	if i == -1 {
+		t.Fatalf("DLC %d not found in DLCs", igdbID)
+	}
+	return game.DLCs[i]
+}
+
+// assertDLCStatus checks that the DLC row is tracked with the given status.
+func assertDLCStatus(t *testing.T, dlc dbgen.ListDLCGamesRow, want GameStatus) {
+	t.Helper()
+	if !dlc.Tracked {
+		t.Errorf("DLC %d Tracked = false, want true", dlc.Game.IgdbID)
+	}
+	if dlc.Status == nil || *dlc.Status != string(want) {
+		t.Errorf("DLC %d Status = %v, want %q", dlc.Game.IgdbID, derefOrNil(dlc.Status), want)
+	}
+}
+
+func TestTrackDLC(t *testing.T) {
+	store := newTestStore(t)
+	setupDLCOwnership(t, store)
+
+	if err := store.TrackDLC(t.Context(), 1, 100, 201, time.Now().UTC()); err != nil {
+		t.Fatalf("TrackDLC() failed: %v", err)
+	}
+
+	game := getLibraryGame(t, store, 100)
+	assertDLCStatus(t, findDLC(t, game, 201), GameStatusBacklog)
+	if findDLC(t, game, 202).Tracked {
+		t.Errorf("DLC 202 Tracked = true, want false")
+	}
+}
+
+func TestTrackDLCTwice(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupDLCOwnership(t, store)
+
+	if err := store.TrackDLC(ctx, 1, 100, 201, time.Now().UTC()); err != nil {
+		t.Fatalf("TrackDLC() first failed: %v", err)
+	}
+	if err := store.UpdateStatusAndRating(ctx, 1, 201, GameStatusCompleted, nil); err != nil {
+		t.Fatalf("UpdateStatusAndRating() failed: %v", err)
+	}
+	if err := store.TrackDLC(ctx, 1, 100, 201, time.Now().UTC()); err != nil {
+		t.Fatalf("TrackDLC() second failed: %v", err)
+	}
+
+	assertDLCStatus(t, findDLC(t, getLibraryGame(t, store, 100), 201), GameStatusCompleted)
+}
+
+func TestTrackDLCKeepsOwnership(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupDLCOwnership(t, store)
+
+	if err := store.SetDLCOwned(ctx, 1, 100, 6, 201, true); err != nil {
+		t.Fatalf("SetDLCOwned() failed: %v", err)
+	}
+	if err := store.TrackDLC(ctx, 1, 100, 201, time.Now().UTC()); err != nil {
+		t.Fatalf("TrackDLC() failed: %v", err)
+	}
+
+	assertCopyDLCs(t, getLibraryGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: true, 202: false})
+}
+
+func TestTrackDLCNotFound(t *testing.T) {
+	tests := []struct {
+		name      string
+		dlcIGDBID int64
+	}{
+		{"unknown dlc", 999},
+		{"other game's dlc", 401},
+		{"standalone expansion", 501},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			store := newTestStore(t)
+			setupDLCOwnership(t, store)
+			standalone := newDLC(501, 100, "Standalone Expansion", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)).Game
+			standalone.GameType = int64(igdb.GameTypeStandaloneExpansion)
+			if _, err := store.queries.UpsertGame(ctx, standalone); err != nil {
+				t.Fatalf("UpsertGame() failed: %v", err)
+			}
+
+			err := store.TrackDLC(ctx, 1, 100, tt.dlcIGDBID, time.Now().UTC())
+			if !errors.Is(err, ErrDLCNotFound) {
+				t.Errorf("TrackDLC() error = %v, want %v", err, ErrDLCNotFound)
+			}
+		})
+	}
+}
+
+func TestTrackDLCUserGameNotFound(t *testing.T) {
+	tests := []struct {
+		name   string
+		igdbID int64
+	}{
+		{"wishlisted", 500},
+		{"not in library", 999},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newTestStore(t)
+			setupDLCOwnership(t, store)
+			if err := store.AddToWishlist(t.Context(), newGameParams(500, "Wishlisted Game"), 1, time.Now().UTC()); err != nil {
+				t.Fatalf("AddToWishlist() failed: %v", err)
+			}
+
+			err := store.TrackDLC(t.Context(), 1, tt.igdbID, 201, time.Now().UTC())
+			if !errors.Is(err, ErrUserGameNotFound) {
+				t.Errorf("TrackDLC() error = %v, want %v", err, ErrUserGameNotFound)
 			}
 		})
 	}

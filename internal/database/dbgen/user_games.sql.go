@@ -10,6 +10,30 @@ import (
 	"time"
 )
 
+const createTrackedUserGame = `-- name: CreateTrackedUserGame :exec
+INSERT INTO user_games(user_id, game_id, status, wishlisted, added_at)
+    VALUES (?, ?, ?, FALSE, ?)
+ON CONFLICT (user_id, game_id)
+    DO NOTHING
+`
+
+type CreateTrackedUserGameParams struct {
+	UserID  int64
+	GameID  int64
+	Status  *string
+	AddedAt time.Time
+}
+
+func (q *Queries) CreateTrackedUserGame(ctx context.Context, arg CreateTrackedUserGameParams) error {
+	_, err := q.db.ExecContext(ctx, createTrackedUserGame,
+		arg.UserID,
+		arg.GameID,
+		arg.Status,
+		arg.AddedAt,
+	)
+	return err
+}
+
 const createWishlistedUserGame = `-- name: CreateWishlistedUserGame :execrows
 INSERT INTO user_games(user_id, game_id, status, wishlisted, added_at)
     VALUES (?, ?, NULL, TRUE, ?)

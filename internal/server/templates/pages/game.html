@@ -35,7 +35,7 @@
 		{{if .LibraryGame.Game.DlcsFetchedAt}}
 			<ul>
 			{{range .LibraryGame.DLCs}}
-				<li>{{.Title}}{{with .ReleasedAt}} ({{.Format "2 January 2006"}}){{end}} - {{gameType .GameType}}</li>
+				<li>{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}} - {{gameType .Game.GameType}}</li>
 			{{else}}
 				<li>No DLC.</li>
 			{{end}}
