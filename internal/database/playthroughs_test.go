@@ -128,9 +128,9 @@ func TestStartPlaythroughStatus(t *testing.T) {
 			store := newTestStore(t)
 			addOwnedGame(t, store, 100)
 
-			err := store.UpdateStatusAndRating(ctx, 1, 100, tt.status, nil)
+			err := store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: tt.status})
 			if err != nil {
-				t.Fatalf("UpdateStatusAndRating() failed: %v", err)
+				t.Fatalf("UpdateGameDetails() failed: %v", err)
 			}
 
 			_, err = store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())

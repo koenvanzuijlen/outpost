@@ -109,20 +109,28 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 	}, nil
 }
 
-// UpdateStatusAndRating updates the status and rating of a game in the user's library. Returns ErrUserGameNotFound if
-// the game is not in the library.
-func (s *Store) UpdateStatusAndRating(ctx context.Context, userID, igdbID int64, status GameStatus, rating *int64) error {
-	if !status.Valid() {
+// GameDetails represents the details of a game in the user's library, including its status, rating, and notes.
+type GameDetails struct {
+	Status GameStatus
+	Rating *int64
+	Notes  *string
+}
+
+// UpdateGameDetails updates the status, rating and notes of a game in the user's library. A nil value clears the field. Returns ErrUserGameNotFound
+// if the game is not in the library.
+func (s *Store) UpdateGameDetails(ctx context.Context, userID, igdbID int64, details GameDetails) error {
+	if !details.Status.Valid() {
 		return ErrInvalidGameStatus
 	}
-	updatedRows, err := s.queries.UpdateUserGameStatusAndRating(ctx, dbgen.UpdateUserGameStatusAndRatingParams{
-		Status: status.StringPtr(),
-		Rating: rating,
+	updatedRows, err := s.queries.UpdateUserGameDetails(ctx, dbgen.UpdateUserGameDetailsParams{
+		Status: details.Status.StringPtr(),
+		Rating: details.Rating,
+		Notes:  details.Notes,
 		UserID: userID,
 		IgdbID: igdbID,
 	})
 	if err != nil {
-		return fmt.Errorf("update status and rating: %w", err)
+		return fmt.Errorf("update user game detailsTestUpdateGameDetails: %w", err)
 	}
 	if updatedRows == 0 {
 		return ErrUserGameNotFound

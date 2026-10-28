@@ -381,6 +381,47 @@ func (q *Queries) ListWishlistedUserGames(ctx context.Context, userID int64) ([]
 	return items, nil
 }
 
+const updateUserGameDetails = `-- name: UpdateUserGameDetails :execrows
+UPDATE
+    user_games
+SET
+    status = ?,
+    rating = ?,
+    notes = ?
+WHERE
+    user_id = ?
+    AND game_id =(
+        SELECT
+            id
+        FROM
+            games
+        WHERE
+            igdb_id = ?)
+    AND NOT wishlisted
+`
+
+type UpdateUserGameDetailsParams struct {
+	Status *string
+	Rating *int64
+	Notes  *string
+	UserID int64
+	IgdbID int64
+}
+
+func (q *Queries) UpdateUserGameDetails(ctx context.Context, arg UpdateUserGameDetailsParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserGameDetails,
+		arg.Status,
+		arg.Rating,
+		arg.Notes,
+		arg.UserID,
+		arg.IgdbID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const updateUserGameStatus = `-- name: UpdateUserGameStatus :exec
 UPDATE
     user_games
@@ -398,44 +439,6 @@ type UpdateUserGameStatusParams struct {
 func (q *Queries) UpdateUserGameStatus(ctx context.Context, arg UpdateUserGameStatusParams) error {
 	_, err := q.db.ExecContext(ctx, updateUserGameStatus, arg.Status, arg.ID)
 	return err
-}
-
-const updateUserGameStatusAndRating = `-- name: UpdateUserGameStatusAndRating :execrows
-UPDATE
-    user_games
-SET
-    status = ?,
-    rating = ?
-WHERE
-    user_id = ?
-    AND game_id =(
-        SELECT
-            id
-        FROM
-            games
-        WHERE
-            igdb_id = ?)
-    AND NOT wishlisted
-`
-
-type UpdateUserGameStatusAndRatingParams struct {
-	Status *string
-	Rating *int64
-	UserID int64
-	IgdbID int64
-}
-
-func (q *Queries) UpdateUserGameStatusAndRating(ctx context.Context, arg UpdateUserGameStatusAndRatingParams) (int64, error) {
-	result, err := q.db.ExecContext(ctx, updateUserGameStatusAndRating,
-		arg.Status,
-		arg.Rating,
-		arg.UserID,
-		arg.IgdbID,
-	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
 }
 
 const upsertOwnedUserGame = `-- name: UpsertOwnedUserGame :one

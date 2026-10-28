@@ -90,12 +90,13 @@ SET
 WHERE
     id = ?;
 
--- name: UpdateUserGameStatusAndRating :execrows
+-- name: UpdateUserGameDetails :execrows
 UPDATE
     user_games
 SET
     status = ?,
-    rating = ?
+    rating = ?,
+    notes = ?
 WHERE
     user_id = ?
     AND game_id =(

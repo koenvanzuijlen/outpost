@@ -6,11 +6,16 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
+
+// maxNotesLength defines the maximum allowed length for game notes.
+const maxNotesLength = 10_000
 
 // ratingOption represents a single rating option for a game.
 type ratingOption struct {
@@ -38,6 +43,7 @@ type gamePage struct {
 	RatingOptions       []ratingOption
 	CurrentRating       int64
 	PlaythroughOutcomes []database.PlaythroughOutcome
+	MaxNotesLength      int64
 }
 
 // handleGame serves the detail page for a game in the user's library.
@@ -80,6 +86,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		RatingOptions:       ratingOptions(),
 		CurrentRating:       derefOrZero(libraryGame.UserGame.Rating),
 		PlaythroughOutcomes: database.PlaythroughOutcomes,
+		MaxNotesLength:      maxNotesLength,
 	})
 }
 
@@ -103,7 +110,17 @@ func (server *Server) handleUpdateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := server.store.UpdateStatusAndRating(r.Context(), defaultUserID, igdbID, status, rating)
+	notes := strings.TrimSpace(r.PostFormValue("notes"))
+	if utf8.RuneCountInString(notes) > maxNotesLength {
+		http.Error(w, "Notes too long", http.StatusBadRequest)
+		return
+	}
+
+	err := server.store.UpdateGameDetails(r.Context(), defaultUserID, igdbID, database.GameDetails{
+		Status: status,
+		Rating: rating,
+		Notes:  ptrIfNonZero(notes),
+	})
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			http.Error(w, "Game not in library", http.StatusNotFound)

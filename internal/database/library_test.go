@@ -129,7 +129,7 @@ func TestGetLibraryGameNotFound(t *testing.T) {
 	}
 }
 
-func TestUpdateStatusAndRating(t *testing.T) {
+func TestUpdateGameDetails(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
@@ -141,9 +141,9 @@ func TestUpdateStatusAndRating(t *testing.T) {
 
 	// Update the status and rating of the game in the user's library
 	rating := int64(5)
-	err = store.UpdateStatusAndRating(ctx, 1, 100, GameStatusPlaying, &rating)
+	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying, Rating: &rating})
 	if err != nil {
-		t.Fatalf("UpdateStatusAndRating() failed: %v", err)
+		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 
 	// Attempt to retrieve the row from the library
@@ -162,7 +162,7 @@ func TestUpdateStatusAndRating(t *testing.T) {
 	}
 }
 
-func TestUpdateStatusAndRatingInvalidStatus(t *testing.T) {
+func TestUpdateGameDetailsInvalidStatus(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
@@ -174,9 +174,9 @@ func TestUpdateStatusAndRatingInvalidStatus(t *testing.T) {
 
 	// Attempt to update the game with an invalid status, which should be rejected
 	rating := int64(5)
-	err = store.UpdateStatusAndRating(ctx, 1, 100, "invalid_status", &rating)
+	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: "invalid_status", Rating: &rating})
 	if !errors.Is(err, ErrInvalidGameStatus) {
-		t.Fatalf("UpdateStatusAndRating() error = %v, want %v", err, ErrInvalidGameStatus)
+		t.Fatalf("UpdateGameDetails() error = %v, want %v", err, ErrInvalidGameStatus)
 	}
 
 	// Verify the status and rating were left unchanged
@@ -195,7 +195,7 @@ func TestUpdateStatusAndRatingInvalidStatus(t *testing.T) {
 	}
 }
 
-func TestUpdateStatusAndRatingClearRating(t *testing.T) {
+func TestUpdateGameDetailsClearRating(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
@@ -207,9 +207,9 @@ func TestUpdateStatusAndRatingClearRating(t *testing.T) {
 
 	// Update the status and rating of the game in the user's library
 	rating := int64(5)
-	err = store.UpdateStatusAndRating(ctx, 1, 100, GameStatusPlaying, &rating)
+	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying, Rating: &rating})
 	if err != nil {
-		t.Fatalf("UpdateStatusAndRating() failed: %v", err)
+		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 
 	// Verify the rating was set
@@ -222,9 +222,9 @@ func TestUpdateStatusAndRatingClearRating(t *testing.T) {
 	}
 
 	// Clear the rating by passing nil
-	err = store.UpdateStatusAndRating(ctx, 1, 100, GameStatusPlaying, nil)
+	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying})
 	if err != nil {
-		t.Fatalf("UpdateStatusAndRating() failed: %v", err)
+		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 
 	// Verify the rating was cleared
@@ -237,7 +237,52 @@ func TestUpdateStatusAndRatingClearRating(t *testing.T) {
 	}
 }
 
-func TestUpdateStatusAndRatingWishlistedGame(t *testing.T) {
+func TestUpdateGameDetailsNotes(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+
+	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("AddToCollection() failed: %v", err)
+	}
+
+	rating := int64(7)
+	notes := "Buy the GOTY edition"
+	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying, Rating: &rating, Notes: &notes})
+	if err != nil {
+		t.Fatalf("UpdateGameDetails() failed: %v", err)
+	}
+
+	row, err := store.GetLibraryGame(ctx, 1, 100)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if row.UserGame.Status == nil || *row.UserGame.Status != "playing" {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(row.UserGame.Status), "playing")
+	}
+	if row.UserGame.Rating == nil || *row.UserGame.Rating != 7 {
+		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(row.UserGame.Rating), 7)
+	}
+	if row.UserGame.Notes == nil || *row.UserGame.Notes != notes {
+		t.Errorf("UserGame.Notes = %v, want %q", derefOrNil(row.UserGame.Notes), notes)
+	}
+
+	// Updating without notes clears them
+	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying, Rating: &rating})
+	if err != nil {
+		t.Fatalf("UpdateGameDetails() failed: %v", err)
+	}
+
+	row, err = store.GetLibraryGame(ctx, 1, 100)
+	if err != nil {
+		t.Fatalf("GetLibraryGame() failed: %v", err)
+	}
+	if row.UserGame.Notes != nil {
+		t.Errorf("UserGame.Notes = %v, want %v", derefOrNil(row.UserGame.Notes), nil)
+	}
+}
+
+func TestUpdateGameDetailsWishlistedGame(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
@@ -248,9 +293,9 @@ func TestUpdateStatusAndRatingWishlistedGame(t *testing.T) {
 	}
 
 	// Attempt to update a wishlisted game, which should fail since it isn't owned
-	err = store.UpdateStatusAndRating(ctx, 1, 100, GameStatusPlaying, nil)
+	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying})
 	if !errors.Is(err, ErrUserGameNotFound) {
-		t.Fatalf("UpdateStatusAndRating() error = %v, want %v", err, ErrUserGameNotFound)
+		t.Fatalf("UpdateGameDetails() error = %v, want %v", err, ErrUserGameNotFound)
 	}
 
 	// Verify the wishlisted game was left without a status
@@ -389,13 +434,13 @@ func TestRemoveFromLibraryNotInLibrary(t *testing.T) {
 	}
 }
 
-func TestUpdateStatusAndRatingNotInLibrary(t *testing.T) {
+func TestUpdateGameDetailsNotInLibrary(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
 	// Attempt to update a game that doesn't exist in the library
-	err := store.UpdateStatusAndRating(ctx, 1, 100, GameStatusPlaying, nil)
+	err := store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying})
 	if !errors.Is(err, ErrUserGameNotFound) {
-		t.Fatalf("UpdateStatusAndRating() error = %v, want %v", err, ErrUserGameNotFound)
+		t.Fatalf("UpdateGameDetails() error = %v, want %v", err, ErrUserGameNotFound)
 	}
 }

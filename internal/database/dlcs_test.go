@@ -435,8 +435,8 @@ func TestTrackDLCTwice(t *testing.T) {
 	if err := store.TrackDLC(ctx, 1, 100, 201, time.Now().UTC()); err != nil {
 		t.Fatalf("TrackDLC() first failed: %v", err)
 	}
-	if err := store.UpdateStatusAndRating(ctx, 1, 201, GameStatusCompleted, nil); err != nil {
-		t.Fatalf("UpdateStatusAndRating() failed: %v", err)
+	if err := store.UpdateGameDetails(ctx, 1, 201, GameDetails{Status: GameStatusCompleted}); err != nil {
+		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 	if err := store.TrackDLC(ctx, 1, 100, 201, time.Now().UTC()); err != nil {
 		t.Fatalf("TrackDLC() second failed: %v", err)

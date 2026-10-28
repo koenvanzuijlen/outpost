@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -49,7 +51,7 @@ func TestHandleGameInLibrary(t *testing.T) {
 
 	w := postForm(t, server, "/games/1942", "status=completed&rating=9")
 	if w.Code != http.StatusSeeOther {
-		t.Fatalf("update games status = %d, want %d", w.Code, http.StatusSeeOther)
+		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
 	w = getTestGamePage(t, server)
@@ -208,7 +210,7 @@ func TestHandleUpdateGame(t *testing.T) {
 
 	w := postForm(t, server, "/games/1942", "status=completed&rating=9")
 	if w.Code != http.StatusSeeOther {
-		t.Fatalf("update games status = %d, want %d", w.Code, http.StatusSeeOther)
+		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 	assertLocation(t, w, "/games/1942")
 	libraryGame := getTestLibraryGame(t, server)
@@ -226,7 +228,7 @@ func TestHandleUpdateGameNoRating(t *testing.T) {
 
 	w := postForm(t, server, "/games/1942", "status=completed&rating=")
 	if w.Code != http.StatusSeeOther {
-		t.Fatalf("update games status = %d, want %d", w.Code, http.StatusSeeOther)
+		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 	assertLocation(t, w, "/games/1942")
 	libraryGame := getTestLibraryGame(t, server)
@@ -238,12 +240,80 @@ func TestHandleUpdateGameNoRating(t *testing.T) {
 	}
 }
 
+func TestHandleUpdateGameNotes(t *testing.T) {
+	tests := []struct {
+		name  string
+		notes string
+		want  *string
+	}{
+		{"trimmed", "  Buy the GOTY edition  ", new("Buy the GOTY edition")},
+		{"whitespace only", "   ", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			addTestGame(t, server)
+
+			body := url.Values{"status": {"completed"}, "notes": {tt.notes}}.Encode()
+			w := postForm(t, server, "/games/1942", body)
+			if w.Code != http.StatusSeeOther {
+				t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
+			}
+			libraryGame := getTestLibraryGame(t, server)
+			got := libraryGame.UserGame.Notes
+			if (got == nil) != (tt.want == nil) || (got != nil && *got != *tt.want) {
+				t.Errorf("notes = %v, want %v", derefOrNil(got), derefOrNil(tt.want))
+			}
+		})
+	}
+}
+
+func TestHandleUpdateGameNotesLength(t *testing.T) {
+	tests := []struct {
+		name  string
+		notes string
+		want  int
+	}{
+		{"over limit", strings.Repeat("a", maxNotesLength+1), http.StatusBadRequest},
+		{"at limit", strings.Repeat("a", maxNotesLength), http.StatusSeeOther},
+		{"multibyte at limit", strings.Repeat("é", maxNotesLength), http.StatusSeeOther},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			addTestGame(t, server)
+
+			body := url.Values{"status": {"completed"}, "notes": {tt.notes}}.Encode()
+			w := postForm(t, server, "/games/1942", body)
+			if w.Code != tt.want {
+				t.Errorf("update game status = %d, want %d", w.Code, tt.want)
+			}
+		})
+	}
+}
+
+func TestHandleGameNotesPrefill(t *testing.T) {
+	server := newTestServer(t)
+	addTestGame(t, server)
+
+	body := url.Values{"status": {"completed"}, "notes": {"<b>hi</b>"}}.Encode()
+	w := postForm(t, server, "/games/1942", body)
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	w = getTestGamePage(t, server)
+	assertBodyContains(t, w, "&lt;b&gt;hi&lt;/b&gt;</textarea>")
+}
+
 func TestHandleUpdateGameWishlisted(t *testing.T) {
 	server := newTestServer(t)
 	wishlistTestGame(t, server)
 
 	w := postForm(t, server, "/games/1942", "status=completed&rating=9")
 	if w.Code != http.StatusNotFound {
-		t.Fatalf("update games status = %d, want %d", w.Code, http.StatusNotFound)
+		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusNotFound)
 	}
 }
