@@ -18,6 +18,15 @@ func (rec *statusRecorder) WriteHeader(status int) {
 	rec.ResponseWriter.WriteHeader(status)
 }
 
+// chainMiddleware applies the given middlewares, with the first middleware being the innermost one, and the last
+// middleware being the outermost one.
+func chainMiddleware(handler http.Handler, middlewares ...func(http.Handler) http.Handler) http.Handler {
+	for _, middleware := range middlewares {
+		handler = middleware(handler)
+	}
+	return handler
+}
+
 // requestLogging middleware logs the details of each HTTP request.
 func (server *Server) requestLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

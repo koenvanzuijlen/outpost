@@ -47,7 +47,14 @@ func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient) (*Se
 		igdbClient: igdbClient,
 	}
 	server.routes()
-	server.handler = server.requestLogging(server.recoverPanic(server.mux))
+
+	crossOrigin := http.NewCrossOriginProtection()
+	server.handler = chainMiddleware(
+		server.mux,
+		crossOrigin.Handler,
+		server.recoverPanic,
+		server.requestLogging,
+	)
 	return server, nil
 }
 
