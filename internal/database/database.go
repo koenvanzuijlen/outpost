@@ -19,9 +19,14 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
+// migrationFiles returns an fs.FS containing the embedded migration files.
+func migrationFiles() (fs.FS, error) {
+	return fs.Sub(migrationsFS, "migrations")
+}
+
 // Open opens the SQLite database at path, applies any pending migrations, and returns a Store for it.
 func Open(ctx context.Context, logger *slog.Logger, path string) (*Store, error) {
-	migrations, err := fs.Sub(migrationsFS, "migrations")
+	migrations, err := migrationFiles()
 	if err != nil {
 		return nil, fmt.Errorf("sub filesystem: %w", err)
 	}

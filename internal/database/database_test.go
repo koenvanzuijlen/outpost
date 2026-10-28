@@ -5,11 +5,13 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"testing/fstest"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
+	"github.com/pressly/goose/v3"
 )
 
 func TestPragmasApplied(t *testing.T) {
@@ -132,6 +134,82 @@ func TestMigrateBackup(t *testing.T) {
 			t.Errorf("backup files = %v, want none", got)
 		}
 	})
+}
+
+func TestMigrateUpDownUp(t *testing.T) {
+	ctx := t.Context()
+
+	// Initial migration with some data
+	store := newTestStore(t)
+	addOwnedGame(t, store, 100)
+	setupLibraryDLCs(t, store)
+	_, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("StartPlaythrough() failed: %v", err)
+	}
+
+	// Migrate back down to version 0
+	migrations, err := migrationFiles()
+	if err != nil {
+		t.Fatalf("migrationFiles() failed: %v", err)
+	}
+	provider, err := goose.NewProvider(goose.DialectSQLite3, store.db, migrations)
+	if err != nil {
+		t.Fatalf("goose provider: %v", err)
+	}
+	_, err = provider.DownTo(ctx, 0)
+	if err != nil {
+		t.Fatalf("goose DownTo failed: %v", err)
+	}
+
+	gotVersion, err := provider.GetDBVersion(ctx)
+	if err != nil {
+		t.Fatalf("GetDBVersion() failed: %v", err)
+	}
+	if gotVersion != 0 {
+		t.Errorf("version after DownTo(0) = %d, want %d", gotVersion, 0)
+	}
+
+	rows, err := store.db.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+	if err != nil {
+		t.Fatalf("query sqlite_master failed: %v", err)
+	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	var tables []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			t.Fatalf("scan table name: %v", err)
+		}
+		tables = append(tables, name)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate tables: %v", err)
+	}
+
+	if want := []string{"goose_db_version"}; !slices.Equal(tables, want) {
+		t.Errorf("tables after DownTo(0) = %v, want %v", tables, want)
+	}
+
+	// Migrate back up and see if inserting is again possible
+	_, err = provider.Up(ctx)
+	if err != nil {
+		t.Fatalf("goose Up failed: %v", err)
+	}
+	sources := provider.ListSources()
+	wantVersion := sources[len(sources)-1].Version
+
+	gotVersion, err = provider.GetDBVersion(ctx)
+	if err != nil {
+		t.Fatalf("GetDBVersion() failed: %v", err)
+	}
+	if gotVersion != wantVersion {
+		t.Errorf("version after Up = %d, want %d", gotVersion, wantVersion)
+	}
+	addOwnedGame(t, store, 100)
 }
 
 func TestPlaythroughChecks(t *testing.T) {
