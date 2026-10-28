@@ -171,5 +171,18 @@
 			</form>
 		</div>
 	{{end}}
+	<details>
+		<summary>{{if .LibraryGame.UserGame.Wishlisted}}Remove from wishlist{{else if .LibraryGame.Parent}}Stop tracking{{else}}Remove from library{{end}}</summary>
+		<form method="post" action="/games/{{.LibraryGame.Game.IgdbID}}/delete">
+			{{if not .LibraryGame.UserGame.Wishlisted}}
+				{{if .LibraryGame.Parent}}
+					<p>Removes its status, rating and playthroughs. Ownership on base game's page is kept.</p>
+				{{else}}
+					<p>Removes its copies, DLC ownership, playthroughs and tracked DLC.</p>
+				{{end}}
+			{{end}}
+			<button type="submit">Really remove</button>
+		</form>
+	</details>
 	<a href="/">Back to library</a>
 {{end}}

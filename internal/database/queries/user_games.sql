@@ -107,3 +107,19 @@ WHERE
             igdb_id = ?)
     AND NOT wishlisted;
 
+-- name: DeleteTrackedDLCs :exec
+DELETE FROM user_games
+WHERE user_id = sqlc.arg(user_id)
+    AND game_id IN (
+        SELECT
+            id
+        FROM
+            games
+        WHERE
+            parent_igdb_id = sqlc.arg(parent_igdb_id)
+            AND game_type IN (sqlc.slice(dlc_game_types)));
+
+-- name: DeleteUserGame :exec
+DELETE FROM user_games
+WHERE id = ?;
+

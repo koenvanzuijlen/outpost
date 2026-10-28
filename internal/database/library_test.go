@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
 func TestGetLibraryGameCollection(t *testing.T) {
@@ -258,6 +260,132 @@ func TestUpdateStatusAndRatingWishlistedGame(t *testing.T) {
 	}
 	if row.UserGame.Status != nil {
 		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(row.UserGame.Status), nil)
+	}
+}
+
+// setupRemoveFromLibrary extends setupTrackedDLCs with playthroughs on 100 and 201 and tracks game 300's DLC 401.
+func setupRemoveFromLibrary(t *testing.T, store *Store) {
+	t.Helper()
+	ctx := t.Context()
+	setupTrackedDLCs(t, store)
+	for _, igdbID := range []int64{100, 201} {
+		if _, err := store.StartPlaythrough(ctx, 1, igdbID, nil, nil, time.Now().UTC()); err != nil {
+			t.Fatalf("StartPlaythrough(%d) failed: %v", igdbID, err)
+		}
+	}
+	if err := store.TrackDLC(ctx, 1, 300, 401, time.Now().UTC()); err != nil {
+		t.Fatalf("TrackDLC(401) failed: %v", err)
+	}
+}
+
+func TestRemoveFromLibrary(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupRemoveFromLibrary(t, store)
+
+	if err := store.RemoveFromLibrary(ctx, 1, 100); err != nil {
+		t.Fatalf("RemoveFromLibrary() failed: %v", err)
+	}
+
+	for _, igdbID := range []int64{100, 201, 202} {
+		if _, err := store.GetLibraryGame(ctx, 1, igdbID); !errors.Is(err, ErrUserGameNotFound) {
+			t.Errorf("GetLibraryGame(%d) error = %v, want %v", igdbID, err, ErrUserGameNotFound)
+		}
+	}
+
+	other := getLibraryGame(t, store, 300)
+	assertDLCStatus(t, findDLC(t, other, 401), GameStatusBacklog)
+	getLibraryGame(t, store, 401)
+
+	if _, err := store.queries.GetGameByIGDBID(ctx, 201); err != nil {
+		t.Errorf("GetGameByIGDBID(201) failed: %v", err)
+	}
+}
+
+func TestRemoveFromLibraryReAdd(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupRemoveFromLibrary(t, store)
+
+	if err := store.RemoveFromLibrary(ctx, 1, 100); err != nil {
+		t.Fatalf("RemoveFromLibrary() failed: %v", err)
+	}
+	if _, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(6, "PC"), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToCollection() failed: %v", err)
+	}
+
+	game := getLibraryGame(t, store, 100)
+	if game.UserGame.Status == nil || *game.UserGame.Status != string(GameStatusBacklog) {
+		t.Errorf("UserGame.Status = %v, want %q", derefOrNil(game.UserGame.Status), GameStatusBacklog)
+	}
+	if len(game.Playthroughs) != 0 {
+		t.Errorf("len(Playthroughs) = %d, want 0", len(game.Playthroughs))
+	}
+	if findDLC(t, game, 201).Tracked {
+		t.Errorf("DLC 201 Tracked = true, want false")
+	}
+	assertCopyDLCs(t, game.CopyDLCs[6], map[int64]bool{201: false, 202: false})
+}
+
+func TestRemoveFromLibraryUntrackDLC(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupRemoveFromLibrary(t, store)
+
+	if err := store.RemoveFromLibrary(ctx, 1, 201); err != nil {
+		t.Fatalf("RemoveFromLibrary() failed: %v", err)
+	}
+
+	if _, err := store.GetLibraryGame(ctx, 1, 201); !errors.Is(err, ErrUserGameNotFound) {
+		t.Errorf("GetLibraryGame(201) error = %v, want %v", err, ErrUserGameNotFound)
+	}
+	assertCopyDLCs(t, getLibraryGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: true, 202: false})
+}
+
+func TestRemoveFromLibraryWishlisted(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	if err := store.AddToWishlist(ctx, newGameParams(500, "Wishlisted Game"), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToWishlist() failed: %v", err)
+	}
+
+	if err := store.RemoveFromLibrary(ctx, 1, 500); err != nil {
+		t.Fatalf("RemoveFromLibrary() failed: %v", err)
+	}
+
+	wishlisted, err := store.ListWishlist(ctx, 1)
+	if err != nil {
+		t.Fatalf("ListWishlist() failed: %v", err)
+	}
+	if len(wishlisted) != 0 {
+		t.Errorf("len(ListWishlist()) = %d, want 0", len(wishlisted))
+	}
+}
+
+func TestRemoveFromLibraryKeepsStandaloneExpansion(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupTrackedDLCs(t, store)
+
+	standalone := newDLC(501, 100, "Standalone Expansion", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)).Game
+	standalone.GameType = int64(igdb.GameTypeStandaloneExpansion)
+	if _, err := store.AddToCollection(ctx, standalone, newPlatformParams(130, "Switch"), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToCollection() failed: %v", err)
+	}
+
+	if err := store.RemoveFromLibrary(ctx, 1, 100); err != nil {
+		t.Fatalf("RemoveFromLibrary() failed: %v", err)
+	}
+
+	assertPlatformIDs(t, getLibraryGame(t, store, 501).Platforms, 130)
+}
+
+func TestRemoveFromLibraryNotInLibrary(t *testing.T) {
+	store := newTestStore(t)
+
+	err := store.RemoveFromLibrary(t.Context(), 1, 999)
+	if !errors.Is(err, ErrUserGameNotFound) {
+		t.Fatalf("RemoveFromLibrary() error = %v, want %v", err, ErrUserGameNotFound)
 	}
 }
 

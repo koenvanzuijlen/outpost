@@ -130,6 +130,55 @@ func (s *Store) UpdateStatusAndRating(ctx context.Context, userID, igdbID int64,
 	return nil
 }
 
+// RemoveFromLibrary deletes the user's library entry for a game. What else goes with it depends on the entry:
+//   - An owned game: its copies, the DLC ownership on those copies, its playthroughs, and the entries of its tracked
+//     DLC (in the same transaction, since no foreign key links them).
+//   - A tracked DLC: its status, rating and playthroughs. Ownership of the DLC on the base game's copies is kept.
+//   - A wishlisted game: only the wishlist entry.
+//
+// Catalog data (games, platforms, cached DLC lists) is never deleted, so adding the game again needs no IGDB call for
+// its DLC. Returns ErrUserGameNotFound if the game is not in the library.
+func (s *Store) RemoveFromLibrary(ctx context.Context, userID, igdbID int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := dbgen.New(tx)
+
+	row, err := q.GetUserGameByIGDBID(ctx, dbgen.GetUserGameByIGDBIDParams{
+		UserID: userID,
+		IgdbID: igdbID,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserGameNotFound
+		}
+		return fmt.Errorf("get user game by igdb id: %w", err)
+	}
+
+	if !igdb.GameType(row.Game.GameType).DLC() {
+		err = q.DeleteTrackedDLCs(ctx, dbgen.DeleteTrackedDLCsParams{
+			UserID:       userID,
+			ParentIgdbID: &igdbID,
+			DlcGameTypes: dlcGameTypes(),
+		})
+		if err != nil {
+			return fmt.Errorf("delete tracked dlcs: %w", err)
+		}
+	}
+
+	err = q.DeleteUserGame(ctx, row.UserGame.ID)
+	if err != nil {
+		return fmt.Errorf("delete user game: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
+	}
+	return nil
+}
+
 // getOwnedUserGame retrieves a user's owned game by its IGDB ID, excluding wishlisted games. Returns
 // ErrUserGameNotFound if the game is not found or is wishlisted.
 func getOwnedUserGame(ctx context.Context, q *dbgen.Queries, userID, igdbID int64) (dbgen.GetUserGameByIGDBIDRow, error) {

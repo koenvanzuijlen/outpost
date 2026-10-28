@@ -11,6 +11,7 @@ func (server *Server) routes() {
 	server.mux.HandleFunc("POST /wishlist", server.handleAddToWishlist)
 	server.mux.HandleFunc("POST /collection", server.handleAddToCollection)
 	server.mux.HandleFunc("POST /games/{igdbID}", server.handleUpdateGame)
+	server.mux.HandleFunc("POST /games/{igdbID}/delete", server.handleRemoveFromLibrary)
 	server.mux.HandleFunc("POST /games/{igdbID}/dlcs/{dlcIGDBID}/track", server.handleTrackDLC)
 	server.mux.HandleFunc("POST /games/{igdbID}/platforms/{platformIGDBID}/delete", server.handleRemoveOwnedCopy)
 	server.mux.HandleFunc("POST /games/{igdbID}/platforms/{platformIGDBID}/dlcs/{dlcIGDBID}", server.handleSetDLCOwned)

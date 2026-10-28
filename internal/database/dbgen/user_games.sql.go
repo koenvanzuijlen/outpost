@@ -56,6 +56,52 @@ func (q *Queries) CreateWishlistedUserGame(ctx context.Context, arg CreateWishli
 	return result.RowsAffected()
 }
 
+const deleteTrackedDLCs = `-- name: DeleteTrackedDLCs :exec
+DELETE FROM user_games
+WHERE user_id = ?1
+    AND game_id IN (
+        SELECT
+            id
+        FROM
+            games
+        WHERE
+            parent_igdb_id = ?2
+            AND game_type IN (/*SLICE:dlc_game_types*/?))
+`
+
+type DeleteTrackedDLCsParams struct {
+	UserID       int64
+	ParentIgdbID *int64
+	DlcGameTypes []int64
+}
+
+func (q *Queries) DeleteTrackedDLCs(ctx context.Context, arg DeleteTrackedDLCsParams) error {
+	query := deleteTrackedDLCs
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.UserID)
+	queryParams = append(queryParams, arg.ParentIgdbID)
+	if len(arg.DlcGameTypes) > 0 {
+		for _, v := range arg.DlcGameTypes {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:dlc_game_types*/?", strings.Repeat(",?", len(arg.DlcGameTypes))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:dlc_game_types*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
+	return err
+}
+
+const deleteUserGame = `-- name: DeleteUserGame :exec
+DELETE FROM user_games
+WHERE id = ?
+`
+
+func (q *Queries) DeleteUserGame(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUserGame, id)
+	return err
+}
+
 const getUserGameByIGDBID = `-- name: GetUserGameByIGDBID :one
 SELECT
     ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
