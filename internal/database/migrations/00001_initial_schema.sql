@@ -61,6 +61,8 @@ CREATE TABLE owned_copies(
     UNIQUE (user_game_id, platform_id)
 );
 
+CREATE INDEX idx_owned_copies_platform_id ON owned_copies(platform_id);
+
 CREATE TABLE owned_dlc(
     owned_copy_id integer NOT NULL REFERENCES owned_copies(id) ON DELETE CASCADE,
     dlc_game_id integer NOT NULL REFERENCES games(id) ON DELETE RESTRICT,
@@ -76,10 +78,17 @@ CREATE TABLE playthroughs(
     name text,
     outcome text NOT NULL,
     started_at datetime,
-    finished_at datetime
+    finished_at datetime,
+    -- Backstops for rules that Go validates first (validPlaythroughDates). 'playing' must match
+    -- database.PlaythroughOutcomePlaying.
+    CHECK (name <> ''),
+    CHECK (outcome <> 'playing' OR finished_at IS NULL),
+    CHECK (finished_at >= started_at)
 );
 
 CREATE INDEX idx_playthroughs_user_game_id ON playthroughs(user_game_id);
+
+CREATE INDEX idx_playthroughs_platform_id ON playthroughs(platform_id);
 
 -- +goose Down
 DROP TABLE playthroughs;

@@ -27,7 +27,7 @@ func (server *Server) handleStartPlaythrough(w http.ResponseWriter, r *http.Requ
 
 	name := ptrIfNonZero(strings.TrimSpace(r.PostFormValue("name")))
 
-	_, err := server.store.StartPlaythrough(r.Context(), defaultUserID, igdbID, platformIGDBID, name, time.Now().UTC())
+	_, err := server.store.StartPlaythrough(r.Context(), defaultUserID, igdbID, platformIGDBID, name, time.Now())
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			http.Error(w, "Game not in library", http.StatusNotFound)
@@ -60,7 +60,7 @@ func (server *Server) handleSetPlaythroughOutcome(w http.ResponseWriter, r *http
 
 	outcome := database.PlaythroughOutcome(r.PostFormValue("outcome"))
 
-	err := server.store.SetPlaythroughOutcome(r.Context(), defaultUserID, igdbID, playthroughID, outcome, time.Now().UTC())
+	err := server.store.SetPlaythroughOutcome(r.Context(), defaultUserID, igdbID, playthroughID, outcome, time.Now())
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			http.Error(w, "Game not in library", http.StatusNotFound)

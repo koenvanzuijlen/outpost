@@ -18,12 +18,17 @@ func TestStartPlaythrough(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	playthrough, err := store.StartPlaythrough(ctx, 1, 100, &platformIGDBID, &playthroughName, time.Now().UTC())
+	startedAt := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, &platformIGDBID, &playthroughName, startedAt)
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 	if playthrough.Name == nil || *playthrough.Name != playthroughName {
 		t.Errorf("Name = %s, want %s", derefOrNil(playthrough.Name), playthroughName)
+	}
+	wantStartedAt := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+	if playthrough.StartedAt == nil || !playthrough.StartedAt.Equal(wantStartedAt) {
+		t.Errorf("StartedAt = %v, want %v", derefOrNil(playthrough.StartedAt), wantStartedAt)
 	}
 	if playthrough.Outcome != "playing" {
 		t.Errorf("Outcome = %s, want %s", playthrough.Outcome, "playing")
@@ -153,7 +158,7 @@ func TestSetPlaythroughOutcome(t *testing.T) {
 			store := newTestStore(t)
 			addOwnedGame(t, store, 100)
 
-			playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+			playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
 			if err != nil {
 				t.Fatalf("StartPlaythrough() failed: %v", err)
 			}
@@ -169,8 +174,9 @@ func TestSetPlaythroughOutcome(t *testing.T) {
 			if got.Outcome != string(tt.outcome) {
 				t.Errorf("Outcome = %v, want %v", got.Outcome, tt.outcome)
 			}
-			if got.FinishedAt == nil || !got.FinishedAt.Equal(changedAt) {
-				t.Errorf("FinishedAt = %v, want %v", derefOrNil(got.FinishedAt), changedAt)
+			wantFinishedAt := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+			if got.FinishedAt == nil || !got.FinishedAt.Equal(wantFinishedAt) {
+				t.Errorf("FinishedAt = %v, want %v", derefOrNil(got.FinishedAt), wantFinishedAt)
 			}
 			if details.UserGame.Status == nil || *details.UserGame.Status != string(tt.wantStatus) {
 				t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), tt.wantStatus)
@@ -239,7 +245,7 @@ func TestSetPlaythroughOutcomeSameOutcomeTwice(t *testing.T) {
 	store := newTestStore(t)
 	addOwnedGame(t, store, 100)
 
-	playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
@@ -493,6 +499,30 @@ func TestDeletePlaythroughNotInLibrary(t *testing.T) {
 	err := store.DeletePlaythrough(ctx, 1, 100, 1)
 	if !errors.Is(err, ErrUserGameNotFound) {
 		t.Fatalf("err = %v, want %v", err, ErrUserGameNotFound)
+	}
+}
+
+func TestDateOf(t *testing.T) {
+	plus2 := time.FixedZone("+02:00", 2*60*60)
+
+	tests := []struct {
+		name string
+		in   time.Time
+		want time.Time
+	}{
+		{"afternoon UTC", time.Date(2026, 3, 15, 15, 30, 0, 0, time.UTC), time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)},
+		{"midnight UTC", time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC), time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)},
+		{"late evening +02:00", time.Date(2026, 3, 15, 23, 30, 0, 0, plus2), time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)},
+		{"just after midnight +02:00", time.Date(2026, 3, 15, 0, 30, 0, 0, plus2), time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := dateOf(tt.in)
+			if !got.Equal(tt.want) || got.Location() != time.UTC {
+				t.Errorf("dateOf(%v) = %v, want %v", tt.in, got, tt.want)
+			}
+		})
 	}
 }
 

@@ -46,13 +46,13 @@ func TestGetUserGameWithPlaythroughs(t *testing.T) {
 	}
 
 	name := "Test Playthrough newer"
-	_, err = store.StartPlaythrough(ctx, 1, 100, &platformIGDBID, &name, time.Now().UTC().Add(time.Hour))
+	_, err = store.StartPlaythrough(ctx, 1, 100, &platformIGDBID, &name, time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
 	name = "Test Playthrough older"
-	_, err = store.StartPlaythrough(ctx, 1, 100, nil, &name, time.Now().UTC())
+	_, err = store.StartPlaythrough(ctx, 1, 100, nil, &name, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}

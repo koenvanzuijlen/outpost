@@ -45,11 +45,12 @@ func (s *Store) StartPlaythrough(
 		return dbgen.Playthrough{}, fmt.Errorf("resolve platform: %w", err)
 	}
 
+	startedAtDate := dateOf(startedAt)
 	playthrough, err := q.CreatePlaythrough(ctx, dbgen.CreatePlaythroughParams{
 		UserGameID: userGame.ID,
 		PlatformID: platformID,
 		Name:       name,
-		StartedAt:  &startedAt,
+		StartedAt:  &startedAtDate,
 	})
 	if err != nil {
 		return dbgen.Playthrough{}, fmt.Errorf("create playthrough: %w", err)
@@ -118,7 +119,7 @@ func (s *Store) SetPlaythroughOutcome(
 	err = q.UpdatePlaythroughOutcome(ctx, dbgen.UpdatePlaythroughOutcomeParams{
 		ID:         playthroughID,
 		Outcome:    string(outcome),
-		FinishedAt: finishedAtFor(currentOutcome, outcome, playthrough.FinishedAt, changedAt),
+		FinishedAt: finishedAtFor(currentOutcome, outcome, playthrough.FinishedAt, dateOf(changedAt)),
 	})
 	if err != nil {
 		return fmt.Errorf("update playthrough outcome: %w", err)
@@ -182,7 +183,9 @@ func (s *Store) UpdatePlaythroughDetails(ctx context.Context, userID, igdbID, pl
 		return fmt.Errorf("get playthrough: %w", err)
 	}
 
-	if !validPlaythroughDates(PlaythroughOutcome(playthrough.Outcome), details.StartedAt, details.FinishedAt) {
+	startedAtDate := optionalDateOf(details.StartedAt)
+	finishedAtDate := optionalDateOf(details.FinishedAt)
+	if !validPlaythroughDates(PlaythroughOutcome(playthrough.Outcome), startedAtDate, finishedAtDate) {
 		return ErrInvalidPlaythroughDates
 	}
 
@@ -195,8 +198,8 @@ func (s *Store) UpdatePlaythroughDetails(ctx context.Context, userID, igdbID, pl
 		ID:         playthroughID,
 		Name:       details.Name,
 		PlatformID: platformID,
-		StartedAt:  details.StartedAt,
-		FinishedAt: details.FinishedAt,
+		StartedAt:  startedAtDate,
+		FinishedAt: finishedAtDate,
 	})
 	if err != nil {
 		return fmt.Errorf("update playthrough: %w", err)
@@ -234,6 +237,19 @@ func (s *Store) DeletePlaythrough(
 	}
 
 	return nil
+}
+
+// dateOf returns the calendar date of t in its own location, as midnight UTC
+func dateOf(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+}
+
+// optionalDateOf returns the calendar date of t in its own location, as midnight UTC. Returns nil if the input is nil.
+func optionalDateOf(t *time.Time) *time.Time {
+	if t == nil {
+		return nil
+	}
+	return new(dateOf(*t))
 }
 
 // validPlaythroughDates reports whether the dates fit a playthrough with the given outcome: no finished date while
