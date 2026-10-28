@@ -50,8 +50,8 @@ func TestAddToWishlistOwnedGame(t *testing.T) {
 	platform := newPlatformParams(6, "Test Platform")
 
 	// Add the game to the collection first
-	if _, err := store.AddToCollection(ctx, game, platform, 1, time.Now().UTC()); err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+	if err := store.AddToLibrary(ctx, game, &platform, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	// Attempt to add the same game to the wishlist

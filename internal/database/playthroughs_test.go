@@ -13,9 +13,9 @@ func TestStartPlaythrough(t *testing.T) {
 	platformName := "Xbox"
 	playthroughName := "Test PT"
 
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(platformIGDBID, platformName), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(platformIGDBID, platformName)), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	pt, err := store.StartPlaythrough(ctx, 1, 100, &platformIGDBID, &playthroughName, time.Now().UTC())
@@ -53,9 +53,9 @@ func TestStartPlaythroughWithoutPlatformAndName(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
@@ -100,9 +100,9 @@ func TestStartPlaythroughUnknownPlatform(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	unknownPlatformID := int64(999)
@@ -440,9 +440,9 @@ func TestDeletePlaythrough(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
@@ -476,9 +476,9 @@ func TestDeletePlaythroughTwice(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
@@ -502,13 +502,13 @@ func TestDeletePlaythroughOtherGame(t *testing.T) {
 	store := newTestStore(t)
 	platform := newPlatformParams(11, "Xbox")
 
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), platform, 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), &platform, 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
-	_, err = store.AddToCollection(ctx, newGameParams(101, "Test Game 2"), platform, 1, time.Now().UTC())
+	err = store.AddToLibrary(ctx, newGameParams(101, "Test Game 2"), &platform, 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())

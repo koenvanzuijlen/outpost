@@ -208,8 +208,8 @@ func TestGetLibraryGameCopyDLCs(t *testing.T) {
 	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
 	for _, platform := range []dbgen.UpsertPlatformParams{newPlatformParams(6, "PC"), newPlatformParams(48, "PS4"), newPlatformParams(130, "Switch")} {
-		if _, err := store.AddToCollection(ctx, game, platform, 1, time.Now().UTC()); err != nil {
-			t.Fatalf("AddToCollection(%s) failed: %v", platform.Name, err)
+		if err := store.AddToLibrary(ctx, game, &platform, 1, time.Now().UTC()); err != nil {
+			t.Fatalf("AddToLibrary(%s) failed: %v", platform.Name, err)
 		}
 	}
 
@@ -269,8 +269,8 @@ func setupDLCOwnership(t *testing.T, store *Store) {
 		{100, newPlatformParams(48, "PS4")},
 	}
 	for _, c := range copies {
-		if _, err := store.AddToCollection(ctx, newGameParams(c.igdbID, "Test Game"), c.platform, 1, time.Now().UTC()); err != nil {
-			t.Fatalf("AddToCollection(%d, %s) failed: %v", c.igdbID, c.platform.Name, err)
+		if err := store.AddToLibrary(ctx, newGameParams(c.igdbID, "Test Game"), &c.platform, 1, time.Now().UTC()); err != nil {
+			t.Fatalf("AddToLibrary(%d, %s) failed: %v", c.igdbID, c.platform.Name, err)
 		}
 	}
 
@@ -583,8 +583,8 @@ func TestGetLibraryGameStandaloneExpansion(t *testing.T) {
 
 	standalone := newDLC(501, 100, "Standalone Expansion", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)).Game
 	standalone.GameType = int64(igdb.GameTypeStandaloneExpansion)
-	if _, err := store.AddToCollection(ctx, standalone, newPlatformParams(130, "Switch"), 1, time.Now().UTC()); err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+	if err := store.AddToLibrary(ctx, standalone, new(newPlatformParams(130, "Switch")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	game := getLibraryGame(t, store, 501)
@@ -594,7 +594,7 @@ func TestGetLibraryGameStandaloneExpansion(t *testing.T) {
 	assertPlatformIDs(t, game.Platforms, 130)
 }
 
-func TestAddToCollectionKeepsDLCsFetchedAt(t *testing.T) {
+func TestAddToLibraryKeepsDLCsFetchedAt(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 	addOwnedGame(t, store, 100)
@@ -602,8 +602,8 @@ func TestAddToCollectionKeepsDLCsFetchedAt(t *testing.T) {
 	if err := store.SaveDLCs(ctx, 100, nil, time.Now().UTC()); err != nil {
 		t.Fatalf("SaveDLCs() failed: %v", err)
 	}
-	if _, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(6, "PC"), 1, time.Now().UTC()); err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+	if err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(6, "PC")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	game := getLibraryGame(t, store, 100)

@@ -21,8 +21,8 @@ func TestListGamesOrder(t *testing.T) {
 	if _, err := store.queries.UpsertGame(ctx, newGameParams(300, "Other Game")); err != nil {
 		t.Fatalf("UpsertGame(300) failed: %v", err)
 	}
-	if _, err := store.AddToCollection(ctx, newGameParams(500, "Removed Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC()); err != nil {
-		t.Fatalf("AddToCollection(500) failed: %v", err)
+	if err := store.AddToLibrary(ctx, newGameParams(500, "Removed Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary(500) failed: %v", err)
 	}
 	if err := store.RemoveOwnedCopy(ctx, 1, 500, 11); err != nil {
 		t.Fatalf("RemoveOwnedCopy(500) failed: %v", err)
@@ -62,7 +62,7 @@ func TestListGamesOrder(t *testing.T) {
 	}
 }
 
-func TestAddToCollectionClearsWishlist(t *testing.T) {
+func TestAddToLibraryClearsWishlist(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
@@ -70,8 +70,8 @@ func TestAddToCollectionClearsWishlist(t *testing.T) {
 	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); err != nil {
 		t.Fatalf("AddToWishlist() failed: %v", err)
 	}
-	if _, err := store.AddToCollection(ctx, game, newPlatformParams(6, "PC"), 1, time.Now().UTC()); err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+	if err := store.AddToLibrary(ctx, game, new(newPlatformParams(6, "PC")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	wishlisted, err := store.queries.ListWishlistedUserGames(ctx, 1)
@@ -85,93 +85,140 @@ func TestAddToCollectionClearsWishlist(t *testing.T) {
 	assertPlatformIDs(t, getLibraryGame(t, store, 100).Platforms, 6)
 }
 
-func TestAddToCollectionSameGameDifferentPlatforms(t *testing.T) {
+func TestAddToLibraryNotOwned(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
-	first, err := store.AddToCollection(ctx, game, newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToCollection() first failed: %v", err)
+
+	if err := store.AddToLibrary(ctx, game, nil, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
-	second, err := store.AddToCollection(ctx, game, newPlatformParams(6, "PC"), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToCollection() second failed: %v", err)
+	// Adding it again without a platform is a no-op.
+	if err := store.AddToLibrary(ctx, game, nil, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() second failed: %v", err)
 	}
 
-	if first.ID == second.ID {
-		t.Errorf("collection item IDs are equal (%d), want distinct items", first.ID)
+	libraryGame := getLibraryGame(t, store, 100)
+	assertPlatformIDs(t, libraryGame.Platforms)
+	if s := libraryGame.UserGame.Status; s == nil || *s != string(GameStatusBacklog) {
+		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusBacklog)
 	}
-	if first.UserGameID != second.UserGameID {
-		t.Errorf("UserGameID = %d and %d, want same game", first.UserGameID, second.UserGameID)
+
+	games, err := store.ListGames(ctx, 1)
+	if err != nil {
+		t.Fatalf("ListGames() failed: %v", err)
 	}
-	if first.PlatformID == second.PlatformID {
-		t.Errorf("PlatformID = %d and %d, want distinct platforms", first.PlatformID, second.PlatformID)
+	if len(games) != 1 || games[0].Game.IgdbID != 100 || games[0].PlatformName != nil {
+		t.Errorf("ListGames() = %v, want one entry for 100 without platform", games)
 	}
 }
 
-func TestAddToCollectionDifferentGamesSamePlatform(t *testing.T) {
+func TestAddToLibraryNotOwnedThenOwned(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	game := newGameParams(100, "Test Game")
+
+	if err := store.AddToLibrary(ctx, game, nil, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary(nil) failed: %v", err)
+	}
+	if err := store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusCompleted}); err != nil {
+		t.Fatalf("UpdateGameDetails() failed: %v", err)
+	}
+	if err := store.AddToLibrary(ctx, game, new(newPlatformParams(6, "PC")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary(PC) failed: %v", err)
+	}
+
+	libraryGame := getLibraryGame(t, store, 100)
+	assertPlatformIDs(t, libraryGame.Platforms, 6)
+	if s := libraryGame.UserGame.Status; s == nil || *s != string(GameStatusCompleted) {
+		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusCompleted)
+	}
+}
+
+func TestAddToLibraryNotOwnedClearsWishlist(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	game := newGameParams(100, "Test Game")
+
+	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToWishlist() failed: %v", err)
+	}
+	if err := store.AddToLibrary(ctx, game, nil, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
+	}
+
+	libraryGame := getLibraryGame(t, store, 100)
+	if libraryGame.UserGame.Wishlisted {
+		t.Errorf("Wishlisted = true, want false")
+	}
+	if s := libraryGame.UserGame.Status; s == nil || *s != string(GameStatusBacklog) {
+		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusBacklog)
+	}
+}
+
+func TestAddToLibrarySameGameDifferentPlatforms(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	game := newGameParams(100, "Test Game")
+	if err := store.AddToLibrary(ctx, game, new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() first failed: %v", err)
+	}
+	if err := store.AddToLibrary(ctx, game, new(newPlatformParams(6, "PC")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() second failed: %v", err)
+	}
+
+	// One library entry with two owned copies.
+	assertPlatformIDs(t, getLibraryGame(t, store, 100).Platforms, 6, 11)
+}
+
+func TestAddToLibraryDifferentGamesSamePlatform(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 	platform := newPlatformParams(6, "PC")
 
-	first, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), platform, 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToCollection() first failed: %v", err)
+	if err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), &platform, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() first failed: %v", err)
 	}
-	second, err := store.AddToCollection(ctx, newGameParams(101, "Test Game 2"), platform, 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToCollection() second failed: %v", err)
+	if err := store.AddToLibrary(ctx, newGameParams(101, "Test Game 2"), &platform, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() second failed: %v", err)
 	}
 
-	if first.ID == second.ID {
-		t.Errorf("collection item IDs are equal (%d), want distinct items", first.ID)
-	}
-	if first.UserGameID == second.UserGameID {
-		t.Errorf("UserGameID = %d and %d, want distinct games", first.UserGameID, second.UserGameID)
-	}
-	if first.PlatformID != second.PlatformID {
-		t.Errorf("PlatformID = %d and %d, want same platform", first.PlatformID, second.PlatformID)
-	}
+	// Two library entries, each with its own copy on the same platform.
+	assertPlatformIDs(t, getLibraryGame(t, store, 100).Platforms, 6)
+	assertPlatformIDs(t, getLibraryGame(t, store, 101).Platforms, 6)
 }
 
-func TestAddToCollectionSameGameSamePlatform(t *testing.T) {
+func TestAddToLibrarySameGameSamePlatform(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
 	platform := newPlatformParams(6, "PC")
 
-	if _, err := store.AddToCollection(ctx, game, platform, 1, time.Now().UTC()); err != nil {
-		t.Fatalf("AddToCollection() first failed: %v", err)
+	if err := store.AddToLibrary(ctx, game, &platform, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() first failed: %v", err)
 	}
-	if _, err := store.AddToCollection(ctx, game, platform, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyOwnedOnPlatform) {
-		t.Fatalf("AddToCollection() error = %v, want %v", err, ErrAlreadyOwnedOnPlatform)
+	if err := store.AddToLibrary(ctx, game, &platform, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyOwnedOnPlatform) {
+		t.Fatalf("AddToLibrary() error = %v, want %v", err, ErrAlreadyOwnedOnPlatform)
 	}
 
 	assertPlatformIDs(t, getLibraryGame(t, store, 100).Platforms, 6)
 }
 
-func TestAddToCollectionPreservesStatus(t *testing.T) {
+func TestAddToLibraryPreservesStatus(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
 
-	first, err := store.AddToCollection(ctx, game, newPlatformParams(6, "PC"), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToCollection() first failed: %v", err)
+	if err := store.AddToLibrary(ctx, game, new(newPlatformParams(6, "PC")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() first failed: %v", err)
 	}
 
-	_, err = store.db.ExecContext(ctx, "UPDATE user_games SET status = ?", "completed")
-	if err != nil {
+	if _, err := store.db.ExecContext(ctx, "UPDATE user_games SET status = ?", "completed"); err != nil {
 		t.Fatalf("ExecContext() failed: %v", err)
 	}
 
-	second, err := store.AddToCollection(ctx, game, newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToCollection() second failed: %v", err)
-	}
-
-	if first.UserGameID != second.UserGameID {
-		t.Errorf("UserGameID = %d and %d, want same game", first.UserGameID, second.UserGameID)
+	if err := store.AddToLibrary(ctx, game, new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() second failed: %v", err)
 	}
 
 	libraryGame := getLibraryGame(t, store, 100)
@@ -181,25 +228,21 @@ func TestAddToCollectionPreservesStatus(t *testing.T) {
 	}
 }
 
-func TestAddToCollectionUpdatesGameInfo(t *testing.T) {
+func TestAddToLibraryUpdatesGameInfo(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	first, err := store.AddToCollection(ctx, newGameParams(100, "Old Title"), newPlatformParams(6, "PC"), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToCollection() first failed: %v", err)
+	if err := store.AddToLibrary(ctx, newGameParams(100, "Old Title"), new(newPlatformParams(6, "PC")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() first failed: %v", err)
 	}
 
 	cover := "https://example.com/cover.jpg"
 	updated := newGameParams(100, "New Title")
 	updated.CoverUrl = &cover
-	second, err := store.AddToCollection(ctx, updated, newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToCollection() second failed: %v", err)
+	if err := store.AddToLibrary(ctx, updated, new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() second failed: %v", err)
 	}
-	if first.UserGameID != second.UserGameID {
-		t.Errorf("UserGameID = %d and %d, want same game", first.UserGameID, second.UserGameID)
-	}
+	assertPlatformIDs(t, getLibraryGame(t, store, 100).Platforms, 6, 11)
 
 	game, err := store.queries.GetGameByIGDBID(ctx, 100)
 	if err != nil {

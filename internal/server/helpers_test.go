@@ -75,14 +75,14 @@ func newTestServer(t *testing.T) *Server {
 	return server
 }
 
-// addTestGame adds The Witcher 3 (1942) to the collection on PC (6) and returns the fake IGDB client.
+// addTestGame adds The Witcher 3 (1942) to the library, owned on PC (6), and returns the fake IGDB client.
 func addTestGame(t *testing.T, server *Server) *fakeIGDB {
 	t.Helper()
 	fake := &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
 	server.igdbClient = fake
-	w := postForm(t, server, "/collection", "igdb_id=1942&platform_id=6")
+	w := postForm(t, server, "/library", "igdb_id=1942&platform_id=6")
 	if w.Code != http.StatusSeeOther {
-		t.Fatalf("collection status = %d, want %d", w.Code, http.StatusSeeOther)
+		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 	return fake
 }

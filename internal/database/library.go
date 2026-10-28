@@ -5,9 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 // ErrUserGameNotFound is returned when a game is not found in the user's library.
@@ -107,6 +110,64 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 		CopyDLCs:     copyDLCs,
 		Parent:       parentGame,
 	}, nil
+}
+
+// AddToLibrary adds a game to the user's library, storing the game in the catalog if it isn't there yet. A new library
+// entry gets status "backlog"; an existing entry keeps its status and is taken off the wishlist. If platform is not nil,
+// an owned copy on that platform is added too, and ErrAlreadyOwnedOnPlatform is returned if that copy already exists.
+// With a nil platform the game is in the library without being owned; adding it again is a no-op.
+func (s *Store) AddToLibrary(
+	ctx context.Context,
+	game dbgen.UpsertGameParams,
+	platform *dbgen.UpsertPlatformParams,
+	userID int64,
+	addedAt time.Time,
+) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := dbgen.New(tx)
+
+	storedGame, err := q.UpsertGame(ctx, game)
+	if err != nil {
+		return fmt.Errorf("upsert game: %w", err)
+	}
+
+	userGame, err := q.UpsertOwnedUserGame(ctx, dbgen.UpsertOwnedUserGameParams{
+		UserID:  userID,
+		GameID:  storedGame.ID,
+		Status:  GameStatusBacklog.StringPtr(),
+		AddedAt: addedAt,
+	})
+	if err != nil {
+		return fmt.Errorf("upsert user game: %w", err)
+	}
+
+	if platform != nil {
+		storedPlatform, err := q.UpsertPlatform(ctx, *platform)
+		if err != nil {
+			return fmt.Errorf("upsert platform: %w", err)
+		}
+
+		_, err = q.CreateOwnedCopy(ctx, dbgen.CreateOwnedCopyParams{
+			UserGameID: userGame.ID,
+			PlatformID: storedPlatform.ID,
+		})
+		if err != nil {
+			var sqliteErr *sqlite.Error
+			if errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+				return ErrAlreadyOwnedOnPlatform
+			}
+			return fmt.Errorf("create owned copy: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
+	}
+	return nil
 }
 
 // GameDetails represents the details of a game in the user's library, including its status, rating, and notes.

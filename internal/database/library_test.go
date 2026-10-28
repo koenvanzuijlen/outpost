@@ -13,9 +13,9 @@ func TestGetLibraryGameCollection(t *testing.T) {
 	store := newTestStore(t)
 
 	// Add a game to the user's collection before attempting to retrieve it
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	// Attempt to retrieve the row from the library
@@ -49,9 +49,9 @@ func TestGetLibraryGameWithPlaythroughs(t *testing.T) {
 	platformIGDBID := int64(11)
 
 	// Add a game to the user's collection before attempting to retrieve it
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(platformIGDBID, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(platformIGDBID, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	name := "Test Playthrough newer"
@@ -134,9 +134,9 @@ func TestUpdateGameDetails(t *testing.T) {
 	store := newTestStore(t)
 
 	// Add a game to the user's collection before updating it
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	// Update the status and rating of the game in the user's library
@@ -167,9 +167,9 @@ func TestUpdateGameDetailsInvalidStatus(t *testing.T) {
 	store := newTestStore(t)
 
 	// Add a game to the user's collection before updating it
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	// Attempt to update the game with an invalid status, which should be rejected
@@ -200,9 +200,9 @@ func TestUpdateGameDetailsClearRating(t *testing.T) {
 	store := newTestStore(t)
 
 	// Add a game to the user's collection
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	// Update the status and rating of the game in the user's library
@@ -241,9 +241,9 @@ func TestUpdateGameDetailsNotes(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	_, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	rating := int64(7)
@@ -355,8 +355,8 @@ func TestRemoveFromLibraryReAdd(t *testing.T) {
 	if err := store.RemoveFromLibrary(ctx, 1, 100); err != nil {
 		t.Fatalf("RemoveFromLibrary() failed: %v", err)
 	}
-	if _, err := store.AddToCollection(ctx, newGameParams(100, "Test Game"), newPlatformParams(6, "PC"), 1, time.Now().UTC()); err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+	if err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(6, "PC")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	game := getLibraryGame(t, store, 100)
@@ -414,8 +414,8 @@ func TestRemoveFromLibraryKeepsStandaloneExpansion(t *testing.T) {
 
 	standalone := newDLC(501, 100, "Standalone Expansion", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)).Game
 	standalone.GameType = int64(igdb.GameTypeStandaloneExpansion)
-	if _, err := store.AddToCollection(ctx, standalone, newPlatformParams(130, "Switch"), 1, time.Now().UTC()); err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+	if err := store.AddToLibrary(ctx, standalone, new(newPlatformParams(130, "Switch")), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
 	if err := store.RemoveFromLibrary(ctx, 1, 100); err != nil {

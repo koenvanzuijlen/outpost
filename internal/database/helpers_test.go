@@ -45,9 +45,9 @@ func newTestStore(t *testing.T) *Store {
 // addOwnedGame adds a game to user 1's collection on a default platform. It fails the test if the game cannot be added.
 func addOwnedGame(t *testing.T, store *Store, igdbID int64) {
 	t.Helper()
-	_, err := store.AddToCollection(t.Context(), newGameParams(igdbID, "Test Game"), newPlatformParams(11, "Xbox"), 1, time.Now().UTC())
+	err := store.AddToLibrary(t.Context(), newGameParams(igdbID, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
-		t.Fatalf("AddToCollection() failed: %v", err)
+		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 }
 
