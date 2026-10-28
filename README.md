@@ -5,11 +5,12 @@ A self-hosted game tracker: log the games you play, rate them, record playthroug
 ## Running with Docker
 
 ```sh
-docker build -t outpost .
-docker run -d --name outpost -p 8080:8080 --env-file .env -v outpost-data:/data outpost
+docker run -d --name outpost -p 8080:8080 --env-file .env -v outpost-data:/data koenvanzuijlen/outpost:latest
 ```
 
-`.env` holds the settings below; start from `.env.example`. The database lives in the `outpost-data` volume. The container runs as a non-root user.
+`.env` holds the settings below; start from [`.env.example`](.env.example). The database lives in the `outpost-data` volume. The container runs as a non-root user.
+
+Images are published to [Docker Hub](https://hub.docker.com/r/koenvanzuijlen/outpost) for every release. Pin a version with `:0.0.1`, or follow non-breaking updates with `:0.0`.
 
 ## Configuration
 
@@ -32,6 +33,12 @@ mise install
 cp .env.example .env
 mise setup
 mise start
+```
+
+To build the Docker image locally:
+
+```sh
+docker build -t outpost .
 ```
 
 ### Vocabulary
