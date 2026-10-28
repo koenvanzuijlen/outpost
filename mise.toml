@@ -43,3 +43,7 @@ run = 'go tool goose -dir internal/database/migrations sqlite3 "${DATABASE_PATH:
 [tasks.migrate-down]
 description = "Roll back the last migration"
 run = 'go tool goose -dir internal/database/migrations sqlite3 "${DATABASE_PATH:-outpost.db}" down'
+
+[tasks.migrate-new]
+description = "Create a new migration"
+run = 'go tool goose -dir internal/database/migrations -s create {{arg(name="name")}} sql'
