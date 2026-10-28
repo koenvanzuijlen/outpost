@@ -55,3 +55,7 @@ Rules that follow from it:
 - **Remove vs delete.** *Remove* takes something out of a set: a game from the library or wishlist, a copy from a game. *Delete* destroys a record: a playthrough.
 - **Status vs outcome.** A library entry has a *status* (backlog, playing, completed, shelved, abandoned, retired). A playthrough has an *outcome* (playing, completed, abandoned, retired); `playing` is shown as "in progress".
 - **UI text** uses sentence case and "DLC" for both singular and plural.
+
+## License
+
+Outpost is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
