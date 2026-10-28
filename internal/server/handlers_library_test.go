@@ -204,20 +204,20 @@ func TestHandleRemoveUserGameNonNumericID(t *testing.T) {
 }
 
 func TestGamePageRemoveLabel(t *testing.T) {
-	labels := []string{"Remove from library", "Stop tracking", "Remove from wishlist"}
+	labels := []string{"Remove from library", "Remove from wishlist"}
 	tests := []struct {
 		name   string
 		setup  func(t *testing.T, server *Server)
 		igdbID int64
 		want   string
 	}{
-		{"owned game", func(t *testing.T, server *Server) { addTestGame(t, server) }, 1942, "Remove from library"},
-		{"tracked dlc", func(t *testing.T, server *Server) {
+		{"library game", func(t *testing.T, server *Server) { addTestGame(t, server) }, 1942, "Remove from library"},
+		{"library dlc", func(t *testing.T, server *Server) {
 			addTestGameWithDLCs(t, server)
 			if w := postForm(t, server, testAddDLCPath, ""); w.Code != http.StatusSeeOther {
-				t.Fatalf("track status = %d, want %d", w.Code, http.StatusSeeOther)
+				t.Fatalf("add dlc to library status = %d, want %d", w.Code, http.StatusSeeOther)
 			}
-		}, 12503, "Stop tracking"},
+		}, 12503, "Remove from library"},
 		{"wishlisted game", func(t *testing.T, server *Server) { wishlistTestGame(t, server) }, 1942, "Remove from wishlist"},
 	}
 

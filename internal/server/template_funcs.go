@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"html/template"
 
-	"github.com/koenvanzuijlen/outpost/internal/igdb"
+	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
 // templateFuncs returns a map of template functions for use in HTML templates.
 func templateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"derefInt64":  derefOrZero[int64],
-		"ratingText":  ratingText,
-		"ratingLabel": ratingLabel,
-		"gameType":    gameType,
+		"derefInt64":   derefOrZero[int64],
+		"ratingText":   ratingText,
+		"ratingLabel":  ratingLabel,
+		"outcomeLabel": outcomeLabel,
 	}
 }
 
@@ -29,7 +29,11 @@ func ratingLabel(rating int64) string {
 	return fmt.Sprintf("%g out of 5", starCount)
 }
 
-// gameType converts a numeric game type into its string representation.
-func gameType(t int64) string {
-	return igdb.GameType(t).String()
+// outcomeLabel returns the display text for a playthrough outcome. The stored value "playing" reads oddly as an
+// outcome, so it is shown as "in progress"; other outcomes are shown as they are.
+func outcomeLabel(outcome string) string {
+	if outcome == string(database.PlaythroughOutcomePlaying) {
+		return "in progress"
+	}
+	return outcome
 }

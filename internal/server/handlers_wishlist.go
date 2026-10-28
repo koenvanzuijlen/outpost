@@ -14,7 +14,7 @@ import (
 func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request) {
 	igdbID, err := strconv.Atoi(r.PostFormValue("igdb_id"))
 	if err != nil || igdbID <= 0 {
-		http.Error(w, "Invalid igdb_id", http.StatusBadRequest)
+		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
 		return
 	}
 
@@ -24,7 +24,7 @@ func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request
 			http.Error(w, "Game not found", http.StatusNotFound)
 		} else {
 			server.logger.Error("failed to fetch game", "error", err)
-			http.Error(w, "Failed to fetch game", http.StatusInternalServerError)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}
@@ -38,7 +38,7 @@ func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request
 	err = server.store.AddToWishlist(r.Context(), upsertGameParamsFromIGDB(game, now), defaultUserID, now)
 	if err != nil && !errors.Is(err, database.ErrAlreadyAdded) {
 		server.logger.Error("failed to add to wishlist", "error", err)
-		http.Error(w, "Failed to add to wishlist", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)

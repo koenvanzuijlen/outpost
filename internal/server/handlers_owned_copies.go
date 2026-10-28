@@ -19,7 +19,7 @@ func (server *Server) handleRemoveOwnedCopy(w http.ResponseWriter, r *http.Reque
 
 	platformIGDBID, ok := pathID(r, "platformIGDBID")
 	if !ok {
-		http.Error(w, "Invalid platform ID", http.StatusBadRequest)
+		http.Error(w, "Invalid platform IGDB ID", http.StatusBadRequest)
 		return
 	}
 

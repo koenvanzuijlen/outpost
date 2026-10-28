@@ -20,12 +20,12 @@ func (server *Server) render(w http.ResponseWriter, name string, data any) {
 	tmpl, ok := server.templates[name]
 	if !ok {
 		server.logger.Error("template not found", "name", name)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 	if err := tmpl.ExecuteTemplate(&buf, "base.html", data); err != nil {
 		server.logger.Error("failed to execute template", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

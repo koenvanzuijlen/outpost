@@ -46,7 +46,7 @@ func (server *Server) handleSetDLCOwned(w http.ResponseWriter, r *http.Request) 
 
 	platformIGDBID, ok := pathID(r, "platformIGDBID")
 	if !ok {
-		http.Error(w, "Invalid Platform IGDB ID", http.StatusBadRequest)
+		http.Error(w, "Invalid platform IGDB ID", http.StatusBadRequest)
 		return
 	}
 

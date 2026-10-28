@@ -87,6 +87,8 @@ func TestHandleGameActivePlaythrough(t *testing.T) {
 
 	w := getTestGamePage(t, server)
 	assertBodyContains(t, w, "Hard mode run")
+	assertBodyContains(t, w, "Outcome: in progress")
+	assertBodyContains(t, w, `value="playing" aria-pressed="true">in progress</button>`)
 	assertBodyContains(t, w, "Platform: PC (Microsoft Windows)")
 	assertBodyContains(t, w, fmt.Sprintf("/games/1942/playthroughs/%d/outcome", playthroughID))
 	assertBodyContains(t, w, fmt.Sprintf("/games/1942/playthroughs/%d/delete", playthroughID))

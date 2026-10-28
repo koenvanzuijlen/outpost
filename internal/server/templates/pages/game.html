@@ -8,18 +8,18 @@
 		{{if .Details.UserGame.Wishlisted}}<p>On your wishlist</p>{{end}}
 		{{with .Details.UserGame.Status}}<p>Status: {{.}}</p>{{end}}
 		{{with .Details.OwnedPlatforms}}
-			<p>Owned on platforms:</p>
+			<p>Owned on:</p>
 			<ul>
 			{{range .}}
 				{{$platformIGDBID := .IgdbID}}
 				<li>{{.Name}}{{with index $.Details.CopyDLCs .IgdbID}}
-						<br>DLCs:
+						<br>DLC:
 						<ul>
 						{{range .}}
 							<li>
 								<form method="post" action="/games/{{$.Details.Game.IgdbID}}/platforms/{{$platformIGDBID}}/dlcs/{{.Game.IgdbID}}">
 									{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}} - {{if .Owned}}owned{{else}}not owned{{end}}
-									<button type="submit" name="owned" value="{{not .Owned}}" aria-pressed="{{.Owned}}">Toggle ownership</button>
+									<button type="submit" name="owned" value="{{not .Owned}}" aria-pressed="{{.Owned}}">Owned</button>
 								</form>
 							</li>
 						{{end}}
@@ -54,17 +54,17 @@
 	</div>
 	{{if not .Details.Parent}}
 		<div>
-			<h2>DLCs</h2>
+			<h2>DLC</h2>
 			{{if .Details.Game.DlcsFetchedAt}}
 				<ul>
 				{{range .Details.DLCs}}
 					<li>
 						{{if .InLibrary}}
-							<a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}</a> – {{.Status}}
+							<a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}</a> – In library · {{.Status}}
 						{{else}}
 							{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}
 							<form method="post" action="/games/{{$.Details.Game.IgdbID}}/dlcs/{{.Game.IgdbID}}/library">
-								<button type="submit">Track</button>
+								<button type="submit" title="Gives this DLC its own status, rating and playthroughs">Add to library separately</button>
 							</form>
 						{{end}}
 					</li>
@@ -80,7 +80,7 @@
 	{{if not .Details.UserGame.Wishlisted}}
 		<div>
 			<form method="post" action="/games/{{.Details.Game.IgdbID}}">
-				<h2>Update game</h2>
+				<h2>Status, rating and notes</h2>
 				<label>Status 
 					<select name="status">
 						{{range .Statuses}}
@@ -109,15 +109,15 @@
 					<li>
 						{{with .Playthrough.Name}}<p>{{.}}</p>{{end}}
 						{{with .PlatformName}}<p>Platform: {{.}}</p>{{end}}
-						<p>Outcome: {{.Playthrough.Outcome}}</p>
+						<p>Outcome: {{outcomeLabel .Playthrough.Outcome}}</p>
 						{{with .Playthrough.StartedAt}}<p>Started: {{.Format "2 January 2006"}}</p>{{end}}
 						{{with .Playthrough.FinishedAt}}<p>Finished: {{.Format "2 January 2006"}}</p>{{end}}
-							<form method="post" action="/games/{{$.Details.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/outcome">
-								{{$outcome := .Playthrough.Outcome}}
-								{{range $.PlaythroughOutcomes}}
-									<button type="submit" name="outcome" value="{{.}}" aria-pressed="{{if eq . $outcome}}true{{else}}false{{end}}">{{.}}</button>
-								{{end}}
-							</form>
+						<form method="post" action="/games/{{$.Details.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/outcome">
+							{{$outcome := .Playthrough.Outcome}}
+							{{range $.OutcomeOptions}}
+								<button type="submit" name="outcome" value="{{.Value}}" aria-pressed="{{if eq .Value $outcome}}true{{else}}false{{end}}">{{.Label}}</button>
+							{{end}}
+						</form>
 						<details>
 							<summary>Edit</summary>
 							<form method="post" action="/games/{{$.Details.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}">
@@ -147,7 +147,7 @@
 						<details>
 							<summary>Delete</summary>
 							<form method="post" action="/games/{{$.Details.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/delete">
-								<button type="submit">Confirm deletion</button>
+								<button type="submit">Really delete</button>
 							</form>
 						</details>
 					</li>
@@ -175,13 +175,13 @@
 		</div>
 	{{end}}
 	<details>
-		<summary>{{if .Details.UserGame.Wishlisted}}Remove from wishlist{{else if .Details.Parent}}Stop tracking{{else}}Remove from library{{end}}</summary>
+		<summary>{{if .Details.UserGame.Wishlisted}}Remove from wishlist{{else}}Remove from library{{end}}</summary>
 		<form method="post" action="/games/{{.Details.Game.IgdbID}}/delete">
 			{{if not .Details.UserGame.Wishlisted}}
 				{{if .Details.Parent}}
-					<p>Removes its status, rating and playthroughs. Ownership on base game's page is kept.</p>
+					<p>Removes its status, rating and playthroughs. Ownership, managed on the base game's page, is kept.</p>
 				{{else}}
-					<p>Removes its copies, DLC ownership, playthroughs and tracked DLC.</p>
+					<p>Removes its copies, DLC ownership, playthroughs, and its DLC in the library.</p>
 				{{end}}
 			{{end}}
 			<button type="submit">Really remove</button>

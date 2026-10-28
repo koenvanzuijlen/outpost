@@ -23,6 +23,26 @@ func TestRatingText(t *testing.T) {
 	}
 }
 
+func TestOutcomeLabel(t *testing.T) {
+	tests := []struct {
+		outcome string
+		want    string
+	}{
+		{"playing", "in progress"},
+		{"completed", "completed"},
+		{"abandoned", "abandoned"},
+		{"retired", "retired"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.outcome, func(t *testing.T) {
+			if got := outcomeLabel(tt.outcome); got != tt.want {
+				t.Errorf("outcomeLabel(%q) = %q, want %q", tt.outcome, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRatingLabel(t *testing.T) {
 	tests := []struct {
 		name   string

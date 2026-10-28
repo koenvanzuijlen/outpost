@@ -22,14 +22,14 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	games, err := server.store.ListLibrary(ctx, defaultUserID)
 	if err != nil {
-		server.logger.Error("failed to list games", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		server.logger.Error("failed to list library", "error", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 	wishlistedGames, err := server.store.ListWishlist(ctx, defaultUserID)
 	if err != nil {
 		server.logger.Error("failed to list wishlisted games", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
@@ -45,7 +45,7 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request) {
 	igdbID, err := strconv.Atoi(r.PostFormValue("igdb_id"))
 	if err != nil || igdbID <= 0 {
-		http.Error(w, "Invalid igdb_id", http.StatusBadRequest)
+		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 			http.Error(w, "Game not found", http.StatusNotFound)
 		} else {
 			server.logger.Error("failed to fetch game", "error", err)
-			http.Error(w, "Failed to fetch game", http.StatusInternalServerError)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 		return
 	}

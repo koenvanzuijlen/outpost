@@ -32,15 +32,33 @@ func ratingOptions() []ratingOption {
 	return options
 }
 
+// outcomeOption is a playthrough outcome as offered on the game page.
+type outcomeOption struct {
+	Value string
+	Label string
+}
+
+// outcomeOptions returns all playthrough outcomes in display order, with their display labels.
+func outcomeOptions() []outcomeOption {
+	options := make([]outcomeOption, 0, len(database.PlaythroughOutcomes))
+	for _, outcome := range database.PlaythroughOutcomes {
+		options = append(options, outcomeOption{
+			Value: string(outcome),
+			Label: outcomeLabel(string(outcome)),
+		})
+	}
+	return options
+}
+
 // gamePage represents the data needed to render the game detail page.
 type gamePage struct {
-	Details             database.UserGameDetails
-	Statuses            []database.GameStatus
-	CurrentStatus       database.GameStatus
-	RatingOptions       []ratingOption
-	CurrentRating       int64
-	PlaythroughOutcomes []database.PlaythroughOutcome
-	MaxNotesLength      int64
+	Details        database.UserGameDetails
+	Statuses       []database.GameStatus
+	CurrentStatus  database.GameStatus
+	RatingOptions  []ratingOption
+	CurrentRating  int64
+	OutcomeOptions []outcomeOption
+	MaxNotesLength int64
 }
 
 // handleGame serves the detail page for a game in the user's library.
@@ -77,13 +95,13 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	server.render(w, "game.html", gamePage{
-		Details:             libraryGame,
-		Statuses:            database.GameStatuses,
-		CurrentStatus:       database.GameStatus(derefOrZero(libraryGame.UserGame.Status)),
-		RatingOptions:       ratingOptions(),
-		CurrentRating:       derefOrZero(libraryGame.UserGame.Rating),
-		PlaythroughOutcomes: database.PlaythroughOutcomes,
-		MaxNotesLength:      maxNotesLength,
+		Details:        libraryGame,
+		Statuses:       database.GameStatuses,
+		CurrentStatus:  database.GameStatus(derefOrZero(libraryGame.UserGame.Status)),
+		RatingOptions:  ratingOptions(),
+		CurrentRating:  derefOrZero(libraryGame.UserGame.Rating),
+		OutcomeOptions: outcomeOptions(),
+		MaxNotesLength: maxNotesLength,
 	})
 }
 

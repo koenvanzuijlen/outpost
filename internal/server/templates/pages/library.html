@@ -2,16 +2,16 @@
   <h1>Outpost</h1>
   {{template "searchForm" ""}}
   <div>
-    <h2>Your Games</h2>
+    <h2>Library</h2>
     <ul>
       {{range .Games}}
         <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}} - {{with .PlatformName}}{{.}}{{else}}not owned{{end}}{{with .UserGame.Status}} - {{.}}{{end}}</li>
       {{else}}
-        <li>No games yet.</li>
+        <li>Your library is empty.</li>
       {{end}}
     </ul>
   </div>
-  <h2>Your Wishlist</h2>
+  <h2>Wishlist</h2>
   <ul>
     {{range .WishlistedGames}}
       <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}}</li>
