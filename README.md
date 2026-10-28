@@ -2,7 +2,39 @@
 
 A self-hosted game tracker: log the games you play, rate them, record playthroughs, and keep track of what you own on which platform. Game data comes from [IGDB](https://www.igdb.com/).
 
-## Vocabulary
+## Running with Docker
+
+```sh
+docker build -t outpost .
+docker run -d --name outpost -p 8080:8080 --env-file .env -v outpost-data:/data outpost
+```
+
+`.env` holds the settings below; start from `.env.example`. The database lives in the `outpost-data` volume. The container runs as a non-root user.
+
+## Configuration
+
+Outpost is configured with environment variables.
+
+| Variable | Default | Description |
+|---|---|---|
+| `TWITCH_CLIENT_ID` | required | Twitch app credentials for IGDB access. Create an app in the [Twitch developer console](https://dev.twitch.tv/console/apps). |
+| `TWITCH_CLIENT_SECRET` | required | |
+| `TZ` | system time zone (UTC in Docker) | Time zone that decides what "today" is for playthrough dates, e.g. `Europe/Amsterdam`. |
+| `DATABASE_PATH` | `outpost.db` (`/data/outpost.db` in Docker) | Location of the SQLite database. Backups made before migrations are stored next to it. |
+| `PORT` | `8080` | Port to listen on. In Docker, change the host side of `-p` instead. |
+
+## Development
+
+Requires [mise](https://mise.jdx.dev/).
+
+```sh
+mise install
+cp .env.example .env
+mise setup
+mise start
+```
+
+### Vocabulary
 
 These terms are used the same way in the UI, the code and the database.
 
@@ -23,14 +55,3 @@ Rules that follow from it:
 - **Remove vs delete.** *Remove* takes something out of a set: a game from the library or wishlist, a copy from a game. *Delete* destroys a record: a playthrough.
 - **Status vs outcome.** A library entry has a *status* (backlog, playing, completed, shelved, abandoned, retired). A playthrough has an *outcome* (playing, completed, abandoned, retired); `playing` is shown as "in progress".
 - **UI text** uses sentence case and "DLC" for both singular and plural.
-
-## Development
-
-Requires [mise](https://mise.jdx.dev/).
-
-```sh
-mise install
-cp .env.example .env
-mise setup
-mise start
-```

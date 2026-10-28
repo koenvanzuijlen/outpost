@@ -1,0 +1,10 @@
+.git
+.env
+
+.vscode
+/.tools/
+
+*.db*
+*.bak
+
+/outpost
