@@ -1,0 +1,21 @@
+name: PR title validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|perf|revert|deps|docs|style|refactor|test|build|ci)(\([a-z0-9-]+\))?!?: .+$'
+          if [[ ! "$TITLE" =~ $pattern ]]; then
+            echo "::error::PR title \"$TITLE\" is not a Conventional Commit. Expected: type(scope): description, where type is one of feat, fix, perf, revert, deps, docs, style, refactor, test, build or ci, and (scope) is optional.
+            exit 1
+          fi
