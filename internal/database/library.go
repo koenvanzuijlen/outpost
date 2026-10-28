@@ -1,10 +1,12 @@
 package database
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
@@ -13,33 +15,35 @@ import (
 	sqlite3 "modernc.org/sqlite/lib"
 )
 
-// ErrUserGameNotFound is returned when a game is not found in the user's library.
+// ErrUserGameNotFound is returned when a game is not in the user's library or wishlist, or when an action needs a
+// library entry and the game is only on the wishlist.
 var ErrUserGameNotFound = errors.New("game not found in library")
 
-// LibraryGame represents a game in the user's library, including the game details, its DLCs, the user's game entry,
-// the platforms the user owns it on, the DLC the user owns per platform, and the playthroughs associated with the game.
-type LibraryGame struct {
-	Game         dbgen.Game
-	UserGame     dbgen.UserGame
-	Platforms    []dbgen.Platform
-	DLCs         []dbgen.ListDLCGamesRow
-	Parent       *dbgen.Game
-	CopyDLCs     map[int64][]CopyDLC // key: platform IGDB ID
-	Playthroughs []dbgen.ListPlaythroughsForUserGameIDRow
+// UserGameDetails is a game in the user's library or wishlist with everything the game page shows: the game, the
+// user's entry, the platforms it is owned on, its DLC (with library state and ownership per copy), its parent for DLC,
+// and its playthroughs.
+type UserGameDetails struct {
+	Game           dbgen.Game
+	UserGame       dbgen.UserGame
+	OwnedPlatforms []dbgen.Platform
+	DLCs           []dbgen.ListDLCGamesRow
+	Parent         *dbgen.Game
+	CopyDLCs       map[int64][]CopyDLC // key: platform IGDB ID
+	Playthroughs   []dbgen.ListPlaythroughsForUserGameIDRow
 }
 
-// GetLibraryGame retrieves a game from the user's library by its IGDB ID. Returns ErrUserGameNotFound if the game is
-// not in the library.
-func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (LibraryGame, error) {
+// GetUserGame retrieves a game from the user's library or wishlist by its IGDB ID. Returns ErrUserGameNotFound if the
+// game is in neither.
+func (s *Store) GetUserGame(ctx context.Context, userID, igdbID int64) (UserGameDetails, error) {
 	row, err := s.queries.GetUserGameByIGDBID(ctx, dbgen.GetUserGameByIGDBIDParams{
 		UserID: userID,
 		IgdbID: igdbID,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return LibraryGame{}, ErrUserGameNotFound
+			return UserGameDetails{}, ErrUserGameNotFound
 		}
-		return LibraryGame{}, fmt.Errorf("get user game: %w", err)
+		return UserGameDetails{}, fmt.Errorf("get user game: %w", err)
 	}
 
 	isDLC := igdb.GameType(row.Game.GameType).DLC()
@@ -55,12 +59,12 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 			GameTypes:    dlcGameTypes(),
 		})
 		if err != nil {
-			return LibraryGame{}, fmt.Errorf("list dlc games: %w", err)
+			return UserGameDetails{}, fmt.Errorf("list dlc games: %w", err)
 		}
 
 		platforms, err = s.queries.ListPlatformsForUserGameID(ctx, row.UserGame.ID)
 		if err != nil {
-			return LibraryGame{}, fmt.Errorf("list owned platforms: %w", err)
+			return UserGameDetails{}, fmt.Errorf("list owned platforms: %w", err)
 		}
 
 		ownedCopyDLCs, err := s.queries.ListOwnedCopyDLCs(ctx, dbgen.ListOwnedCopyDLCsParams{
@@ -69,7 +73,7 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 			GameTypes:    dlcGameTypes(),
 		})
 		if err != nil {
-			return LibraryGame{}, fmt.Errorf("list owned copy dlcs: %w", err)
+			return UserGameDetails{}, fmt.Errorf("list owned copy dlcs: %w", err)
 		}
 		for _, ownedCopyDLC := range ownedCopyDLCs {
 			copyDLCs[ownedCopyDLC.PlatformIgdbID] = append(copyDLCs[ownedCopyDLC.PlatformIgdbID], CopyDLC{
@@ -79,11 +83,11 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 		}
 	} else {
 		if row.Game.ParentIgdbID == nil {
-			return LibraryGame{}, fmt.Errorf("dlc %d has no parent", row.Game.ID)
+			return UserGameDetails{}, fmt.Errorf("dlc %d has no parent", row.Game.ID)
 		}
 		parent, err := s.queries.GetGameByIGDBID(ctx, *row.Game.ParentIgdbID)
 		if err != nil {
-			return LibraryGame{}, fmt.Errorf("get parent game: %w", err)
+			return UserGameDetails{}, fmt.Errorf("get parent game: %w", err)
 		}
 		parentGame = &parent
 
@@ -92,24 +96,85 @@ func (s *Store) GetLibraryGame(ctx context.Context, userID, igdbID int64) (Libra
 			DlcGameID: row.Game.ID,
 		})
 		if err != nil {
-			return LibraryGame{}, fmt.Errorf("list owned platforms dlc: %w", err)
+			return UserGameDetails{}, fmt.Errorf("list owned platforms dlc: %w", err)
 		}
 	}
 
 	playthroughs, err := s.queries.ListPlaythroughsForUserGameID(ctx, row.UserGame.ID)
 	if err != nil {
-		return LibraryGame{}, fmt.Errorf("list playthroughs: %w", err)
+		return UserGameDetails{}, fmt.Errorf("list playthroughs: %w", err)
 	}
 
-	return LibraryGame{
-		Game:         row.Game,
-		DLCs:         dlcs,
-		UserGame:     row.UserGame,
-		Platforms:    platforms,
-		Playthroughs: playthroughs,
-		CopyDLCs:     copyDLCs,
-		Parent:       parentGame,
+	return UserGameDetails{
+		Game:           row.Game,
+		DLCs:           dlcs,
+		UserGame:       row.UserGame,
+		OwnedPlatforms: platforms,
+		Playthroughs:   playthroughs,
+		CopyDLCs:       copyDLCs,
+		Parent:         parentGame,
 	}, nil
+}
+
+// LibraryEntry is one row of the library list: a game on one of the platforms it is owned on, or without a platform
+// when it isn't owned anywhere. For DLC, the platforms are the base game's copies it is owned on.
+type LibraryEntry struct {
+	Game         dbgen.Game
+	UserGame     dbgen.UserGame
+	PlatformName *string
+}
+
+// ListLibrary returns the user's library (games and DLC, owned or not, excluding the wishlist), sorted by title and
+// platform. A game owned on several platforms appears once per platform; a game that isn't owned anywhere appears once
+// with PlatformName set to nil.
+func (s *Store) ListLibrary(ctx context.Context, userID int64) ([]LibraryEntry, error) {
+	games, err := s.queries.ListLibraryGames(ctx, dbgen.ListLibraryGamesParams{
+		UserID:       userID,
+		DlcGameTypes: dlcGameTypes(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list library games: %w", err)
+	}
+
+	dlcs, err := s.queries.ListLibraryDLCs(ctx, dbgen.ListLibraryDLCsParams{
+		UserID:    userID,
+		GameTypes: dlcGameTypes(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list library dlcs: %w", err)
+	}
+
+	library := make([]LibraryEntry, 0, len(games)+len(dlcs))
+	for _, game := range games {
+		library = append(library, LibraryEntry{
+			Game:         game.Game,
+			UserGame:     game.UserGame,
+			PlatformName: game.PlatformName,
+		})
+	}
+	for _, dlc := range dlcs {
+		library = append(library, LibraryEntry{
+			Game:         dlc.Game,
+			UserGame:     dlc.UserGame,
+			PlatformName: dlc.PlatformName,
+		})
+	}
+
+	platformName := func(e LibraryEntry) string {
+		if e.PlatformName == nil {
+			return ""
+		}
+		return *e.PlatformName
+	}
+
+	slices.SortFunc(library, func(a, b LibraryEntry) int {
+		return cmp.Or(
+			cmp.Compare(a.Game.Title, b.Game.Title),
+			cmp.Compare(platformName(a), platformName(b)),
+		)
+	})
+
+	return library, nil
 }
 
 // AddToLibrary adds a game to the user's library, storing the game in the catalog if it isn't there yet. A new library
@@ -135,7 +200,7 @@ func (s *Store) AddToLibrary(
 		return fmt.Errorf("upsert game: %w", err)
 	}
 
-	userGame, err := q.UpsertOwnedUserGame(ctx, dbgen.UpsertOwnedUserGameParams{
+	userGame, err := q.UpsertLibraryUserGame(ctx, dbgen.UpsertLibraryUserGameParams{
 		UserID:  userID,
 		GameID:  storedGame.ID,
 		Status:  GameStatusBacklog.StringPtr(),
@@ -199,15 +264,15 @@ func (s *Store) UpdateGameDetails(ctx context.Context, userID, igdbID int64, det
 	return nil
 }
 
-// RemoveFromLibrary deletes the user's library entry for a game. What else goes with it depends on the entry:
-//   - An owned game: its copies, the DLC ownership on those copies, its playthroughs, and the entries of its tracked
+// RemoveUserGame removes a game from the user's library or wishlist. What else goes with it depends on the entry:
+//   - A library game: its copies, the DLC ownership on those copies, its playthroughs, and the library entries of its
 //     DLC (in the same transaction, since no foreign key links them).
-//   - A tracked DLC: its status, rating and playthroughs. Ownership of the DLC on the base game's copies is kept.
+//   - A library DLC: its status, rating and playthroughs. Ownership of the DLC on the base game's copies is kept.
 //   - A wishlisted game: only the wishlist entry.
 //
 // Catalog data (games, platforms, cached DLC lists) is never deleted, so adding the game again needs no IGDB call for
-// its DLC. Returns ErrUserGameNotFound if the game is not in the library.
-func (s *Store) RemoveFromLibrary(ctx context.Context, userID, igdbID int64) error {
+// its DLC. Returns ErrUserGameNotFound if the game is in neither the library nor the wishlist.
+func (s *Store) RemoveUserGame(ctx context.Context, userID, igdbID int64) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -227,13 +292,13 @@ func (s *Store) RemoveFromLibrary(ctx context.Context, userID, igdbID int64) err
 	}
 
 	if !igdb.GameType(row.Game.GameType).DLC() {
-		err = q.DeleteTrackedDLCs(ctx, dbgen.DeleteTrackedDLCsParams{
+		err = q.DeleteLibraryDLCs(ctx, dbgen.DeleteLibraryDLCsParams{
 			UserID:       userID,
 			ParentIgdbID: &igdbID,
 			DlcGameTypes: dlcGameTypes(),
 		})
 		if err != nil {
-			return fmt.Errorf("delete tracked dlcs: %w", err)
+			return fmt.Errorf("delete library dlcs: %w", err)
 		}
 	}
 
@@ -248,9 +313,9 @@ func (s *Store) RemoveFromLibrary(ctx context.Context, userID, igdbID int64) err
 	return nil
 }
 
-// getOwnedUserGame retrieves a user's owned game by its IGDB ID, excluding wishlisted games. Returns
-// ErrUserGameNotFound if the game is not found or is wishlisted.
-func getOwnedUserGame(ctx context.Context, q *dbgen.Queries, userID, igdbID int64) (dbgen.GetUserGameByIGDBIDRow, error) {
+// getLibraryUserGame retrieves a user's library entry by its IGDB ID, owned or not. Returns ErrUserGameNotFound if the
+// game is not in the library, including when it is only on the wishlist.
+func getLibraryUserGame(ctx context.Context, q *dbgen.Queries, userID, igdbID int64) (dbgen.GetUserGameByIGDBIDRow, error) {
 	row, err := q.GetUserGameByIGDBID(ctx, dbgen.GetUserGameByIGDBIDParams{UserID: userID, IgdbID: igdbID})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

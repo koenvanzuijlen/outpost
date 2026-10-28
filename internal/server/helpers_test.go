@@ -117,12 +117,12 @@ func getGamePage(t *testing.T, server *Server, igdbID int64) *httptest.ResponseR
 	return w
 }
 
-// getTestLibraryGame loads The Witcher 3 from the default user's library.
-func getTestLibraryGame(t *testing.T, server *Server) database.LibraryGame {
+// getTestUserGame loads The Witcher 3 from the default user's library.
+func getTestUserGame(t *testing.T, server *Server) database.UserGameDetails {
 	t.Helper()
-	libraryGame, err := server.store.GetLibraryGame(t.Context(), defaultUserID, 1942)
+	libraryGame, err := server.store.GetUserGame(t.Context(), defaultUserID, 1942)
 	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
+		t.Fatalf("GetUserGame() failed: %v", err)
 	}
 	return libraryGame
 }

@@ -7,8 +7,8 @@ import (
 
 // Hearts of Stone (12503) is a DLC of The Witcher 3 available on PC (6).
 const (
-	testDLCPath      = "/games/1942/platforms/6/dlcs/12503"
-	testTrackDLCPath = "/games/1942/dlcs/12503/track"
+	testDLCPath    = "/games/1942/platforms/6/dlcs/12503"
+	testAddDLCPath = "/games/1942/dlcs/12503/library"
 )
 
 // addTestGameWithDLCs adds The Witcher 3 on PC and views its page so its DLCs are fetched and stored.
@@ -62,14 +62,14 @@ func TestHandleSetDLCOwnedValidation(t *testing.T) {
 	}
 }
 
-func TestHandleTrackDLC(t *testing.T) {
+func TestHandleAddDLCToLibrary(t *testing.T) {
 	server := newTestServer(t)
 	fake := addTestGameWithDLCs(t, server)
 
 	w := getTestGamePage(t, server)
-	assertBodyContains(t, w, `action="`+testTrackDLCPath+`"`)
+	assertBodyContains(t, w, `action="`+testAddDLCPath+`"`)
 
-	w = postForm(t, server, testTrackDLCPath, "")
+	w = postForm(t, server, testAddDLCPath, "")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -87,19 +87,19 @@ func TestHandleTrackDLC(t *testing.T) {
 	w = getTestGamePage(t, server)
 	assertBodyContains(t, w, `<a href="/games/12503">`)
 	assertBodyContains(t, w, "</a> – backlog")
-	assertBodyNotContains(t, w, `action="`+testTrackDLCPath+`"`)
+	assertBodyNotContains(t, w, `action="`+testAddDLCPath+`"`)
 }
 
-func TestHandleTrackDLCValidation(t *testing.T) {
+func TestHandleAddDLCToLibraryValidation(t *testing.T) {
 	tests := []struct {
 		name string
 		path string
 		want int
 	}{
-		{"non-numeric game id", "/games/abc/dlcs/12503/track", http.StatusBadRequest},
-		{"non-numeric dlc id", "/games/1942/dlcs/abc/track", http.StatusBadRequest},
-		{"unknown dlc", "/games/1942/dlcs/999999/track", http.StatusNotFound},
-		{"game not in library", "/games/1020/dlcs/12503/track", http.StatusNotFound},
+		{"non-numeric game id", "/games/abc/dlcs/12503/library", http.StatusBadRequest},
+		{"non-numeric dlc id", "/games/1942/dlcs/abc/library", http.StatusBadRequest},
+		{"unknown dlc", "/games/1942/dlcs/999999/library", http.StatusNotFound},
+		{"game not in library", "/games/1020/dlcs/12503/library", http.StatusNotFound},
 	}
 
 	for _, tt := range tests {
@@ -122,7 +122,7 @@ func TestHandleStartPlaythroughOnDLC(t *testing.T) {
 	if w := postForm(t, server, testDLCPath, "owned=true"); w.Code != http.StatusSeeOther {
 		t.Fatalf("own status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	if w := postForm(t, server, testTrackDLCPath, ""); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, testAddDLCPath, ""); w.Code != http.StatusSeeOther {
 		t.Fatalf("track status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 

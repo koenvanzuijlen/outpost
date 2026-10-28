@@ -38,8 +38,8 @@ func TestAddToWishlistDuplicate(t *testing.T) {
 	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); err != nil {
 		t.Fatalf("AddToWishlist() first failed: %v", err)
 	}
-	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyInLibrary) {
-		t.Fatalf("AddToWishlist() second error = %v, want %v", err, ErrAlreadyInLibrary)
+	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyAdded) {
+		t.Fatalf("AddToWishlist() second error = %v, want %v", err, ErrAlreadyAdded)
 	}
 }
 
@@ -55,8 +55,8 @@ func TestAddToWishlistOwnedGame(t *testing.T) {
 	}
 
 	// Attempt to add the same game to the wishlist
-	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyInLibrary) {
-		t.Fatalf("AddToWishlist() error = %v, want %v", err, ErrAlreadyInLibrary)
+	if err := store.AddToWishlist(ctx, game, 1, time.Now().UTC()); !errors.Is(err, ErrAlreadyAdded) {
+		t.Fatalf("AddToWishlist() error = %v, want %v", err, ErrAlreadyAdded)
 	}
 
 	// Ensure wishlist is empty
@@ -69,9 +69,9 @@ func TestAddToWishlistOwnedGame(t *testing.T) {
 	}
 
 	// Ensure the game is still in the collection
-	collected := getLibraryGame(t, store, 100)
+	collected := getUserGame(t, store, 100)
 	if collected.UserGame.Wishlisted {
 		t.Errorf("Wishlisted = true, want false")
 	}
-	assertPlatformIDs(t, collected.Platforms, 6)
+	assertPlatformIDs(t, collected.OwnedPlatforms, 6)
 }

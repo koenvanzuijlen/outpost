@@ -11,22 +11,22 @@ import (
 	"time"
 )
 
-const createTrackedUserGame = `-- name: CreateTrackedUserGame :exec
+const createLibraryUserGame = `-- name: CreateLibraryUserGame :exec
 INSERT INTO user_games(user_id, game_id, status, wishlisted, added_at)
     VALUES (?, ?, ?, FALSE, ?)
 ON CONFLICT (user_id, game_id)
     DO NOTHING
 `
 
-type CreateTrackedUserGameParams struct {
+type CreateLibraryUserGameParams struct {
 	UserID  int64
 	GameID  int64
 	Status  *string
 	AddedAt time.Time
 }
 
-func (q *Queries) CreateTrackedUserGame(ctx context.Context, arg CreateTrackedUserGameParams) error {
-	_, err := q.db.ExecContext(ctx, createTrackedUserGame,
+func (q *Queries) CreateLibraryUserGame(ctx context.Context, arg CreateLibraryUserGameParams) error {
+	_, err := q.db.ExecContext(ctx, createLibraryUserGame,
 		arg.UserID,
 		arg.GameID,
 		arg.Status,
@@ -56,7 +56,7 @@ func (q *Queries) CreateWishlistedUserGame(ctx context.Context, arg CreateWishli
 	return result.RowsAffected()
 }
 
-const deleteTrackedDLCs = `-- name: DeleteTrackedDLCs :exec
+const deleteLibraryDLCs = `-- name: DeleteLibraryDLCs :exec
 DELETE FROM user_games
 WHERE user_id = ?1
     AND game_id IN (
@@ -69,14 +69,14 @@ WHERE user_id = ?1
             AND game_type IN (/*SLICE:dlc_game_types*/?))
 `
 
-type DeleteTrackedDLCsParams struct {
+type DeleteLibraryDLCsParams struct {
 	UserID       int64
 	ParentIgdbID *int64
 	DlcGameTypes []int64
 }
 
-func (q *Queries) DeleteTrackedDLCs(ctx context.Context, arg DeleteTrackedDLCsParams) error {
-	query := deleteTrackedDLCs
+func (q *Queries) DeleteLibraryDLCs(ctx context.Context, arg DeleteLibraryDLCsParams) error {
+	query := deleteLibraryDLCs
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.UserID)
 	queryParams = append(queryParams, arg.ParentIgdbID)
@@ -150,6 +150,95 @@ func (q *Queries) GetUserGameByIGDBID(ctx context.Context, arg GetUserGameByIGDB
 	return i, err
 }
 
+const listLibraryDLCs = `-- name: ListLibraryDLCs :many
+SELECT
+    ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
+    g.id, g.igdb_id, g.fetched_at, g.dlcs_fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary,
+    p.name AS platform_name
+FROM
+    user_games ug
+    JOIN games g ON g.id = ug.game_id
+    LEFT JOIN owned_dlc od ON od.dlc_game_id = g.id
+        AND od.owned_copy_id IN (
+            SELECT
+                oc.id
+            FROM
+                owned_copies oc
+            JOIN user_games base ON base.id = oc.user_game_id
+        WHERE
+            base.user_id = ug.user_id)
+    LEFT JOIN owned_copies oc ON oc.id = od.owned_copy_id
+    LEFT JOIN platforms p ON p.id = oc.platform_id
+WHERE
+    ug.user_id = ?1
+    AND g.game_type IN (/*SLICE:game_types*/?)
+`
+
+type ListLibraryDLCsParams struct {
+	UserID    int64
+	GameTypes []int64
+}
+
+type ListLibraryDLCsRow struct {
+	UserGame     UserGame
+	Game         Game
+	PlatformName *string
+}
+
+func (q *Queries) ListLibraryDLCs(ctx context.Context, arg ListLibraryDLCsParams) ([]ListLibraryDLCsRow, error) {
+	query := listLibraryDLCs
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.UserID)
+	if len(arg.GameTypes) > 0 {
+		for _, v := range arg.GameTypes {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:game_types*/?", strings.Repeat(",?", len(arg.GameTypes))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:game_types*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLibraryDLCsRow
+	for rows.Next() {
+		var i ListLibraryDLCsRow
+		if err := rows.Scan(
+			&i.UserGame.ID,
+			&i.UserGame.UserID,
+			&i.UserGame.GameID,
+			&i.UserGame.Status,
+			&i.UserGame.Rating,
+			&i.UserGame.Wishlisted,
+			&i.UserGame.Notes,
+			&i.UserGame.AddedAt,
+			&i.Game.ID,
+			&i.Game.IgdbID,
+			&i.Game.FetchedAt,
+			&i.Game.DlcsFetchedAt,
+			&i.Game.ParentIgdbID,
+			&i.Game.Title,
+			&i.Game.GameType,
+			&i.Game.CoverUrl,
+			&i.Game.ReleasedAt,
+			&i.Game.Summary,
+			&i.PlatformName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLibraryGames = `-- name: ListLibraryGames :many
 SELECT
     ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
@@ -197,95 +286,6 @@ func (q *Queries) ListLibraryGames(ctx context.Context, arg ListLibraryGamesPara
 	var items []ListLibraryGamesRow
 	for rows.Next() {
 		var i ListLibraryGamesRow
-		if err := rows.Scan(
-			&i.UserGame.ID,
-			&i.UserGame.UserID,
-			&i.UserGame.GameID,
-			&i.UserGame.Status,
-			&i.UserGame.Rating,
-			&i.UserGame.Wishlisted,
-			&i.UserGame.Notes,
-			&i.UserGame.AddedAt,
-			&i.Game.ID,
-			&i.Game.IgdbID,
-			&i.Game.FetchedAt,
-			&i.Game.DlcsFetchedAt,
-			&i.Game.ParentIgdbID,
-			&i.Game.Title,
-			&i.Game.GameType,
-			&i.Game.CoverUrl,
-			&i.Game.ReleasedAt,
-			&i.Game.Summary,
-			&i.PlatformName,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listTrackedDLCs = `-- name: ListTrackedDLCs :many
-SELECT
-    ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
-    g.id, g.igdb_id, g.fetched_at, g.dlcs_fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary,
-    p.name AS platform_name
-FROM
-    user_games ug
-    JOIN games g ON g.id = ug.game_id
-    LEFT JOIN owned_dlc od ON od.dlc_game_id = g.id
-        AND od.owned_copy_id IN (
-            SELECT
-                oc.id
-            FROM
-                owned_copies oc
-            JOIN user_games base ON base.id = oc.user_game_id
-        WHERE
-            base.user_id = ug.user_id)
-    LEFT JOIN owned_copies oc ON oc.id = od.owned_copy_id
-    LEFT JOIN platforms p ON p.id = oc.platform_id
-WHERE
-    ug.user_id = ?1
-    AND g.game_type IN (/*SLICE:game_types*/?)
-`
-
-type ListTrackedDLCsParams struct {
-	UserID    int64
-	GameTypes []int64
-}
-
-type ListTrackedDLCsRow struct {
-	UserGame     UserGame
-	Game         Game
-	PlatformName *string
-}
-
-func (q *Queries) ListTrackedDLCs(ctx context.Context, arg ListTrackedDLCsParams) ([]ListTrackedDLCsRow, error) {
-	query := listTrackedDLCs
-	var queryParams []interface{}
-	queryParams = append(queryParams, arg.UserID)
-	if len(arg.GameTypes) > 0 {
-		for _, v := range arg.GameTypes {
-			queryParams = append(queryParams, v)
-		}
-		query = strings.Replace(query, "/*SLICE:game_types*/?", strings.Repeat(",?", len(arg.GameTypes))[1:], 1)
-	} else {
-		query = strings.Replace(query, "/*SLICE:game_types*/?", "NULL", 1)
-	}
-	rows, err := q.db.QueryContext(ctx, query, queryParams...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListTrackedDLCsRow
-	for rows.Next() {
-		var i ListTrackedDLCsRow
 		if err := rows.Scan(
 			&i.UserGame.ID,
 			&i.UserGame.UserID,
@@ -441,7 +441,7 @@ func (q *Queries) UpdateUserGameStatus(ctx context.Context, arg UpdateUserGameSt
 	return err
 }
 
-const upsertOwnedUserGame = `-- name: UpsertOwnedUserGame :one
+const upsertLibraryUserGame = `-- name: UpsertLibraryUserGame :one
 INSERT INTO user_games(user_id, game_id, status, wishlisted, added_at)
     VALUES (?, ?, ?, FALSE, ?)
 ON CONFLICT (user_id, game_id)
@@ -452,15 +452,15 @@ ON CONFLICT (user_id, game_id)
         id, user_id, game_id, status, rating, wishlisted, notes, added_at
 `
 
-type UpsertOwnedUserGameParams struct {
+type UpsertLibraryUserGameParams struct {
 	UserID  int64
 	GameID  int64
 	Status  *string
 	AddedAt time.Time
 }
 
-func (q *Queries) UpsertOwnedUserGame(ctx context.Context, arg UpsertOwnedUserGameParams) (UserGame, error) {
-	row := q.db.QueryRowContext(ctx, upsertOwnedUserGame,
+func (q *Queries) UpsertLibraryUserGame(ctx context.Context, arg UpsertLibraryUserGameParams) (UserGame, error) {
+	row := q.db.QueryRowContext(ctx, upsertLibraryUserGame,
 		arg.UserID,
 		arg.GameID,
 		arg.Status,

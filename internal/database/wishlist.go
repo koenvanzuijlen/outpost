@@ -9,16 +9,16 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
 
-// ErrAlreadyInLibrary is returned when wishlisting a game that is already in the library.
-var ErrAlreadyInLibrary = errors.New("game is already in the library")
+// ErrAlreadyAdded is returned when wishlisting a game that is already in the library or on the wishlist.
+var ErrAlreadyAdded = errors.New("game is already in the library or wishlist")
 
 // ListWishlist returns all wishlisted games for the specified user.
 func (s *Store) ListWishlist(ctx context.Context, userID int64) ([]dbgen.ListWishlistedUserGamesRow, error) {
 	return s.queries.ListWishlistedUserGames(ctx, userID)
 }
 
-// AddToWishlist adds a game to the user's wishlist, creating the game if it doesn't exist. If the game is already in
-// the user's games, it returns ErrAlreadyInLibrary.
+// AddToWishlist adds a game to the user's wishlist, storing the game in the catalog if it isn't there yet. If the game
+// is already in the library or on the wishlist, it returns ErrAlreadyAdded.
 func (s *Store) AddToWishlist(ctx context.Context, game dbgen.UpsertGameParams, userID int64, addedAt time.Time) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -42,7 +42,7 @@ func (s *Store) AddToWishlist(ctx context.Context, game dbgen.UpsertGameParams, 
 		return fmt.Errorf("create wishlisted user game: %w", err)
 	}
 	if rows == 0 {
-		return ErrAlreadyInLibrary
+		return ErrAlreadyAdded
 	}
 
 	if err := tx.Commit(); err != nil {

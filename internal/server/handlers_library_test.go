@@ -63,9 +63,9 @@ func TestHandleAddToLibrary(t *testing.T) {
 			}
 			assertLocation(t, w, tt.wantLocation)
 
-			games, err := server.store.ListGames(t.Context(), defaultUserID)
+			games, err := server.store.ListLibrary(t.Context(), defaultUserID)
 			if err != nil {
-				t.Fatalf("ListGames() failed: %v", err)
+				t.Fatalf("ListLibrary() failed: %v", err)
 			}
 			if tt.wantStatus != http.StatusSeeOther {
 				if len(games) != 0 {
@@ -74,12 +74,12 @@ func TestHandleAddToLibrary(t *testing.T) {
 				return
 			}
 
-			libraryGame := getTestLibraryGame(t, server)
-			if len(libraryGame.Platforms) != len(tt.wantPlatforms) {
-				t.Fatalf("len(Platforms) = %d, want %d", len(libraryGame.Platforms), len(tt.wantPlatforms))
+			libraryGame := getTestUserGame(t, server)
+			if len(libraryGame.OwnedPlatforms) != len(tt.wantPlatforms) {
+				t.Fatalf("len(Platforms) = %d, want %d", len(libraryGame.OwnedPlatforms), len(tt.wantPlatforms))
 			}
 			for i, want := range tt.wantPlatforms {
-				if got := libraryGame.Platforms[i].IgdbID; got != want {
+				if got := libraryGame.OwnedPlatforms[i].IgdbID; got != want {
 					t.Errorf("Platforms[%d].IgdbID = %d, want %d", i, got, want)
 				}
 			}
@@ -97,9 +97,9 @@ func TestHandleAddToLibraryTwice(t *testing.T) {
 		}
 	}
 
-	games, err := server.store.ListGames(t.Context(), defaultUserID)
+	games, err := server.store.ListLibrary(t.Context(), defaultUserID)
 	if err != nil {
-		t.Fatalf("ListGames() failed: %v", err)
+		t.Fatalf("ListLibrary() failed: %v", err)
 	}
 	if len(games) != 1 {
 		t.Fatalf("number of games = %d, want %d", len(games), 1)
@@ -124,7 +124,7 @@ func TestHandleAddToLibraryDatabaseFailure(t *testing.T) {
 	assertLocation(t, w, "")
 }
 
-func TestHandleLibraryRendersCollectionAndWishlist(t *testing.T) {
+func TestHandleLibraryRendersLibraryAndWishlist(t *testing.T) {
 	searchResponse := loadIGDBGames(t, "games_search.json")
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: searchResponse[0]}
@@ -148,10 +148,10 @@ func TestHandleLibraryRendersCollectionAndWishlist(t *testing.T) {
 	}
 }
 
-func TestHandleLibraryRendersTrackedUnownedDLC(t *testing.T) {
+func TestHandleLibraryRendersUnownedDLC(t *testing.T) {
 	server := newTestServer(t)
 	addTestGameWithDLCs(t, server)
-	if w := postForm(t, server, testTrackDLCPath, ""); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, testAddDLCPath, ""); w.Code != http.StatusSeeOther {
 		t.Fatalf("track status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
@@ -165,7 +165,7 @@ func TestHandleLibraryRendersTrackedUnownedDLC(t *testing.T) {
 	assertBodyContains(t, w, "not owned")
 }
 
-func TestHandleRemoveFromLibrary(t *testing.T) {
+func TestHandleRemoveUserGame(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
 
@@ -182,7 +182,7 @@ func TestHandleRemoveFromLibrary(t *testing.T) {
 	}
 }
 
-func TestHandleRemoveFromLibraryTwice(t *testing.T) {
+func TestHandleRemoveUserGameTwice(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
 
@@ -194,7 +194,7 @@ func TestHandleRemoveFromLibraryTwice(t *testing.T) {
 	}
 }
 
-func TestHandleRemoveFromLibraryNonNumericID(t *testing.T) {
+func TestHandleRemoveUserGameNonNumericID(t *testing.T) {
 	server := newTestServer(t)
 
 	w := postForm(t, server, "/games/abc/delete", "")
@@ -214,7 +214,7 @@ func TestGamePageRemoveLabel(t *testing.T) {
 		{"owned game", func(t *testing.T, server *Server) { addTestGame(t, server) }, 1942, "Remove from library"},
 		{"tracked dlc", func(t *testing.T, server *Server) {
 			addTestGameWithDLCs(t, server)
-			if w := postForm(t, server, testTrackDLCPath, ""); w.Code != http.StatusSeeOther {
+			if w := postForm(t, server, testAddDLCPath, ""); w.Code != http.StatusSeeOther {
 				t.Fatalf("track status = %d, want %d", w.Code, http.StatusSeeOther)
 			}
 		}, 12503, "Stop tracking"},

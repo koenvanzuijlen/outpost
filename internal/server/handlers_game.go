@@ -1,13 +1,10 @@
 package server
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
@@ -37,7 +34,7 @@ func ratingOptions() []ratingOption {
 
 // gamePage represents the data needed to render the game detail page.
 type gamePage struct {
-	LibraryGame         database.LibraryGame
+	Details             database.UserGameDetails
 	Statuses            []database.GameStatus
 	CurrentStatus       database.GameStatus
 	RatingOptions       []ratingOption
@@ -54,7 +51,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	libraryGame, err := server.store.GetLibraryGame(r.Context(), defaultUserID, igdbID)
+	libraryGame, err := server.store.GetUserGame(r.Context(), defaultUserID, igdbID)
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			http.Error(w, "Game not in library", http.StatusNotFound)
@@ -70,7 +67,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			server.logger.Warn("failed to fetch DLCs", "igdb_id", igdbID, "error", err)
 		} else {
-			libraryGame, err = server.store.GetLibraryGame(r.Context(), defaultUserID, igdbID)
+			libraryGame, err = server.store.GetUserGame(r.Context(), defaultUserID, igdbID)
 			if err != nil {
 				server.logger.Error("failed to get library game", "error", err)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -80,7 +77,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	server.render(w, "game.html", gamePage{
-		LibraryGame:         libraryGame,
+		Details:             libraryGame,
 		Statuses:            database.GameStatuses,
 		CurrentStatus:       database.GameStatus(derefOrZero(libraryGame.UserGame.Status)),
 		RatingOptions:       ratingOptions(),
@@ -90,8 +87,8 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleUpdateGame processes updates to a game's status and rating in the user's library.
-func (server *Server) handleUpdateGame(w http.ResponseWriter, r *http.Request) {
+// handleUpdateGameDetails processes updates to a game's status and rating in the user's library.
+func (server *Server) handleUpdateGameDetails(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
 		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
@@ -134,27 +131,4 @@ func (server *Server) handleUpdateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
-}
-
-// fetchDLCs retrieves the DLCs for a given game from IGDB and saves them to the database.
-func (server *Server) fetchDLCs(ctx context.Context, igdbID int64) error {
-	now := time.Now().UTC()
-
-	ctxTimeout, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	dlcs, err := server.igdbClient.DLCs(ctxTimeout, int(igdbID))
-	if err != nil {
-		return fmt.Errorf("fetch from igdb: %w", err)
-	}
-
-	dlcsToSave := make([]database.DLC, len(dlcs))
-	for i, dlc := range dlcs {
-		dlcsToSave[i] = dlcFromIGDB(dlc, now)
-	}
-
-	err = server.store.SaveDLCs(ctx, igdbID, dlcsToSave, now)
-	if err != nil {
-		return fmt.Errorf("save dlcs: %w", err)
-	}
-	return nil
 }

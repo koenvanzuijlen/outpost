@@ -51,12 +51,12 @@ func addOwnedGame(t *testing.T, store *Store, igdbID int64) {
 	}
 }
 
-// getLibraryGame retrieves a game from user 1's library. It fails the test if the game cannot be retrieved.
-func getLibraryGame(t *testing.T, store *Store, igdbID int64) LibraryGame {
+// getUserGame retrieves a game from user 1's library. It fails the test if the game cannot be retrieved.
+func getUserGame(t *testing.T, store *Store, igdbID int64) UserGameDetails {
 	t.Helper()
-	game, err := store.GetLibraryGame(t.Context(), 1, igdbID)
+	game, err := store.GetUserGame(t.Context(), 1, igdbID)
 	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
+		t.Fatalf("GetUserGame() failed: %v", err)
 	}
 	return game
 }

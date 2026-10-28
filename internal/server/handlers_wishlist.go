@@ -36,7 +36,7 @@ func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request
 
 	now := time.Now().UTC()
 	err = server.store.AddToWishlist(r.Context(), upsertGameParamsFromIGDB(game, now), defaultUserID, now)
-	if err != nil && !errors.Is(err, database.ErrAlreadyInLibrary) {
+	if err != nil && !errors.Is(err, database.ErrAlreadyAdded) {
 		server.logger.Error("failed to add to wishlist", "error", err)
 		http.Error(w, "Failed to add to wishlist", http.StatusInternalServerError)
 		return

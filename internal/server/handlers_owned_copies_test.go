@@ -20,7 +20,7 @@ func addTestGamePS4(t *testing.T, server *Server) {
 	}
 }
 
-func TestHandleRemoveFromCollection(t *testing.T) {
+func TestHandleRemoveOwnedCopy(t *testing.T) {
 	server := newTestServer(t)
 	addTestGamePS4(t, server)
 
@@ -58,7 +58,7 @@ func TestHandleRemoveOnlyCopy(t *testing.T) {
 	assertBodyContains(t, w, "Not owned on any platform.")
 }
 
-func TestHandleRemoveFromCollectionTwice(t *testing.T) {
+func TestHandleRemoveOwnedCopyTwice(t *testing.T) {
 	server := newTestServer(t)
 	addTestGamePS4(t, server)
 
@@ -70,7 +70,7 @@ func TestHandleRemoveFromCollectionTwice(t *testing.T) {
 	}
 }
 
-func TestHandleRemoveFromCollectionValidation(t *testing.T) {
+func TestHandleRemoveOwnedCopyValidation(t *testing.T) {
 	tests := []struct {
 		name string
 		path string

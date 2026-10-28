@@ -75,7 +75,7 @@ func TestHandleGameActivePlaythrough(t *testing.T) {
 	server := newTestServer(t)
 	startTestPlaythrough(t, server, "Hard mode run", "6")
 
-	libraryGame := getTestLibraryGame(t, server)
+	libraryGame := getTestUserGame(t, server)
 	if len(libraryGame.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
 	}
@@ -213,7 +213,7 @@ func TestHandleUpdateGame(t *testing.T) {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 	assertLocation(t, w, "/games/1942")
-	libraryGame := getTestLibraryGame(t, server)
+	libraryGame := getTestUserGame(t, server)
 	if libraryGame.UserGame.Status == nil || *libraryGame.UserGame.Status != "completed" {
 		t.Errorf("status = %v, want %q", derefOrNil(libraryGame.UserGame.Status), "completed")
 	}
@@ -231,7 +231,7 @@ func TestHandleUpdateGameNoRating(t *testing.T) {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 	assertLocation(t, w, "/games/1942")
-	libraryGame := getTestLibraryGame(t, server)
+	libraryGame := getTestUserGame(t, server)
 	if libraryGame.UserGame.Status == nil || *libraryGame.UserGame.Status != "completed" {
 		t.Errorf("status = %v, want %q", derefOrNil(libraryGame.UserGame.Status), "completed")
 	}
@@ -260,7 +260,7 @@ func TestHandleUpdateGameNotes(t *testing.T) {
 			if w.Code != http.StatusSeeOther {
 				t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 			}
-			libraryGame := getTestLibraryGame(t, server)
+			libraryGame := getTestUserGame(t, server)
 			got := libraryGame.UserGame.Notes
 			if (got == nil) != (tt.want == nil) || (got != nil && *got != *tt.want) {
 				t.Errorf("notes = %v, want %v", derefOrNil(got), derefOrNil(tt.want))

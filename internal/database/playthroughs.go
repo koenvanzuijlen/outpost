@@ -34,9 +34,9 @@ func (s *Store) StartPlaythrough(
 	defer func() { _ = tx.Rollback() }()
 	q := dbgen.New(tx)
 
-	row, err := getOwnedUserGame(ctx, q, userID, igdbID)
+	row, err := getLibraryUserGame(ctx, q, userID, igdbID)
 	if err != nil {
-		return dbgen.Playthrough{}, fmt.Errorf("get owned user game: %w", err)
+		return dbgen.Playthrough{}, fmt.Errorf("get library user game: %w", err)
 	}
 
 	platformID, err := platformIDFor(ctx, q, platformIGDBID)
@@ -93,9 +93,9 @@ func (s *Store) SetPlaythroughOutcome(
 	defer func() { _ = tx.Rollback() }()
 	q := dbgen.New(tx)
 
-	row, err := getOwnedUserGame(ctx, q, userID, igdbID)
+	row, err := getLibraryUserGame(ctx, q, userID, igdbID)
 	if err != nil {
-		return fmt.Errorf("get owned user game: %w", err)
+		return fmt.Errorf("get library user game: %w", err)
 	}
 
 	playthrough, err := q.GetPlaythrough(ctx, dbgen.GetPlaythroughParams{
@@ -164,9 +164,9 @@ func (s *Store) UpdatePlaythroughDetails(ctx context.Context, userID, igdbID, pl
 	defer func() { _ = tx.Rollback() }()
 	q := dbgen.New(tx)
 
-	row, err := getOwnedUserGame(ctx, q, userID, igdbID)
+	row, err := getLibraryUserGame(ctx, q, userID, igdbID)
 	if err != nil {
-		return fmt.Errorf("get owned user game: %w", err)
+		return fmt.Errorf("get library user game: %w", err)
 	}
 
 	playthrough, err := q.GetPlaythrough(ctx, dbgen.GetPlaythroughParams{
@@ -214,9 +214,9 @@ func (s *Store) DeletePlaythrough(
 	igdbID,
 	playthroughID int64,
 ) error {
-	row, err := getOwnedUserGame(ctx, s.queries, userID, igdbID)
+	row, err := getLibraryUserGame(ctx, s.queries, userID, igdbID)
 	if err != nil {
-		return fmt.Errorf("get owned user game: %w", err)
+		return fmt.Errorf("get library user game: %w", err)
 	}
 
 	rows, err := s.queries.DeletePlaythrough(ctx, dbgen.DeletePlaythroughParams{

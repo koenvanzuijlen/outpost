@@ -89,7 +89,7 @@ func (q *Queries) GetGameByIGDBID(ctx context.Context, igdbID int64) (Game, erro
 const listDLCGames = `-- name: ListDLCGames :many
 SELECT
     g.id, g.igdb_id, g.fetched_at, g.dlcs_fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary,
-    ug.id IS NOT NULL AS tracked,
+    ug.id IS NOT NULL AS in_library,
     ug.status
 FROM
     games g
@@ -110,9 +110,9 @@ type ListDLCGamesParams struct {
 }
 
 type ListDLCGamesRow struct {
-	Game    Game
-	Tracked bool
-	Status  *string
+	Game      Game
+	InLibrary bool
+	Status    *string
 }
 
 func (q *Queries) ListDLCGames(ctx context.Context, arg ListDLCGamesParams) ([]ListDLCGamesRow, error) {
@@ -147,7 +147,7 @@ func (q *Queries) ListDLCGames(ctx context.Context, arg ListDLCGamesParams) ([]L
 			&i.Game.CoverUrl,
 			&i.Game.ReleasedAt,
 			&i.Game.Summary,
-			&i.Tracked,
+			&i.InLibrary,
 			&i.Status,
 		); err != nil {
 			return nil, err

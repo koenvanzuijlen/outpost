@@ -40,9 +40,9 @@ func TestStartPlaythrough(t *testing.T) {
 		t.Errorf("PlatformName = %s, want %s", derefOrNil(pts[0].PlatformName), platformName)
 	}
 
-	game, err := store.GetLibraryGame(ctx, 1, 100)
+	game, err := store.GetUserGame(ctx, 1, 100)
 	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
+		t.Fatalf("GetUserGame() failed: %v", err)
 	}
 	if game.UserGame.Status == nil || *game.UserGame.Status != "playing" {
 		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(game.UserGame.Status), "playing")
@@ -138,7 +138,7 @@ func TestStartPlaythroughStatus(t *testing.T) {
 				t.Fatalf("StartPlaythrough() failed: %v", err)
 			}
 
-			game := getLibraryGame(t, store, 100)
+			game := getUserGame(t, store, 100)
 			if game.UserGame.Status == nil || *game.UserGame.Status != string(tt.wantStatus) {
 				t.Errorf("UserGame.Status = %v, want %v", derefOrNil(game.UserGame.Status), tt.wantStatus)
 			}
@@ -173,7 +173,7 @@ func TestSetPlaythroughOutcome(t *testing.T) {
 				t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 			}
 
-			game := getLibraryGame(t, store, 100)
+			game := getUserGame(t, store, 100)
 			if len(game.Playthroughs) != 1 {
 				t.Fatalf("len(Playthroughs) = %d, want 1", len(game.Playthroughs))
 			}
@@ -210,7 +210,7 @@ func TestSetPlaythroughOutcomeOtherPlaying(t *testing.T) {
 		t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 	}
 
-	game := getLibraryGame(t, store, 100)
+	game := getUserGame(t, store, 100)
 	if game.UserGame.Status == nil || *game.UserGame.Status != string(GameStatusPlaying) {
 		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(game.UserGame.Status), GameStatusPlaying)
 	}
@@ -236,7 +236,7 @@ func TestSetPlaythroughOutcomeReopen(t *testing.T) {
 		t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 	}
 
-	libraryGame := getLibraryGame(t, store, 100)
+	libraryGame := getUserGame(t, store, 100)
 	if len(libraryGame.Playthroughs) == 0 {
 		t.Fatalf("no playthroughs found")
 	}
@@ -265,7 +265,7 @@ func TestSetPlaythroughOutcomeSameOutcomeTwice(t *testing.T) {
 		t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 	}
 
-	libraryGame := getLibraryGame(t, store, 100)
+	libraryGame := getUserGame(t, store, 100)
 	if len(libraryGame.Playthroughs) == 0 {
 		t.Fatalf("no playthroughs found")
 	}
@@ -276,7 +276,7 @@ func TestSetPlaythroughOutcomeSameOutcomeTwice(t *testing.T) {
 		t.Fatalf("SetPlaythroughOutcome() second call failed: %v", err)
 	}
 
-	libraryGame = getLibraryGame(t, store, 100)
+	libraryGame = getUserGame(t, store, 100)
 	if len(libraryGame.Playthroughs) == 0 {
 		t.Fatalf("no playthroughs found")
 	}
@@ -346,7 +346,7 @@ func TestUpdatePlaythroughDetails(t *testing.T) {
 		t.Fatalf("UpdatePlaythroughDetails() failed: %v", err)
 	}
 
-	game := getLibraryGame(t, store, 100)
+	game := getUserGame(t, store, 100)
 	if len(game.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want 1", len(game.Playthroughs))
 	}
@@ -383,7 +383,7 @@ func TestUpdatePlaythroughDetailsClearFields(t *testing.T) {
 		t.Fatalf("UpdatePlaythroughDetails() failed: %v", err)
 	}
 
-	game := getLibraryGame(t, store, 100)
+	game := getUserGame(t, store, 100)
 	if len(game.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want 1", len(game.Playthroughs))
 	}
@@ -463,9 +463,9 @@ func TestDeletePlaythrough(t *testing.T) {
 		t.Fatalf("len(pts) = %d, want 0", len(pts))
 	}
 
-	game, err := store.GetLibraryGame(ctx, 1, 100)
+	game, err := store.GetUserGame(ctx, 1, 100)
 	if err != nil {
-		t.Fatalf("GetLibraryGame() failed: %v", err)
+		t.Fatalf("GetUserGame() failed: %v", err)
 	}
 	if game.UserGame.Status == nil || *game.UserGame.Status != "playing" {
 		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(game.UserGame.Status), "playing")

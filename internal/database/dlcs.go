@@ -14,8 +14,9 @@ import (
 // ErrDLCNotFound is returned when a DLC is not a DLC for the given parent game.
 var ErrDLCNotFound = errors.New("DLC not found")
 
-// ErrCopyDLCNotFound is returned when a specific copy of a DLC is not found in the database.
-var ErrCopyDLCNotFound = errors.New("DLC copy not found")
+// ErrDLCNotOnCopy is returned when a DLC isn't available on an owned copy: there is no copy on that platform, the DLC
+// belongs to another game, or it isn't released on that platform.
+var ErrDLCNotOnCopy = errors.New("DLC not available for this copy")
 
 // dlcGameTypes returns a slice of int64 representing the IGDB game types that are considered DLCs.
 func dlcGameTypes() []int64 {
@@ -90,8 +91,8 @@ func (s *Store) SaveDLCs(ctx context.Context, parentIGDBID int64, dlcs []DLC, fe
 }
 
 // SetDLCOwned sets the ownership status of a DLC for a specific user's owned copy. If owned is true, the DLC is marked
-// as owned; otherwise, it is removed from the owned DLCs. Both directions are idempotent. "Returns ErrUserGameNotFound
-// if the game isn't owned, or ErrCopyDLCNotFound if the DLC isn't available for that copy
+// as owned; otherwise, it is removed from the owned DLCs. Both directions are idempotent. Returns ErrUserGameNotFound
+// if the game isn't in the library, or ErrDLCNotOnCopy if the DLC isn't available for that copy.
 func (s *Store) SetDLCOwned(ctx context.Context, userID, igdbID, platformIGDBID, dlcIGDBID int64, owned bool) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -100,9 +101,9 @@ func (s *Store) SetDLCOwned(ctx context.Context, userID, igdbID, platformIGDBID,
 	defer func() { _ = tx.Rollback() }()
 	q := dbgen.New(tx)
 
-	row, err := getOwnedUserGame(ctx, q, userID, igdbID)
+	row, err := getLibraryUserGame(ctx, q, userID, igdbID)
 	if err != nil {
-		return fmt.Errorf("get owned user game: %w", err)
+		return fmt.Errorf("get library user game: %w", err)
 	}
 
 	ownedCopy, err := q.GetCopyDLC(ctx, dbgen.GetCopyDLCParams{
@@ -114,7 +115,7 @@ func (s *Store) SetDLCOwned(ctx context.Context, userID, igdbID, platformIGDBID,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return ErrCopyDLCNotFound
+			return ErrDLCNotOnCopy
 		}
 		return fmt.Errorf("get copy dlc: %w", err)
 	}
@@ -137,10 +138,10 @@ func (s *Store) SetDLCOwned(ctx context.Context, userID, igdbID, platformIGDBID,
 	return nil
 }
 
-// TrackDLC gives a DLC of an owned game its own library entry with status backlog, so it gets its own status, rating
-// and playthroughs. Tracking twice has no additional effect. Returns ErrUserGameNotFound if the user doesn't own the
-// parent game, or ErrDLCNotFound if the DLC isn't available for the parent game.
-func (s *Store) TrackDLC(ctx context.Context, userID, parentIGDBID, dlcIGDBID int64, addedAt time.Time) error {
+// AddDLCToLibrary gives a DLC of a library game its own library entry with status backlog, so it gets its own status,
+// rating and playthroughs. Ownership (owned_dlc) is not changed. Adding it twice has no additional effect. Returns
+// ErrUserGameNotFound if the parent game isn't in the library, or ErrDLCNotFound if the DLC isn't a DLC of it.
+func (s *Store) AddDLCToLibrary(ctx context.Context, userID, parentIGDBID, dlcIGDBID int64, addedAt time.Time) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -148,9 +149,9 @@ func (s *Store) TrackDLC(ctx context.Context, userID, parentIGDBID, dlcIGDBID in
 	defer func() { _ = tx.Rollback() }()
 	q := dbgen.New(tx)
 
-	_, err = getOwnedUserGame(ctx, q, userID, parentIGDBID)
+	_, err = getLibraryUserGame(ctx, q, userID, parentIGDBID)
 	if err != nil {
-		return fmt.Errorf("get owned user game: %w", err)
+		return fmt.Errorf("get library user game: %w", err)
 	}
 
 	dlc, err := q.GetDLCGame(ctx, dbgen.GetDLCGameParams{
@@ -165,14 +166,14 @@ func (s *Store) TrackDLC(ctx context.Context, userID, parentIGDBID, dlcIGDBID in
 		return fmt.Errorf("get dlc game: %w", err)
 	}
 
-	err = q.CreateTrackedUserGame(ctx, dbgen.CreateTrackedUserGameParams{
+	err = q.CreateLibraryUserGame(ctx, dbgen.CreateLibraryUserGameParams{
 		UserID:  userID,
 		GameID:  dlc.ID,
 		Status:  GameStatusBacklog.StringPtr(),
 		AddedAt: addedAt,
 	})
 	if err != nil {
-		return fmt.Errorf("create tracked user game: %w", err)
+		return fmt.Errorf("create library user game: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

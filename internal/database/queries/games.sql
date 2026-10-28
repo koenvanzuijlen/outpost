@@ -20,7 +20,7 @@ WHERE
 -- name: ListDLCGames :many
 SELECT
     sqlc.embed(g),
-    ug.id IS NOT NULL AS tracked,
+    ug.id IS NOT NULL AS in_library,
     ug.status
 FROM
     games g

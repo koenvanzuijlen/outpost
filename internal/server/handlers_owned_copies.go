@@ -8,7 +8,7 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
-// handleRemoveOwnedCopy handles removing an owned copy of a game from the user's collection. It expects the igdbID
+// handleRemoveOwnedCopy handles removing an owned copy of a game; the game stays in the library. It expects the igdbID
 // and platformIGDBID as path parameters.
 func (server *Server) handleRemoveOwnedCopy(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")

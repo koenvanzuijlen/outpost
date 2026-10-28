@@ -26,7 +26,7 @@ WHERE
     AND NOT ug.wishlisted
     AND g.game_type NOT IN (sqlc.slice(dlc_game_types));
 
--- name: ListTrackedDLCs :many
+-- name: ListLibraryDLCs :many
 SELECT
     sqlc.embed(ug),
     sqlc.embed(g),
@@ -66,7 +66,7 @@ INSERT INTO user_games(user_id, game_id, status, wishlisted, added_at)
 ON CONFLICT (user_id, game_id)
     DO NOTHING;
 
--- name: UpsertOwnedUserGame :one
+-- name: UpsertLibraryUserGame :one
 INSERT INTO user_games(user_id, game_id, status, wishlisted, added_at)
     VALUES (?, ?, ?, FALSE, ?)
 ON CONFLICT (user_id, game_id)
@@ -76,7 +76,7 @@ ON CONFLICT (user_id, game_id)
     RETURNING
         *;
 
--- name: CreateTrackedUserGame :exec
+-- name: CreateLibraryUserGame :exec
 INSERT INTO user_games(user_id, game_id, status, wishlisted, added_at)
     VALUES (?, ?, ?, FALSE, ?)
 ON CONFLICT (user_id, game_id)
@@ -108,7 +108,7 @@ WHERE
             igdb_id = ?)
     AND NOT wishlisted;
 
--- name: DeleteTrackedDLCs :exec
+-- name: DeleteLibraryDLCs :exec
 DELETE FROM user_games
 WHERE user_id = sqlc.arg(user_id)
     AND game_id IN (
