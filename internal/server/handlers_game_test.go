@@ -76,10 +76,7 @@ func TestHandleGameActivePlaythrough(t *testing.T) {
 	startTestPlaythrough(t, server, "Hard mode run", "6")
 
 	details := getTestUserGame(t, server)
-	if len(details.Playthroughs) != 1 {
-		t.Fatalf("len(Playthroughs) = %d, want %d", len(details.Playthroughs), 1)
-	}
-	playthrough := details.Playthroughs[0].Playthrough
+	playthrough := onlyPlaythrough(t, details).Playthrough
 	if playthrough.StartedAt == nil {
 		t.Fatal("StartedAt = nil, want a date")
 	}

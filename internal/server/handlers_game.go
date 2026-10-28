@@ -20,7 +20,7 @@ type ratingOption struct {
 	Label string
 }
 
-// ratingOptions returns a list of rating options from 1 to 10, with labels formatted as stars.
+// ratingOptions returns the ratings 1 to 10 with their star labels, for the rating select.
 func ratingOptions() []ratingOption {
 	options := make([]ratingOption, 10)
 	for i := 1; i <= 10; i++ {
@@ -38,7 +38,7 @@ type outcomeOption struct {
 	Label string
 }
 
-// outcomeOptions returns all playthrough outcomes in display order, with their display labels.
+// outcomeOptions returns all playthrough outcomes in display order with their labels, for the outcome buttons.
 func outcomeOptions() []outcomeOption {
 	options := make([]outcomeOption, 0, len(database.PlaythroughOutcomes))
 	for _, outcome := range database.PlaythroughOutcomes {
@@ -61,7 +61,8 @@ type gamePage struct {
 	MaxNotesLength int64
 }
 
-// handleGame serves the detail page for a game in the user's library.
+// handleGame renders the game page of a game in the library or on the wishlist. On the first view of a game it fetches
+// and caches its DLC; if that fails, the error is logged and the page renders without DLC.
 func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -105,7 +106,8 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleUpdateGameDetails processes updates to a game's status and rating in the user's library.
+// handleUpdateGameDetails updates the status, rating and notes of a library game. It reads path value igdbID and form
+// values status, rating (optional) and notes (optional), and redirects to the game page.
 func (server *Server) handleUpdateGameDetails(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {

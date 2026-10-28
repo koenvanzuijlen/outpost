@@ -10,8 +10,8 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
-// handleStartPlaythrough handles the HTTP request to start a new playthrough for a game. It expects the IGDB ID of the
-// game as a path parameter and optionally accepts the platform and name as form values.
+// handleStartPlaythrough starts a playthrough of a library game. It reads path value igdbID and form values name and
+// platform (both optional), and redirects to the game page.
 func (server *Server) handleStartPlaythrough(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -43,8 +43,8 @@ func (server *Server) handleStartPlaythrough(w http.ResponseWriter, r *http.Requ
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
 }
 
-// handleSetPlaythroughOutcome handles the HTTP request to set the outcome of an existing playthrough for a game. It
-// expects the IGDB ID of the game and the playthrough ID as path parameters and the outcome as a form value.
+// handleSetPlaythroughOutcome sets the outcome of a playthrough. It reads path values igdbID and playthroughID and form
+// value outcome, and redirects to the game page.
 func (server *Server) handleSetPlaythroughOutcome(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -78,8 +78,9 @@ func (server *Server) handleSetPlaythroughOutcome(w http.ResponseWriter, r *http
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
 }
 
-// handleUpdatePlaythrough handles the HTTP request to update the details of an existing playthrough for a game. It
-// expects the IGDB ID of the game and the playthrough ID as path parameters and the updated details as form values.
+// handleUpdatePlaythrough updates the name, platform and dates of a playthrough. It reads path values igdbID and
+// playthroughID and form values name, platform, started_at and finished_at (all optional; empty clears the field), and
+// redirects to the game page.
 func (server *Server) handleUpdatePlaythrough(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -137,8 +138,8 @@ func (server *Server) handleUpdatePlaythrough(w http.ResponseWriter, r *http.Req
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
 }
 
-// handleDeletePlaythrough handles the HTTP request to delete an existing playthrough for a game. It expects the IGDB ID
-// of the game and the playthrough ID as path parameters.
+// handleDeletePlaythrough deletes a playthrough. It reads path values igdbID and playthroughID, and redirects to the
+// game page. A playthrough that is already gone counts as success.
 func (server *Server) handleDeletePlaythrough(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {

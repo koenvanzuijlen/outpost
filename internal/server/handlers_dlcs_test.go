@@ -5,20 +5,8 @@ import (
 	"testing"
 )
 
-// Hearts of Stone (12503) is a DLC of The Witcher 3 available on PC (6).
-const (
-	testDLCPath    = "/games/1942/platforms/6/dlcs/12503"
-	testAddDLCPath = "/games/1942/dlcs/12503/library"
-)
-
-// addTestGameWithDLCs adds The Witcher 3 on PC and views its page so its DLCs are fetched and stored.
-func addTestGameWithDLCs(t *testing.T, server *Server) *fakeIGDB {
-	t.Helper()
-	fake := addTestGame(t, server)
-	fake.dlcs = loadIGDBGames(t, "dlcs.json")
-	getTestGamePage(t, server)
-	return fake
-}
+// testDLCPath is the ownership toggle for Hearts of Stone (12503) on The Witcher 3's PC copy (6).
+const testDLCPath = "/games/1942/platforms/6/dlcs/12503"
 
 func TestHandleSetDLCOwnedStatus(t *testing.T) {
 	server := newTestServer(t)
@@ -123,7 +111,7 @@ func TestHandleStartPlaythroughOnDLC(t *testing.T) {
 		t.Fatalf("own status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 	if w := postForm(t, server, testAddDLCPath, ""); w.Code != http.StatusSeeOther {
-		t.Fatalf("track status = %d, want %d", w.Code, http.StatusSeeOther)
+		t.Fatalf("add dlc to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
 	w := postForm(t, server, "/games/12503/playthroughs", "platform=6")

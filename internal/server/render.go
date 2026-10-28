@@ -13,8 +13,8 @@ import (
 //go:embed templates
 var templateFS embed.FS
 
-// render executes the specified template with the given data and writes the result to the response writer. If an error
-// occurs, it logs the error and returns a 500 status code.
+// render executes the page template name with data and writes the result. If that fails, it logs the error and responds
+// with a 500, without writing a partial page.
 func (server *Server) render(w http.ResponseWriter, name string, data any) {
 	var buf bytes.Buffer
 	tmpl, ok := server.templates[name]

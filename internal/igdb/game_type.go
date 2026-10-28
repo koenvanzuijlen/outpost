@@ -7,10 +7,11 @@ import (
 	"strings"
 )
 
-// GameType as defined by the IGDB API. See https://api-docs.igdb.com/#game
+// GameType is the type of a game as defined by IGDB, such as main game, expansion or remake. See
+// https://api-docs.igdb.com/#game
 type GameType int
 
-// GameType as defined by the IGDB API. See https://api-docs.igdb.com/#game
+// The game types IGDB defines, with their IGDB IDs.
 const (
 	GameTypeMain                GameType = 0
 	GameTypeDLCAddon            GameType = 1
@@ -29,8 +30,7 @@ const (
 	GameTypeUpdate              GameType = 14
 )
 
-// StandaloneGameTypes contains the GameTypes that are considered standalone games, and can be found in search and added to
-// a library directly.
+// StandaloneGameTypes are the game types that can be searched and added to the library directly.
 var StandaloneGameTypes = []GameType{
 	GameTypeMain,
 	GameTypeStandaloneExpansion,
@@ -41,8 +41,7 @@ var StandaloneGameTypes = []GameType{
 	GameTypeFork,
 }
 
-// DLCGameTypes contains the GameTypes that are considered downloadable content or add-ons, and can be added to the
-// library only from the parent game.
+// DLCGameTypes are the game types that count as DLC: they are managed from their parent game, never added directly.
 var DLCGameTypes = []GameType{
 	GameTypeDLCAddon,
 	GameTypeExpansion,
@@ -87,17 +86,18 @@ func (gt GameType) String() string {
 	}
 }
 
-// Standalone returns true if the GameType is considered a standalone game.
+// Standalone reports whether gt is a standalone game type (StandaloneGameTypes): one that can be searched and added to
+// the library directly.
 func (gt GameType) Standalone() bool {
 	return slices.Contains(StandaloneGameTypes, gt)
 }
 
-// DLC returns true if the GameType is considered downloadable content or an add-on.
+// DLC reports whether gt is a DLC type (DLCGameTypes): one that is managed from its parent game.
 func (gt GameType) DLC() bool {
 	return slices.Contains(DLCGameTypes, gt)
 }
 
-// gameTypeFilter returns a comma-separated string of game type IDs suitable for use in IGDB API queries.
+// gameTypeFilter returns types as a comma-separated list of IDs, for a game_type = (...) filter in an IGDB query.
 func gameTypeFilter(types []GameType) string {
 	str := make([]string, 0, len(types))
 	for _, t := range types {

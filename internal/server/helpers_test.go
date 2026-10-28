@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
+	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
@@ -27,14 +29,17 @@ type fakeIGDB struct {
 	dlcsCalls     int
 }
 
+// SearchGames returns the configured search results and error.
 func (c *fakeIGDB) SearchGames(_ context.Context, _ string) ([]igdb.Game, error) {
 	return c.searchResults, c.searchErr
 }
 
+// GameByID returns the configured game and error, whatever the ID.
 func (c *fakeIGDB) GameByID(_ context.Context, _ int) (igdb.Game, error) {
 	return c.game, c.gameErr
 }
 
+// DLCs counts the call and returns the configured DLC and error, whatever the ID.
 func (c *fakeIGDB) DLCs(_ context.Context, _ int) ([]igdb.Game, error) {
 	c.dlcsCalls++
 	return c.dlcs, c.dlcsErr
@@ -54,6 +59,8 @@ func loadIGDBGames(t *testing.T, name string) []igdb.Game {
 	return games
 }
 
+// newTestServer returns a Server with a fresh database in a temporary directory and no IGDB client. Tests that call
+// IGDB set server.igdbClient to a fakeIGDB.
 func newTestServer(t *testing.T) *Server {
 	t.Helper()
 	logger := slog.New(slog.DiscardHandler)
@@ -108,16 +115,21 @@ func getTestGamePage(t *testing.T, server *Server) *httptest.ResponseRecorder {
 // getGamePage requests the game page for igdbID and asserts a 200 response.
 func getGamePage(t *testing.T, server *Server, igdbID int64) *httptest.ResponseRecorder {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodGet, "/games/"+strconv.FormatInt(igdbID, 10), nil)
+	return getPage(t, server, "/games/"+strconv.FormatInt(igdbID, 10))
+}
+
+// getPage requests path and asserts a 200 response.
+func getPage(t *testing.T, server *Server, path string) *httptest.ResponseRecorder {
+	t.Helper()
 	w := httptest.NewRecorder()
-	server.ServeHTTP(w, req)
+	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
 	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+		t.Fatalf("GET %s status = %d, want %d", path, w.Code, http.StatusOK)
 	}
 	return w
 }
 
-// getTestUserGame loads The Witcher 3 from the default user's library.
+// getTestUserGame returns The Witcher 3 (1942) from the library or wishlist. It fails the test if it isn't there.
 func getTestUserGame(t *testing.T, server *Server) database.UserGameDetails {
 	t.Helper()
 	details, err := server.store.GetUserGame(t.Context(), defaultUserID, 1942)
@@ -125,6 +137,15 @@ func getTestUserGame(t *testing.T, server *Server) database.UserGameDetails {
 		t.Fatalf("GetUserGame() failed: %v", err)
 	}
 	return details
+}
+
+// onlyPlaythrough returns the single playthrough of details. It fails the test if there isn't exactly one.
+func onlyPlaythrough(t *testing.T, details database.UserGameDetails) dbgen.ListPlaythroughsForUserGameIDRow {
+	t.Helper()
+	if len(details.Playthroughs) != 1 {
+		t.Fatalf("len(Playthroughs) = %d, want 1", len(details.Playthroughs))
+	}
+	return details.Playthroughs[0]
 }
 
 // postForm sends a POST request with the given form body to the specified URL and returns the response recorder.
@@ -167,4 +188,32 @@ func derefOrNil[T any](p *T) any {
 		return nil
 	}
 	return *p
+}
+
+// testAddDLCPath adds Hearts of Stone (12503), a DLC of The Witcher 3, to the library separately.
+const testAddDLCPath = "/games/1942/dlcs/12503/library"
+
+// addTestGameWithDLCs adds The Witcher 3 on PC and views its page so its DLCs are fetched and stored.
+func addTestGameWithDLCs(t *testing.T, server *Server) *fakeIGDB {
+	t.Helper()
+	fake := addTestGame(t, server)
+	fake.dlcs = loadIGDBGames(t, "dlcs.json")
+	getTestGamePage(t, server)
+	return fake
+}
+
+// startTestPlaythrough adds The Witcher 3 (1942) to the library on PC, starts a playthrough with the given name and
+// platform (both may be empty), and returns its ID.
+func startTestPlaythrough(t *testing.T, server *Server, name, platformIGDBID string) int64 {
+	t.Helper()
+	addTestGame(t, server)
+
+	form := url.Values{"name": {name}, "platform": {platformIGDBID}}.Encode()
+	w := postForm(t, server, "/games/1942/playthroughs", form)
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	details := getTestUserGame(t, server)
+	return onlyPlaythrough(t, details).Playthrough.ID
 }

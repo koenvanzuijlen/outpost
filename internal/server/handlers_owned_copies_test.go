@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
@@ -46,11 +45,7 @@ func TestHandleRemoveOnlyCopy(t *testing.T) {
 		t.Fatalf("remove status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	w := httptest.NewRecorder()
-	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/", nil))
-	if w.Code != http.StatusOK {
-		t.Fatalf("library status = %d, want %d", w.Code, http.StatusOK)
-	}
+	w := getPage(t, server, "/")
 	assertBodyContains(t, w, `<a href="/games/1942">`)
 	assertBodyContains(t, w, "not owned")
 

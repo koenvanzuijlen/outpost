@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// newTestTokenClient returns a Client whose Twitch token endpoint is served by handler.
 func newTestTokenClient(t *testing.T, handler http.HandlerFunc) *Client {
 	t.Helper()
 	srv := httptest.NewServer(handler)
@@ -15,6 +16,7 @@ func newTestTokenClient(t *testing.T, handler http.HandlerFunc) *Client {
 	return client
 }
 
+// newTestClient returns a Client with a valid token whose IGDB API endpoint is served by handler.
 func newTestClient(t *testing.T, handler http.HandlerFunc) *Client {
 	t.Helper()
 	client := newTestTokenClient(t, func(w http.ResponseWriter, _ *http.Request) {

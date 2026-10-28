@@ -17,7 +17,7 @@ type libraryPage struct {
 	WishlistedGames []dbgen.ListWishlistedUserGamesRow
 }
 
-// handleLibrary serves the user's library page, displaying library games and wishlisted games.
+// handleLibrary renders the home page: the library and the wishlist.
 func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	games, err := server.store.ListLibrary(ctx, defaultUserID)
@@ -39,9 +39,8 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleAddToLibrary handles adding a game to the user's library. It expects the game's IGDB ID as form value igdb_id,
-// and optionally platform_id: the IGDB ID of the platform the user owns the game on. Without a platform the game is
-// added without being owned. A copy that is already owned counts as success.
+// handleAddToLibrary adds a game to the library. It reads form values igdb_id and platform_id (optional; without it the
+// game is added as not owned), and redirects to the home page. A copy that is already owned counts as success.
 func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request) {
 	igdbID, err := strconv.Atoi(r.PostFormValue("igdb_id"))
 	if err != nil || igdbID <= 0 {
@@ -92,9 +91,8 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// handleRemoveUserGame handles removing a game from the user's library or wishlist, including its copies, DLC
-// ownership, playthroughs and its DLC's library entries (see database.Store.RemoveUserGame). It expects the IGDB ID of
-// the game as a path parameter. It is idempotent: a game that is already gone counts as success.
+// handleRemoveUserGame removes a game from the library or wishlist, see database.Store.RemoveUserGame for what goes
+// with it. It reads path value igdbID and redirects to the home page. A game that is already gone counts as success.
 func (server *Server) handleRemoveUserGame(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {

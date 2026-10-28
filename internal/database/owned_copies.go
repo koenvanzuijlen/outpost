@@ -8,15 +8,15 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
 
-// ErrAlreadyOwnedOnPlatform is returned when trying to add an owned copy that is already present.
+// ErrAlreadyOwnedOnPlatform is returned when adding a copy on a platform the game is already owned on.
 var ErrAlreadyOwnedOnPlatform = errors.New("game is already owned on this platform")
 
-// ErrOwnedCopyNotFound is returned when trying to delete an owned copy that doesn't exist.
+// ErrOwnedCopyNotFound is returned when removing a copy that doesn't exist.
 var ErrOwnedCopyNotFound = errors.New("owned copy not found")
 
-// RemoveOwnedCopy removes an owned copy of a game for a user on a specific platform. It also removes DLC ownership for
-// this game. The library entry and playthrough stay. It returns ErrOwnedCopyNotFound if the user does not own the game
-// on the specified platform.
+// RemoveOwnedCopy removes the user's copy of a game on the given platform, together with the DLC ownership on that
+// copy. The library entry and its playthroughs stay, also when it was the last copy. Returns ErrUserGameNotFound if the
+// game isn't in the library, or ErrOwnedCopyNotFound if there is no copy on that platform.
 func (s *Store) RemoveOwnedCopy(ctx context.Context, userID, igdbID, platformIGDBID int64) error {
 	userGame, err := getLibraryUserGame(ctx, s.queries, userID, igdbID)
 	if err != nil {

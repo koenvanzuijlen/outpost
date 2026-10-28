@@ -11,7 +11,8 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
-// fetchDLCs retrieves the DLCs for a given game from IGDB and saves them to the database.
+// fetchDLCs fetches the DLC of a game from IGDB and caches them in the database. Only the IGDB call is limited to 3
+// seconds, because it blocks the page.
 func (server *Server) fetchDLCs(ctx context.Context, igdbID int64) error {
 	now := time.Now().UTC()
 
@@ -34,9 +35,8 @@ func (server *Server) fetchDLCs(ctx context.Context, igdbID int64) error {
 	return nil
 }
 
-// handleSetDLCOwned handles the HTTP request to set the ownership status of a DLC for a specific user's owned copy.
-// It expects the IGDB ID of the parent game, the platform IGDB ID, and the DLC IGDB ID as path parameters, and the
-// ownership status as a POST form value "owned" ("true" or "false").
+// handleSetDLCOwned marks a DLC as owned or not owned on one copy of its parent game. It reads path values igdbID,
+// platformIGDBID and dlcIGDBID and form value owned ("true" or "false"), and redirects to the game page.
 func (server *Server) handleSetDLCOwned(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -79,8 +79,8 @@ func (server *Server) handleSetDLCOwned(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
 }
 
-// handleAddDLCToLibrary handles the HTTP request to add a DLC to the user's library as a separate entry. It redirects
-// to the DLC's page afterwards.
+// handleAddDLCToLibrary adds a DLC of a library game to the library separately. It reads path values igdbID and
+// dlcIGDBID, and redirects to the DLC's page.
 func (server *Server) handleAddDLCToLibrary(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {

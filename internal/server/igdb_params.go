@@ -8,7 +8,7 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
-// upsertGameParamsFromIGDB maps an IGDB game to the parameters required for the UpsertGame database operation.
+// upsertGameParamsFromIGDB converts an IGDB game to UpsertGame parameters.
 func upsertGameParamsFromIGDB(game igdb.Game, fetchedAt time.Time) dbgen.UpsertGameParams {
 	releasedAt := time.Time{}
 	if game.FirstReleaseDate != 0 {
@@ -26,7 +26,7 @@ func upsertGameParamsFromIGDB(game igdb.Game, fetchedAt time.Time) dbgen.UpsertG
 	}
 }
 
-// upsertPlatformParamsFromIGDB maps an IGDB platform to the parameters required for the UpsertPlatform database operation.
+// upsertPlatformParamsFromIGDB converts an IGDB platform to UpsertPlatform parameters.
 func upsertPlatformParamsFromIGDB(platform igdb.Platform, fetchedAt time.Time) dbgen.UpsertPlatformParams {
 	return dbgen.UpsertPlatformParams{
 		IgdbID:    int64(platform.ID),
@@ -35,7 +35,7 @@ func upsertPlatformParamsFromIGDB(platform igdb.Platform, fetchedAt time.Time) d
 	}
 }
 
-// dlcFromIGDB maps an IGDB game to the database.DLC structure, including its platforms.
+// dlcFromIGDB converts an IGDB DLC to a database.DLC, including its platforms.
 func dlcFromIGDB(game igdb.Game, fetchedAt time.Time) database.DLC {
 	platforms := make([]dbgen.UpsertPlatformParams, len(game.Platforms))
 	for i, platform := range game.Platforms {

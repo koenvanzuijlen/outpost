@@ -32,8 +32,7 @@ type Server struct {
 	igdbClient IGDBClient
 }
 
-// New creates a Server with the given logger, database connection, and IGDB client. It parses the templates, sets up
-// the routes, and returns the ready-to-serve Server instance.
+// New creates a Server with the given logger, store and IGDB client. It parses the templates and registers the routes.
 func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient) (*Server, error) {
 	templates, err := parseTemplates()
 	if err != nil {
@@ -52,7 +51,7 @@ func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient) (*Se
 	return server, nil
 }
 
-// ServeHTTP passes the request through the middleware to the routers.
+// ServeHTTP passes the request through the middleware to the routes.
 func (server *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	server.handler.ServeHTTP(w, r)
 }

@@ -48,7 +48,7 @@ func (g Game) ReleaseYear() int {
 	return time.Unix(int64(g.FirstReleaseDate), 0).UTC().Year()
 }
 
-// SearchGames searches for games matching the given query string.
+// SearchGames searches IGDB for standalone games with a platform that match query. It returns at most 10 games.
 func (c *Client) SearchGames(ctx context.Context, query string) ([]Game, error) {
 	escaped := strings.ReplaceAll(query, `"`, `\"`)
 	body := fmt.Sprintf(`search "%s"; where platforms != null & game_type = (%s); fields %s; limit 10;`, escaped, gameTypeFilter(StandaloneGameTypes), gameFields)
@@ -61,7 +61,7 @@ func (c *Client) SearchGames(ctx context.Context, query string) ([]Game, error) 
 	return games, nil
 }
 
-// GameByID retrieves a game by its unique ID from the IGDB API.
+// GameByID returns the game with the given IGDB ID. Returns ErrGameNotFound if there is no such game.
 func (c *Client) GameByID(ctx context.Context, id int) (Game, error) {
 	body := fmt.Sprintf(`where id = %d; fields %s;`, id, gameFields)
 
@@ -75,8 +75,8 @@ func (c *Client) GameByID(ctx context.Context, id int) (Game, error) {
 	return games[0], nil
 }
 
-// DLCs retrieves the downloadable content (DLC) for a given parent game ID from the IGDB API. It returns a slice of
-// Game objects representing the DLCs, or an error if the query fails.
+// DLCs returns the DLC of the game with the given IGDB ID (types in DLCGameTypes). A game without DLC gives an empty
+// slice, not an error.
 func (c *Client) DLCs(ctx context.Context, parentID int) ([]Game, error) {
 	body := fmt.Sprintf(`where parent_game = %d & game_type = (%s); fields %s; limit 500;`, parentID, gameTypeFilter(DLCGameTypes), gameFields)
 

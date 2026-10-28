@@ -8,10 +8,10 @@ import (
 // ErrInvalidGameStatus is returned when an invalid game status is provided.
 var ErrInvalidGameStatus = errors.New("invalid game status")
 
-// GameStatus has the possible values for the status of a game.
+// GameStatus is the status of a library game, one of the GameStatus constants.
 type GameStatus string
 
-// GameStatus has the possible values for the status of a game.
+// The game statuses. Values are stored as text and validated in Go (Valid).
 const (
 	GameStatusBacklog   GameStatus = "backlog"
 	GameStatusPlaying   GameStatus = "playing"
@@ -31,18 +31,19 @@ var GameStatuses = []GameStatus{
 	GameStatusRetired,
 }
 
-// Valid checks if the given status is a valid game status.
+// Valid reports whether s is a known game status.
 func (s GameStatus) Valid() bool {
 	return slices.Contains(GameStatuses, s)
 }
 
-// StringPtr gives the string pointer value for a game status.
+// StringPtr returns s as a *string, for the nullable status column.
 func (s GameStatus) StringPtr() *string {
 	str := string(s)
 	return &str
 }
 
-// gameStatusFrom converts a string pointer to a GameStatus. If the pointer is nil, it returns an empty GameStatus.
+// gameStatusFrom converts the nullable status column to a GameStatus. A nil status becomes the empty GameStatus, which
+// matches no status.
 func gameStatusFrom(s *string) GameStatus {
 	if s == nil {
 		return ""

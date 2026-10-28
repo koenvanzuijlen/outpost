@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// pathID extracts an integer ID from the URL path parameters. It returns the ID and a boolean indicating success.
+// pathID returns path value name as a positive int64. ok is false if it is missing, not a number, or not positive.
 func pathID(r *http.Request, name string) (int64, bool) {
 	value, err := strconv.ParseInt(r.PathValue(name), 10, 64)
 	if err != nil || value <= 0 {
@@ -15,9 +15,8 @@ func pathID(r *http.Request, name string) (int64, bool) {
 	return value, true
 }
 
-// formOptionalPositiveInt extracts an optional positive integer from the form values. It returns a pointer to the
-// integer and a boolean indicating success. An empty form value is considered valid and results in nil and true. If the
-// form value can't be parsed as a positive integer, it returns nil and false.
+// formOptionalPositiveInt returns form value name from the POST body as a positive int64. An empty value gives nil and
+// true; a value that isn't a positive integer gives nil and false.
 func formOptionalPositiveInt(r *http.Request, name string) (*int64, bool) {
 	formValue := r.PostFormValue(name)
 	if formValue == "" {
@@ -31,9 +30,8 @@ func formOptionalPositiveInt(r *http.Request, name string) (*int64, bool) {
 	return &parsed, true
 }
 
-// formOptionalDate extracts an optional date from the form values. It returns a pointer to the date and a boolean
-// indicating success. An empty form value is considered valid and results in nil and true. If the form value can't be
-// parsed as a date, it returns nil and false.
+// formOptionalDate returns form value name from the POST body as a date (2006-01-02, midnight UTC). An empty value
+// gives nil and true; a value that isn't a valid date gives nil and false.
 func formOptionalDate(r *http.Request, name string) (*time.Time, bool) {
 	formValue := r.PostFormValue(name)
 	if formValue == "" {

@@ -11,14 +11,14 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
-// ErrDLCNotFound is returned when a DLC is not a DLC for the given parent game.
+// ErrDLCNotFound is returned when a game isn't a DLC of the given parent game.
 var ErrDLCNotFound = errors.New("DLC not found")
 
 // ErrDLCNotOnCopy is returned when a DLC isn't available on an owned copy: there is no copy on that platform, the DLC
 // belongs to another game, or it isn't released on that platform.
 var ErrDLCNotOnCopy = errors.New("DLC not available for this copy")
 
-// dlcGameTypes returns a slice of int64 representing the IGDB game types that are considered DLCs.
+// dlcGameTypes returns the IGDB game types that count as DLC (igdb.DLCGameTypes), as int64 for sqlc.
 func dlcGameTypes() []int64 {
 	dlcTypes := make([]int64, 0, len(igdb.DLCGameTypes))
 	for _, t := range igdb.DLCGameTypes {
@@ -27,20 +27,21 @@ func dlcGameTypes() []int64 {
 	return dlcTypes
 }
 
-// DLC represents a downloadable content (DLC) for a parent game, including its associated platforms.
+// DLC is a DLC of a parent game with the platforms it is released on, as SaveDLCs caches it.
 type DLC struct {
 	Game      dbgen.UpsertGameParams
 	Platforms []dbgen.UpsertPlatformParams
 }
 
-// CopyDLC represents a DLC for a parent game along with its ownership status for a specific owned copy.
+// CopyDLC is a DLC that is available on one owned copy, with whether it is owned on that copy.
 type CopyDLC struct {
 	Game  dbgen.Game
 	Owned bool
 }
 
-// SaveDLCs upserts the provided DLCs for the given parent IGDB ID and stores the fetched timestamp. If the parent game
-// is not in the database, an error is returned.
+// SaveDLCs caches the DLC of a game: it upserts each DLC with its platforms and marks the parent's DLC list as fetched,
+// in one transaction. DLC that IGDB no longer lists are not removed. Returns an error if the parent game isn't in the
+// catalog.
 func (s *Store) SaveDLCs(ctx context.Context, parentIGDBID int64, dlcs []DLC, fetchedAt time.Time) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -90,9 +91,9 @@ func (s *Store) SaveDLCs(ctx context.Context, parentIGDBID int64, dlcs []DLC, fe
 	return nil
 }
 
-// SetDLCOwned sets the ownership status of a DLC for a specific user's owned copy. If owned is true, the DLC is marked
-// as owned; otherwise, it is removed from the owned DLCs. Both directions are idempotent. Returns ErrUserGameNotFound
-// if the game isn't in the library, or ErrDLCNotOnCopy if the DLC isn't available for that copy.
+// SetDLCOwned marks a DLC as owned or not owned on the user's copy of its parent game on the given platform. Setting
+// the same value again is a no-op. Returns ErrUserGameNotFound if the parent game isn't in the library, or
+// ErrDLCNotOnCopy if the DLC isn't available for that copy.
 func (s *Store) SetDLCOwned(ctx context.Context, userID, igdbID, platformIGDBID, dlcIGDBID int64, owned bool) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -138,8 +139,8 @@ func (s *Store) SetDLCOwned(ctx context.Context, userID, igdbID, platformIGDBID,
 	return nil
 }
 
-// AddDLCToLibrary gives a DLC of a library game its own library entry with status backlog, so it gets its own status,
-// rating and playthroughs. Ownership (owned_dlc) is not changed. Adding it twice has no additional effect. Returns
+// AddDLCToLibrary adds a DLC of a library game to the library as a separate entry with status backlog, so it gets its
+// own status, rating and playthroughs. Ownership is not changed, and adding it again is a no-op. Returns
 // ErrUserGameNotFound if the parent game isn't in the library, or ErrDLCNotFound if the DLC isn't a DLC of it.
 func (s *Store) AddDLCToLibrary(ctx context.Context, userID, parentIGDBID, dlcIGDBID int64, addedAt time.Time) error {
 	tx, err := s.db.BeginTx(ctx, nil)

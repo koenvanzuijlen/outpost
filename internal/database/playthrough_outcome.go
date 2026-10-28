@@ -9,10 +9,10 @@ import (
 // ErrInvalidPlaythroughOutcome is returned when an invalid playthrough outcome is provided.
 var ErrInvalidPlaythroughOutcome = errors.New("invalid playthrough outcome")
 
-// PlaythroughOutcome has the possible values for the outcome of a playthrough.
+// PlaythroughOutcome is the outcome of a playthrough, one of the PlaythroughOutcome constants.
 type PlaythroughOutcome string
 
-// PlaythroughOutcome has the possible values for the outcome of a playthrough.
+// The playthrough outcomes. Values are stored as text and validated in Go (Valid).
 const (
 	PlaythroughOutcomePlaying   PlaythroughOutcome = "playing"
 	PlaythroughOutcomeCompleted PlaythroughOutcome = "completed"
@@ -28,12 +28,13 @@ var PlaythroughOutcomes = []PlaythroughOutcome{
 	PlaythroughOutcomeRetired,
 }
 
-// Valid checks if the given outcome is a valid playthrough outcome.
+// Valid reports whether o is a known playthrough outcome.
 func (o PlaythroughOutcome) Valid() bool {
 	return slices.Contains(PlaythroughOutcomes, o)
 }
 
-// finishedAtFor determines the appropriate finished_at timestamp based on the transition of playthrough outcomes.
+// finishedAtFor returns finished_at after a playthrough's outcome changes from `from` to `to`: now when it leaves
+// playing, nil when it goes back to playing, and current otherwise.
 func finishedAtFor(from, to PlaythroughOutcome, current *time.Time, now time.Time) *time.Time {
 	if from == PlaythroughOutcomePlaying && to != PlaythroughOutcomePlaying {
 		return &now
@@ -44,9 +45,9 @@ func finishedAtFor(from, to PlaythroughOutcome, current *time.Time, now time.Tim
 	return current
 }
 
-// statusAfterOutcomeChange determines the new game status after ending a playthrough, which can be changed only when it
-// ends the last playing playthrough of a game that is playing. Returns the new game status and a boolean indicating if
-// it should change.
+// statusAfterOutcomeChange returns the game status after a playthrough's outcome changes, and whether it changes at
+// all. It only changes when the last playing playthrough of a game that is playing ends; the new status is then the
+// outcome.
 func statusAfterOutcomeChange(from, to PlaythroughOutcome, status GameStatus, otherPlaying int64) (GameStatus, bool) {
 	if from != PlaythroughOutcomePlaying || to == PlaythroughOutcomePlaying || status != GameStatusPlaying || otherPlaying > 0 {
 		return status, false

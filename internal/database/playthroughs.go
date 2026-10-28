@@ -10,15 +10,16 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
 
-// ErrPlaythroughNotFound is returned when a playthrough is not found in the database.
+// ErrPlaythroughNotFound is returned when a playthrough doesn't exist or doesn't belong to the given game.
 var ErrPlaythroughNotFound = errors.New("playthrough not found")
 
-// ErrInvalidPlaythroughDates is returned when the playthrough dates are invalid.
+// ErrInvalidPlaythroughDates is returned when playthrough dates don't fit its outcome: a finished date while playing,
+// or finished before started.
 var ErrInvalidPlaythroughDates = errors.New("invalid playthrough dates")
 
-// StartPlaythrough starts a new playthrough for a user's game, it also marks the game status itself as playing if it
-// was previously in the backlog. Returns the created playthrough, or ErrPlatformNotFound, ErrUserGameNotFound, or
-// another error if the operation fails.
+// StartPlaythrough starts a playthrough of a library game, optionally named and on a platform. If the game is on the
+// backlog, its status becomes playing. Returns ErrUserGameNotFound if the game isn't in the library, or
+// ErrPlatformNotFound if the platform isn't in the catalog.
 func (s *Store) StartPlaythrough(
 	ctx context.Context,
 	userID,
@@ -70,10 +71,10 @@ func (s *Store) StartPlaythrough(
 	return playthrough, nil
 }
 
-// SetPlaythroughOutcome sets the outcome of an existing playthrough for a user's game, it also updates the game status
-// itself based on the outcome when it ends the last playing playthrough of a game that is playing. Setting the same
-// outcome again does nothing. Returns ErrPlaythroughNotFound, ErrUserGameNotFound,
-// ErrInvalidPlaythroughOutcome, or another error if the operation fails.
+// SetPlaythroughOutcome sets the outcome of a playthrough and updates finished_at to match. When this ends the last
+// playing playthrough of a game that is playing, the game status becomes the outcome. Setting the same outcome again is
+// a no-op. Returns ErrInvalidPlaythroughOutcome if the outcome is unknown, ErrUserGameNotFound if the game isn't in the
+// library, or ErrPlaythroughNotFound if the playthrough doesn't belong to it.
 func (s *Store) SetPlaythroughOutcome(
 	ctx context.Context,
 	userID,
@@ -145,7 +146,7 @@ func (s *Store) SetPlaythroughOutcome(
 	return nil
 }
 
-// PlaythroughDetails represents the details of a playthrough that can be updated. Fields set to nil will be cleared.
+// PlaythroughDetails are the fields of a playthrough that UpdatePlaythroughDetails overwrites. A nil field is cleared.
 type PlaythroughDetails struct {
 	PlatformIGDBID *int64
 	Name           *string
@@ -153,9 +154,10 @@ type PlaythroughDetails struct {
 	FinishedAt     *time.Time
 }
 
-// UpdatePlaythroughDetails updates the details of an existing playthrough for a user's game. If fields are provided as
-// nil their data will be cleared. Returns ErrPlaythroughNotFound, ErrUserGameNotFound, ErrInvalidPlaythroughDates,
-// ErrPlatformNotFound, or another error if the operation fails.
+// UpdatePlaythroughDetails updates the name, platform and dates of a playthrough. Every field is overwritten; nil
+// clears it. Returns ErrUserGameNotFound if the game isn't in the library, ErrPlaythroughNotFound if the playthrough
+// doesn't belong to it, ErrInvalidPlaythroughDates if the dates don't fit its outcome, or ErrPlatformNotFound if the
+// platform isn't in the catalog.
 func (s *Store) UpdatePlaythroughDetails(ctx context.Context, userID, igdbID, playthroughID int64, details PlaythroughDetails) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -206,8 +208,9 @@ func (s *Store) UpdatePlaythroughDetails(ctx context.Context, userID, igdbID, pl
 	return nil
 }
 
-// DeletePlaythrough deletes an existing playthrough for a user's game, the user game status remains unchanged. Returns
-// ErrPlaythroughNotFound, ErrUserGameNotFound, or another error if the operation fails.
+// DeletePlaythrough deletes a playthrough of a library game. The game status is not changed. Returns
+// ErrUserGameNotFound if the game isn't in the library, or ErrPlaythroughNotFound if the playthrough doesn't belong to
+// it.
 func (s *Store) DeletePlaythrough(
 	ctx context.Context,
 	userID,
@@ -233,8 +236,8 @@ func (s *Store) DeletePlaythrough(
 	return nil
 }
 
-// validPlaythroughDates checks if the provided playthrough dates are valid based on the outcome. Returns true if the
-// dates are valid, false otherwise.
+// validPlaythroughDates reports whether the dates fit a playthrough with the given outcome: no finished date while
+// playing, and not finished before started. Both dates are optional.
 func validPlaythroughDates(outcome PlaythroughOutcome, startedAt, finishedAt *time.Time) bool {
 	if outcome == PlaythroughOutcomePlaying && finishedAt != nil {
 		return false

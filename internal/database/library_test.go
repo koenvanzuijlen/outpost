@@ -10,37 +10,28 @@ import (
 )
 
 func TestGetUserGameOwned(t *testing.T) {
-	ctx := t.Context()
 	store := newTestStore(t)
 
-	// Add a game to the user's collection before attempting to retrieve it
-	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToLibrary() failed: %v", err)
-	}
+	addOwnedGame(t, store, 100)
 
-	// Attempt to retrieve the row from the library
-	row, err := store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
+	details := getUserGame(t, store, 100)
+	if details.Game.Title != "Test Game" {
+		t.Errorf("Title = %v, want %v", details.Game.Title, "Test Game")
 	}
-	if row.Game.Title != "Test Game" {
-		t.Errorf("Title = %v, want %v", row.Game.Title, "Test Game")
+	if details.UserGame.Status == nil || *details.UserGame.Status != "backlog" {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), "backlog")
 	}
-	if row.UserGame.Status == nil || *row.UserGame.Status != "backlog" {
-		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(row.UserGame.Status), "backlog")
+	if details.UserGame.Wishlisted {
+		t.Errorf("UserGame.Wishlisted = %v, want %v", details.UserGame.Wishlisted, false)
 	}
-	if row.UserGame.Wishlisted {
-		t.Errorf("UserGame.Wishlisted = %v, want %v", row.UserGame.Wishlisted, false)
+	if len(details.OwnedPlatforms) != 1 {
+		t.Fatalf("len(Platforms) = %d, want 1", len(details.OwnedPlatforms))
 	}
-	if len(row.OwnedPlatforms) != 1 {
-		t.Fatalf("len(Platforms) = %d, want 1", len(row.OwnedPlatforms))
+	if details.OwnedPlatforms[0].Name != "Xbox" {
+		t.Errorf("Platform.Name = %v, want %v", details.OwnedPlatforms[0].Name, "Xbox")
 	}
-	if row.OwnedPlatforms[0].Name != "Xbox" {
-		t.Errorf("Platform.Name = %v, want %v", row.OwnedPlatforms[0].Name, "Xbox")
-	}
-	if len(row.Playthroughs) != 0 {
-		t.Errorf("len(Playthroughs) = %d, want 0", len(row.Playthroughs))
+	if len(details.Playthroughs) != 0 {
+		t.Errorf("len(Playthroughs) = %d, want 0", len(details.Playthroughs))
 	}
 }
 
@@ -49,7 +40,6 @@ func TestGetUserGameWithPlaythroughs(t *testing.T) {
 	store := newTestStore(t)
 	platformIGDBID := int64(11)
 
-	// Add a game to the user's collection before attempting to retrieve it
 	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(platformIGDBID, "Xbox")), 1, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("AddToLibrary() failed: %v", err)
@@ -67,26 +57,22 @@ func TestGetUserGameWithPlaythroughs(t *testing.T) {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
-	// Attempt to retrieve the row from the library
-	row, err := store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
-	}
-	if len(row.Playthroughs) != 2 {
-		t.Fatalf("len(Playthroughs) = %d, want 2", len(row.Playthroughs))
+	details := getUserGame(t, store, 100)
+	if len(details.Playthroughs) != 2 {
+		t.Fatalf("len(Playthroughs) = %d, want 2", len(details.Playthroughs))
 	}
 	// Should be ordered by the time they were started, with the newest first
-	if row.Playthroughs[0].Playthrough.Name == nil || *row.Playthroughs[0].Playthrough.Name != "Test Playthrough newer" {
-		t.Errorf("Playthroughs[0].Name = %v, want %v", derefOrNil(row.Playthroughs[0].Playthrough.Name), "Test Playthrough newer")
+	if details.Playthroughs[0].Playthrough.Name == nil || *details.Playthroughs[0].Playthrough.Name != "Test Playthrough newer" {
+		t.Errorf("Playthroughs[0].Name = %v, want %v", derefOrNil(details.Playthroughs[0].Playthrough.Name), "Test Playthrough newer")
 	}
-	if row.Playthroughs[0].PlatformName == nil || *row.Playthroughs[0].PlatformName != "Xbox" {
-		t.Errorf("Playthroughs[0].PlatformName = %v, want %v", derefOrNil(row.Playthroughs[0].PlatformName), "Xbox")
+	if details.Playthroughs[0].PlatformName == nil || *details.Playthroughs[0].PlatformName != "Xbox" {
+		t.Errorf("Playthroughs[0].PlatformName = %v, want %v", derefOrNil(details.Playthroughs[0].PlatformName), "Xbox")
 	}
-	if row.Playthroughs[1].Playthrough.Name == nil || *row.Playthroughs[1].Playthrough.Name != "Test Playthrough older" {
-		t.Errorf("Playthroughs[1].Name = %v, want %v", derefOrNil(row.Playthroughs[1].Playthrough.Name), "Test Playthrough older")
+	if details.Playthroughs[1].Playthrough.Name == nil || *details.Playthroughs[1].Playthrough.Name != "Test Playthrough older" {
+		t.Errorf("Playthroughs[1].Name = %v, want %v", derefOrNil(details.Playthroughs[1].Playthrough.Name), "Test Playthrough older")
 	}
-	if row.Playthroughs[1].PlatformName != nil {
-		t.Errorf("Playthroughs[1].PlatformName = %v, want %v", derefOrNil(row.Playthroughs[1].PlatformName), nil)
+	if details.Playthroughs[1].PlatformName != nil {
+		t.Errorf("Playthroughs[1].PlatformName = %v, want %v", derefOrNil(details.Playthroughs[1].PlatformName), nil)
 	}
 }
 
@@ -100,22 +86,18 @@ func TestGetUserGameWishlist(t *testing.T) {
 		t.Fatalf("AddToWishlist() failed: %v", err)
 	}
 
-	// Attempt to retrieve the row from the library
-	row, err := store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
+	details := getUserGame(t, store, 100)
+	if details.Game.Title != "Test Game" {
+		t.Errorf("Title = %v, want %v", details.Game.Title, "Test Game")
 	}
-	if row.Game.Title != "Test Game" {
-		t.Errorf("Title = %v, want %v", row.Game.Title, "Test Game")
+	if details.UserGame.Status != nil {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), nil)
 	}
-	if row.UserGame.Status != nil {
-		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(row.UserGame.Status), nil)
+	if !details.UserGame.Wishlisted {
+		t.Errorf("UserGame.Wishlisted = %v, want %v", details.UserGame.Wishlisted, true)
 	}
-	if !row.UserGame.Wishlisted {
-		t.Errorf("UserGame.Wishlisted = %v, want %v", row.UserGame.Wishlisted, true)
-	}
-	if len(row.OwnedPlatforms) != 0 {
-		t.Errorf("len(Platforms) = %d, want 0", len(row.OwnedPlatforms))
+	if len(details.OwnedPlatforms) != 0 {
+		t.Errorf("len(Platforms) = %d, want 0", len(details.OwnedPlatforms))
 	}
 }
 
@@ -134,32 +116,24 @@ func TestUpdateGameDetails(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	// Add a game to the user's collection before updating it
-	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToLibrary() failed: %v", err)
-	}
+	addOwnedGame(t, store, 100)
 
 	// Update the status and rating of the game in the user's library
 	rating := int64(5)
-	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying, Rating: &rating})
+	err := store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying, Rating: &rating})
 	if err != nil {
 		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 
-	// Attempt to retrieve the row from the library
-	row, err := store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
+	details := getUserGame(t, store, 100)
+	if details.Game.Title != "Test Game" {
+		t.Errorf("Title = %v, want %v", details.Game.Title, "Test Game")
 	}
-	if row.Game.Title != "Test Game" {
-		t.Errorf("Title = %v, want %v", row.Game.Title, "Test Game")
+	if details.UserGame.Status == nil || *details.UserGame.Status != "playing" {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), "playing")
 	}
-	if row.UserGame.Status == nil || *row.UserGame.Status != "playing" {
-		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(row.UserGame.Status), "playing")
-	}
-	if row.UserGame.Rating == nil || *row.UserGame.Rating != 5 {
-		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(row.UserGame.Rating), 5)
+	if details.UserGame.Rating == nil || *details.UserGame.Rating != 5 {
+		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(details.UserGame.Rating), 5)
 	}
 }
 
@@ -167,32 +141,25 @@ func TestUpdateGameDetailsInvalidStatus(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	// Add a game to the user's collection before updating it
-	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToLibrary() failed: %v", err)
-	}
+	addOwnedGame(t, store, 100)
 
 	// Attempt to update the game with an invalid status, which should be rejected
 	rating := int64(5)
-	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: "invalid_status", Rating: &rating})
+	err := store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: "invalid_status", Rating: &rating})
 	if !errors.Is(err, ErrInvalidGameStatus) {
 		t.Fatalf("UpdateGameDetails() error = %v, want %v", err, ErrInvalidGameStatus)
 	}
 
 	// Verify the status and rating were left unchanged
-	row, err := store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
+	details := getUserGame(t, store, 100)
+	if details.Game.Title != "Test Game" {
+		t.Errorf("Title = %v, want %v", details.Game.Title, "Test Game")
 	}
-	if row.Game.Title != "Test Game" {
-		t.Errorf("Title = %v, want %v", row.Game.Title, "Test Game")
+	if details.UserGame.Status == nil || *details.UserGame.Status != "backlog" {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), "backlog")
 	}
-	if row.UserGame.Status == nil || *row.UserGame.Status != "backlog" {
-		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(row.UserGame.Status), "backlog")
-	}
-	if row.UserGame.Rating != nil {
-		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(row.UserGame.Rating), nil)
+	if details.UserGame.Rating != nil {
+		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(details.UserGame.Rating), nil)
 	}
 }
 
@@ -200,26 +167,19 @@ func TestUpdateGameDetailsClearRating(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	// Add a game to the user's collection
-	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToLibrary() failed: %v", err)
-	}
+	addOwnedGame(t, store, 100)
 
 	// Update the status and rating of the game in the user's library
 	rating := int64(5)
-	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying, Rating: &rating})
+	err := store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying, Rating: &rating})
 	if err != nil {
 		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 
 	// Verify the rating was set
-	row, err := store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
-	}
-	if row.UserGame.Rating == nil || *row.UserGame.Rating != 5 {
-		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(row.UserGame.Rating), 5)
+	details := getUserGame(t, store, 100)
+	if details.UserGame.Rating == nil || *details.UserGame.Rating != 5 {
+		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(details.UserGame.Rating), 5)
 	}
 
 	// Clear the rating by passing nil
@@ -229,12 +189,9 @@ func TestUpdateGameDetailsClearRating(t *testing.T) {
 	}
 
 	// Verify the rating was cleared
-	row, err = store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
-	}
-	if row.UserGame.Rating != nil {
-		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(row.UserGame.Rating), nil)
+	details = getUserGame(t, store, 100)
+	if details.UserGame.Rating != nil {
+		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(details.UserGame.Rating), nil)
 	}
 }
 
@@ -242,30 +199,24 @@ func TestUpdateGameDetailsNotes(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("AddToLibrary() failed: %v", err)
-	}
+	addOwnedGame(t, store, 100)
 
 	rating := int64(7)
 	notes := "Buy the GOTY edition"
-	err = store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying, Rating: &rating, Notes: &notes})
+	err := store.UpdateGameDetails(ctx, 1, 100, GameDetails{Status: GameStatusPlaying, Rating: &rating, Notes: &notes})
 	if err != nil {
 		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 
-	row, err := store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
+	details := getUserGame(t, store, 100)
+	if details.UserGame.Status == nil || *details.UserGame.Status != "playing" {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), "playing")
 	}
-	if row.UserGame.Status == nil || *row.UserGame.Status != "playing" {
-		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(row.UserGame.Status), "playing")
+	if details.UserGame.Rating == nil || *details.UserGame.Rating != 7 {
+		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(details.UserGame.Rating), 7)
 	}
-	if row.UserGame.Rating == nil || *row.UserGame.Rating != 7 {
-		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(row.UserGame.Rating), 7)
-	}
-	if row.UserGame.Notes == nil || *row.UserGame.Notes != notes {
-		t.Errorf("UserGame.Notes = %v, want %q", derefOrNil(row.UserGame.Notes), notes)
+	if details.UserGame.Notes == nil || *details.UserGame.Notes != notes {
+		t.Errorf("UserGame.Notes = %v, want %q", derefOrNil(details.UserGame.Notes), notes)
 	}
 
 	// Updating without notes clears them
@@ -274,12 +225,9 @@ func TestUpdateGameDetailsNotes(t *testing.T) {
 		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 
-	row, err = store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
-	}
-	if row.UserGame.Notes != nil {
-		t.Errorf("UserGame.Notes = %v, want %v", derefOrNil(row.UserGame.Notes), nil)
+	details = getUserGame(t, store, 100)
+	if details.UserGame.Notes != nil {
+		t.Errorf("UserGame.Notes = %v, want %v", derefOrNil(details.UserGame.Notes), nil)
 	}
 }
 
@@ -300,12 +248,9 @@ func TestUpdateGameDetailsWishlistedGame(t *testing.T) {
 	}
 
 	// Verify the wishlisted game was left without a status
-	row, err := store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
-	}
-	if row.UserGame.Status != nil {
-		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(row.UserGame.Status), nil)
+	details := getUserGame(t, store, 100)
+	if details.UserGame.Status != nil {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), nil)
 	}
 }
 

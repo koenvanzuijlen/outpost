@@ -177,10 +177,10 @@ func (s *Store) ListLibrary(ctx context.Context, userID int64) ([]LibraryEntry, 
 	return library, nil
 }
 
-// AddToLibrary adds a game to the user's library, storing the game in the catalog if it isn't there yet. A new library
-// entry gets status "backlog"; an existing entry keeps its status and is taken off the wishlist. If platform is not nil,
-// an owned copy on that platform is added too, and ErrAlreadyOwnedOnPlatform is returned if that copy already exists.
-// With a nil platform the game is in the library without being owned; adding it again is a no-op.
+// AddToLibrary adds a game to the user's library, storing it in the catalog if it isn't there yet. A new library entry
+// gets status backlog; an existing one keeps its status and is taken off the wishlist. If platform is not nil, the
+// user's copy on that platform is added too. Without a platform the game is in the library without being owned, and
+// adding it again is a no-op. Returns ErrAlreadyOwnedOnPlatform if the copy already exists.
 func (s *Store) AddToLibrary(
 	ctx context.Context,
 	game dbgen.UpsertGameParams,
@@ -235,15 +235,15 @@ func (s *Store) AddToLibrary(
 	return nil
 }
 
-// GameDetails represents the details of a game in the user's library, including its status, rating, and notes.
+// GameDetails are the fields of a library game that UpdateGameDetails overwrites. A nil field is cleared.
 type GameDetails struct {
 	Status GameStatus
 	Rating *int64
 	Notes  *string
 }
 
-// UpdateGameDetails updates the status, rating and notes of a game in the user's library. A nil value clears the field. Returns ErrUserGameNotFound
-// if the game is not in the library.
+// UpdateGameDetails updates the status, rating and notes of a library game. Every field is overwritten; nil clears it.
+// Returns ErrInvalidGameStatus if the status is unknown, or ErrUserGameNotFound if the game isn't in the library.
 func (s *Store) UpdateGameDetails(ctx context.Context, userID, igdbID int64, details GameDetails) error {
 	if !details.Status.Valid() {
 		return ErrInvalidGameStatus

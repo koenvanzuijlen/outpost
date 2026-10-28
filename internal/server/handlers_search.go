@@ -22,8 +22,7 @@ type searchPage struct {
 	Error   string
 }
 
-// handleSearch handles searching for games using the IGDB client. It can receive a query parameter "q" and renders the
-// search results.
+// handleSearch renders the search page. It reads the optional query value q and searches IGDB when it is set.
 func (server *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	var games []igdb.Game

@@ -12,7 +12,7 @@ import (
 // ErrAlreadyAdded is returned when wishlisting a game that is already in the library or on the wishlist.
 var ErrAlreadyAdded = errors.New("game is already in the library or wishlist")
 
-// ListWishlist returns all wishlisted games for the specified user.
+// ListWishlist returns the user's wishlist, sorted by release date with unreleased games last.
 func (s *Store) ListWishlist(ctx context.Context, userID int64) ([]dbgen.ListWishlistedUserGamesRow, error) {
 	return s.queries.ListWishlistedUserGames(ctx, userID)
 }

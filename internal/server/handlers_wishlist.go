@@ -10,7 +10,8 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
-// handleAddToWishlist handles adding a game to the user's wishlist. It expects the igdb_id as a form value.
+// handleAddToWishlist adds a game to the wishlist. It reads form value igdb_id and redirects to the home page. A game
+// that is already in the library or on the wishlist counts as success.
 func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request) {
 	igdbID, err := strconv.Atoi(r.PostFormValue("igdb_id"))
 	if err != nil || igdbID <= 0 {

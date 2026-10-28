@@ -28,13 +28,11 @@ func TestRemoveOwnedCopy(t *testing.T) {
 	if _, ok := details.CopyDLCs[6]; ok {
 		t.Errorf("CopyDLCs has key 6, want none")
 	}
-	if len(details.Playthroughs) != 1 {
-		t.Fatalf("len(Playthroughs) = %d, want 1", len(details.Playthroughs))
+	got := onlyPlaythrough(t, details)
+	if got.Playthrough.ID != playthrough.ID {
+		t.Errorf("Playthrough ID = %d, want %d", got.Playthrough.ID, playthrough.ID)
 	}
-	if details.Playthroughs[0].Playthrough.ID != playthrough.ID {
-		t.Errorf("Playthrough ID = %d, want %d", details.Playthroughs[0].Playthrough.ID, playthrough.ID)
-	}
-	if name := details.Playthroughs[0].PlatformName; name == nil || *name != "PC" {
+	if name := got.PlatformName; name == nil || *name != "PC" {
 		t.Errorf("Playthrough PlatformName = %v, want %q", derefOrNil(name), "PC")
 	}
 
@@ -42,10 +40,7 @@ func TestRemoveOwnedCopy(t *testing.T) {
 		t.Fatalf("RemoveOwnedCopy(PS4) failed: %v", err)
 	}
 
-	details, err = store.GetUserGame(ctx, 1, 100)
-	if err != nil {
-		t.Fatalf("GetUserGame() after removing last copy failed: %v", err)
-	}
+	details = getUserGame(t, store, 100)
 	assertPlatformIDs(t, details.OwnedPlatforms)
 	if s := details.UserGame.Status; s == nil || *s != string(GameStatusPlaying) {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusPlaying)
