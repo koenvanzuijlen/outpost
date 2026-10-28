@@ -101,13 +101,13 @@ func (s *Store) SetDLCOwned(ctx context.Context, userID, igdbID, platformIGDBID,
 	defer func() { _ = tx.Rollback() }()
 	q := dbgen.New(tx)
 
-	row, err := getLibraryUserGame(ctx, q, userID, igdbID)
+	userGame, err := getLibraryUserGame(ctx, q, userID, igdbID)
 	if err != nil {
 		return fmt.Errorf("get library user game: %w", err)
 	}
 
-	ownedCopy, err := q.GetCopyDLC(ctx, dbgen.GetCopyDLCParams{
-		UserGameID:     row.UserGame.ID,
+	copyDLC, err := q.GetCopyDLC(ctx, dbgen.GetCopyDLCParams{
+		UserGameID:     userGame.ID,
 		PlatformIgdbID: platformIGDBID,
 		DlcIgdbID:      dlcIGDBID,
 		ParentIgdbID:   &igdbID,
@@ -121,12 +121,12 @@ func (s *Store) SetDLCOwned(ctx context.Context, userID, igdbID, platformIGDBID,
 	}
 
 	if owned {
-		err = q.CreateOwnedDLC(ctx, dbgen.CreateOwnedDLCParams(ownedCopy))
+		err = q.CreateOwnedDLC(ctx, dbgen.CreateOwnedDLCParams(copyDLC))
 		if err != nil {
 			return fmt.Errorf("create owned dlc: %w", err)
 		}
 	} else {
-		err = q.DeleteOwnedDLC(ctx, dbgen.DeleteOwnedDLCParams(ownedCopy))
+		err = q.DeleteOwnedDLC(ctx, dbgen.DeleteOwnedDLCParams(copyDLC))
 		if err != nil {
 			return fmt.Errorf("delete owned dlc: %w", err)
 		}

@@ -69,9 +69,9 @@ func TestAddToWishlistOwnedGame(t *testing.T) {
 	}
 
 	// Ensure the game is still in the collection
-	collected := getUserGame(t, store, 100)
-	if collected.UserGame.Wishlisted {
+	details := getUserGame(t, store, 100)
+	if details.UserGame.Wishlisted {
 		t.Errorf("Wishlisted = true, want false")
 	}
-	assertPlatformIDs(t, collected.OwnedPlatforms, 6)
+	assertPlatformIDs(t, details.OwnedPlatforms, 6)
 }

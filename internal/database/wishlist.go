@@ -33,7 +33,7 @@ func (s *Store) AddToWishlist(ctx context.Context, game dbgen.UpsertGameParams, 
 		return fmt.Errorf("upsert game: %w", err)
 	}
 
-	rows, err := q.CreateWishlistedUserGame(ctx, dbgen.CreateWishlistedUserGameParams{
+	insertedRows, err := q.CreateWishlistedUserGame(ctx, dbgen.CreateWishlistedUserGameParams{
 		UserID:  userID,
 		GameID:  storedGame.ID,
 		AddedAt: addedAt,
@@ -41,7 +41,7 @@ func (s *Store) AddToWishlist(ctx context.Context, game dbgen.UpsertGameParams, 
 	if err != nil {
 		return fmt.Errorf("create wishlisted user game: %w", err)
 	}
-	if rows == 0 {
+	if insertedRows == 0 {
 		return ErrAlreadyAdded
 	}
 

@@ -340,8 +340,8 @@ func TestRemoveUserGame(t *testing.T) {
 		}
 	}
 
-	other := getUserGame(t, store, 300)
-	assertDLCStatus(t, findDLC(t, other, 401), GameStatusBacklog)
+	details := getUserGame(t, store, 300)
+	assertDLCStatus(t, findDLC(t, details, 401), GameStatusBacklog)
 	getUserGame(t, store, 401)
 
 	if _, err := store.queries.GetGameByIGDBID(ctx, 201); err != nil {
@@ -361,17 +361,17 @@ func TestRemoveUserGameReAdd(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	game := getUserGame(t, store, 100)
-	if game.UserGame.Status == nil || *game.UserGame.Status != string(GameStatusBacklog) {
-		t.Errorf("UserGame.Status = %v, want %q", derefOrNil(game.UserGame.Status), GameStatusBacklog)
+	details := getUserGame(t, store, 100)
+	if details.UserGame.Status == nil || *details.UserGame.Status != string(GameStatusBacklog) {
+		t.Errorf("UserGame.Status = %v, want %q", derefOrNil(details.UserGame.Status), GameStatusBacklog)
 	}
-	if len(game.Playthroughs) != 0 {
-		t.Errorf("len(Playthroughs) = %d, want 0", len(game.Playthroughs))
+	if len(details.Playthroughs) != 0 {
+		t.Errorf("len(Playthroughs) = %d, want 0", len(details.Playthroughs))
 	}
-	if findDLC(t, game, 201).InLibrary {
+	if findDLC(t, details, 201).InLibrary {
 		t.Errorf("DLC 201 InLibrary = true, want false")
 	}
-	assertCopyDLCs(t, game.CopyDLCs[6], map[int64]bool{201: false, 202: false})
+	assertCopyDLCs(t, details.CopyDLCs[6], map[int64]bool{201: false, 202: false})
 }
 
 func TestRemoveUserGameLibraryDLC(t *testing.T) {
@@ -538,9 +538,9 @@ func TestAddToLibraryNotOwned(t *testing.T) {
 		t.Fatalf("AddToLibrary() second failed: %v", err)
 	}
 
-	libraryGame := getUserGame(t, store, 100)
-	assertPlatformIDs(t, libraryGame.OwnedPlatforms)
-	if s := libraryGame.UserGame.Status; s == nil || *s != string(GameStatusBacklog) {
+	details := getUserGame(t, store, 100)
+	assertPlatformIDs(t, details.OwnedPlatforms)
+	if s := details.UserGame.Status; s == nil || *s != string(GameStatusBacklog) {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusBacklog)
 	}
 
@@ -568,9 +568,9 @@ func TestAddToLibraryNotOwnedThenOwned(t *testing.T) {
 		t.Fatalf("AddToLibrary(PC) failed: %v", err)
 	}
 
-	libraryGame := getUserGame(t, store, 100)
-	assertPlatformIDs(t, libraryGame.OwnedPlatforms, 6)
-	if s := libraryGame.UserGame.Status; s == nil || *s != string(GameStatusCompleted) {
+	details := getUserGame(t, store, 100)
+	assertPlatformIDs(t, details.OwnedPlatforms, 6)
+	if s := details.UserGame.Status; s == nil || *s != string(GameStatusCompleted) {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusCompleted)
 	}
 }
@@ -587,11 +587,11 @@ func TestAddToLibraryNotOwnedClearsWishlist(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	libraryGame := getUserGame(t, store, 100)
-	if libraryGame.UserGame.Wishlisted {
+	details := getUserGame(t, store, 100)
+	if details.UserGame.Wishlisted {
 		t.Errorf("Wishlisted = true, want false")
 	}
-	if s := libraryGame.UserGame.Status; s == nil || *s != string(GameStatusBacklog) {
+	if s := details.UserGame.Status; s == nil || *s != string(GameStatusBacklog) {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusBacklog)
 	}
 }
@@ -661,9 +661,9 @@ func TestAddToLibraryPreservesStatus(t *testing.T) {
 		t.Fatalf("AddToLibrary() second failed: %v", err)
 	}
 
-	libraryGame := getUserGame(t, store, 100)
-	assertPlatformIDs(t, libraryGame.OwnedPlatforms, 6, 11)
-	if s := libraryGame.UserGame.Status; s == nil || *s != "completed" {
+	details := getUserGame(t, store, 100)
+	assertPlatformIDs(t, details.OwnedPlatforms, 6, 11)
+	if s := details.UserGame.Status; s == nil || *s != "completed" {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), "completed")
 	}
 }

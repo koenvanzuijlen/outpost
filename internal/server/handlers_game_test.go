@@ -75,11 +75,11 @@ func TestHandleGameActivePlaythrough(t *testing.T) {
 	server := newTestServer(t)
 	startTestPlaythrough(t, server, "Hard mode run", "6")
 
-	libraryGame := getTestUserGame(t, server)
-	if len(libraryGame.Playthroughs) != 1 {
-		t.Fatalf("len(Playthroughs) = %d, want %d", len(libraryGame.Playthroughs), 1)
+	details := getTestUserGame(t, server)
+	if len(details.Playthroughs) != 1 {
+		t.Fatalf("len(Playthroughs) = %d, want %d", len(details.Playthroughs), 1)
 	}
-	playthrough := libraryGame.Playthroughs[0].Playthrough
+	playthrough := details.Playthroughs[0].Playthrough
 	if playthrough.StartedAt == nil {
 		t.Fatal("StartedAt = nil, want a date")
 	}
@@ -215,12 +215,12 @@ func TestHandleUpdateGame(t *testing.T) {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 	assertLocation(t, w, "/games/1942")
-	libraryGame := getTestUserGame(t, server)
-	if libraryGame.UserGame.Status == nil || *libraryGame.UserGame.Status != "completed" {
-		t.Errorf("status = %v, want %q", derefOrNil(libraryGame.UserGame.Status), "completed")
+	details := getTestUserGame(t, server)
+	if details.UserGame.Status == nil || *details.UserGame.Status != "completed" {
+		t.Errorf("status = %v, want %q", derefOrNil(details.UserGame.Status), "completed")
 	}
-	if libraryGame.UserGame.Rating == nil || *libraryGame.UserGame.Rating != 9 {
-		t.Errorf("rating = %v, want %v", derefOrNil(libraryGame.UserGame.Rating), 9)
+	if details.UserGame.Rating == nil || *details.UserGame.Rating != 9 {
+		t.Errorf("rating = %v, want %v", derefOrNil(details.UserGame.Rating), 9)
 	}
 }
 
@@ -233,12 +233,12 @@ func TestHandleUpdateGameNoRating(t *testing.T) {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 	assertLocation(t, w, "/games/1942")
-	libraryGame := getTestUserGame(t, server)
-	if libraryGame.UserGame.Status == nil || *libraryGame.UserGame.Status != "completed" {
-		t.Errorf("status = %v, want %q", derefOrNil(libraryGame.UserGame.Status), "completed")
+	details := getTestUserGame(t, server)
+	if details.UserGame.Status == nil || *details.UserGame.Status != "completed" {
+		t.Errorf("status = %v, want %q", derefOrNil(details.UserGame.Status), "completed")
 	}
-	if libraryGame.UserGame.Rating != nil {
-		t.Errorf("rating = %v, want %v", derefOrNil(libraryGame.UserGame.Rating), nil)
+	if details.UserGame.Rating != nil {
+		t.Errorf("rating = %v, want %v", derefOrNil(details.UserGame.Rating), nil)
 	}
 }
 
@@ -262,8 +262,8 @@ func TestHandleUpdateGameNotes(t *testing.T) {
 			if w.Code != http.StatusSeeOther {
 				t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 			}
-			libraryGame := getTestUserGame(t, server)
-			got := libraryGame.UserGame.Notes
+			details := getTestUserGame(t, server)
+			got := details.UserGame.Notes
 			if (got == nil) != (tt.want == nil) || (got != nil && *got != *tt.want) {
 				t.Errorf("notes = %v, want %v", derefOrNil(got), derefOrNil(tt.want))
 			}

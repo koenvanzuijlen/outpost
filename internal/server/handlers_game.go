@@ -69,7 +69,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	libraryGame, err := server.store.GetUserGame(r.Context(), defaultUserID, igdbID)
+	details, err := server.store.GetUserGame(r.Context(), defaultUserID, igdbID)
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			http.Error(w, "Game not in library", http.StatusNotFound)
@@ -80,12 +80,12 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if libraryGame.Game.DlcsFetchedAt == nil && !igdb.GameType(libraryGame.Game.GameType).DLC() {
+	if details.Game.DlcsFetchedAt == nil && !igdb.GameType(details.Game.GameType).DLC() {
 		err := server.fetchDLCs(r.Context(), igdbID)
 		if err != nil {
 			server.logger.Warn("failed to fetch DLCs", "igdb_id", igdbID, "error", err)
 		} else {
-			libraryGame, err = server.store.GetUserGame(r.Context(), defaultUserID, igdbID)
+			details, err = server.store.GetUserGame(r.Context(), defaultUserID, igdbID)
 			if err != nil {
 				server.logger.Error("failed to get library game", "error", err)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -95,11 +95,11 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	server.render(w, "game.html", gamePage{
-		Details:        libraryGame,
+		Details:        details,
 		Statuses:       database.GameStatuses,
-		CurrentStatus:  database.GameStatus(derefOrZero(libraryGame.UserGame.Status)),
+		CurrentStatus:  database.GameStatus(derefOrZero(details.UserGame.Status)),
 		RatingOptions:  ratingOptions(),
-		CurrentRating:  derefOrZero(libraryGame.UserGame.Rating),
+		CurrentRating:  derefOrZero(details.UserGame.Rating),
 		OutcomeOptions: outcomeOptions(),
 		MaxNotesLength: maxNotesLength,
 	})

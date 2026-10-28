@@ -24,7 +24,7 @@ func (s *Store) RemoveOwnedCopy(ctx context.Context, userID, igdbID, platformIGD
 	}
 
 	deletedRows, err := s.queries.DeleteOwnedCopy(ctx, dbgen.DeleteOwnedCopyParams{
-		UserGameID: userGame.UserGame.ID,
+		UserGameID: userGame.ID,
 		IgdbID:     platformIGDBID,
 	})
 	if err != nil {

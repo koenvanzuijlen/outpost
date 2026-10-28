@@ -74,12 +74,12 @@ func TestHandleAddToLibrary(t *testing.T) {
 				return
 			}
 
-			libraryGame := getTestUserGame(t, server)
-			if len(libraryGame.OwnedPlatforms) != len(tt.wantPlatforms) {
-				t.Fatalf("len(Platforms) = %d, want %d", len(libraryGame.OwnedPlatforms), len(tt.wantPlatforms))
+			details := getTestUserGame(t, server)
+			if len(details.OwnedPlatforms) != len(tt.wantPlatforms) {
+				t.Fatalf("len(Platforms) = %d, want %d", len(details.OwnedPlatforms), len(tt.wantPlatforms))
 			}
 			for i, want := range tt.wantPlatforms {
-				if got := libraryGame.OwnedPlatforms[i].IgdbID; got != want {
+				if got := details.OwnedPlatforms[i].IgdbID; got != want {
 					t.Errorf("Platforms[%d].IgdbID = %d, want %d", i, got, want)
 				}
 			}

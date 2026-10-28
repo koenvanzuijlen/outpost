@@ -54,11 +54,11 @@ func addOwnedGame(t *testing.T, store *Store, igdbID int64) {
 // getUserGame retrieves a game from user 1's library. It fails the test if the game cannot be retrieved.
 func getUserGame(t *testing.T, store *Store, igdbID int64) UserGameDetails {
 	t.Helper()
-	game, err := store.GetUserGame(t.Context(), 1, igdbID)
+	details, err := store.GetUserGame(t.Context(), 1, igdbID)
 	if err != nil {
 		t.Fatalf("GetUserGame() failed: %v", err)
 	}
-	return game
+	return details
 }
 
 // derefOrNil returns the value p points to, or nil, so failure messages show a value instead of an address.

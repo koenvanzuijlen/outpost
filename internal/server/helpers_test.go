@@ -120,11 +120,11 @@ func getGamePage(t *testing.T, server *Server, igdbID int64) *httptest.ResponseR
 // getTestUserGame loads The Witcher 3 from the default user's library.
 func getTestUserGame(t *testing.T, server *Server) database.UserGameDetails {
 	t.Helper()
-	libraryGame, err := server.store.GetUserGame(t.Context(), defaultUserID, 1942)
+	details, err := server.store.GetUserGame(t.Context(), defaultUserID, 1942)
 	if err != nil {
 		t.Fatalf("GetUserGame() failed: %v", err)
 	}
-	return libraryGame
+	return details
 }
 
 // postForm sends a POST request with the given form body to the specified URL and returns the response recorder.

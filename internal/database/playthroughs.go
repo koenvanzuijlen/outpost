@@ -34,7 +34,7 @@ func (s *Store) StartPlaythrough(
 	defer func() { _ = tx.Rollback() }()
 	q := dbgen.New(tx)
 
-	row, err := getLibraryUserGame(ctx, q, userID, igdbID)
+	userGame, err := getLibraryUserGame(ctx, q, userID, igdbID)
 	if err != nil {
 		return dbgen.Playthrough{}, fmt.Errorf("get library user game: %w", err)
 	}
@@ -44,8 +44,8 @@ func (s *Store) StartPlaythrough(
 		return dbgen.Playthrough{}, fmt.Errorf("resolve platform: %w", err)
 	}
 
-	pt, err := q.CreatePlaythrough(ctx, dbgen.CreatePlaythroughParams{
-		UserGameID: row.UserGame.ID,
+	playthrough, err := q.CreatePlaythrough(ctx, dbgen.CreatePlaythroughParams{
+		UserGameID: userGame.ID,
 		PlatformID: platformID,
 		Name:       name,
 		StartedAt:  &startedAt,
@@ -54,9 +54,9 @@ func (s *Store) StartPlaythrough(
 		return dbgen.Playthrough{}, fmt.Errorf("create playthrough: %w", err)
 	}
 
-	if gameStatusFrom(row.UserGame.Status) == GameStatusBacklog {
+	if gameStatusFrom(userGame.Status) == GameStatusBacklog {
 		err = q.UpdateUserGameStatus(ctx, dbgen.UpdateUserGameStatusParams{
-			ID:     row.UserGame.ID,
+			ID:     userGame.ID,
 			Status: GameStatusPlaying.StringPtr(),
 		})
 		if err != nil {
@@ -67,7 +67,7 @@ func (s *Store) StartPlaythrough(
 	if err := tx.Commit(); err != nil {
 		return dbgen.Playthrough{}, fmt.Errorf("commit tx: %w", err)
 	}
-	return pt, nil
+	return playthrough, nil
 }
 
 // SetPlaythroughOutcome sets the outcome of an existing playthrough for a user's game, it also updates the game status
@@ -93,14 +93,14 @@ func (s *Store) SetPlaythroughOutcome(
 	defer func() { _ = tx.Rollback() }()
 	q := dbgen.New(tx)
 
-	row, err := getLibraryUserGame(ctx, q, userID, igdbID)
+	userGame, err := getLibraryUserGame(ctx, q, userID, igdbID)
 	if err != nil {
 		return fmt.Errorf("get library user game: %w", err)
 	}
 
 	playthrough, err := q.GetPlaythrough(ctx, dbgen.GetPlaythroughParams{
 		ID:         playthroughID,
-		UserGameID: row.UserGame.ID,
+		UserGameID: userGame.ID,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -123,15 +123,15 @@ func (s *Store) SetPlaythroughOutcome(
 		return fmt.Errorf("update playthrough outcome: %w", err)
 	}
 
-	otherPlaying, err := q.CountPlayingPlaythroughs(ctx, row.UserGame.ID)
+	otherPlaying, err := q.CountPlayingPlaythroughs(ctx, userGame.ID)
 	if err != nil {
 		return fmt.Errorf("count playthroughs: %w", err)
 	}
 
-	nextStatus, ok := statusAfterOutcomeChange(currentOutcome, outcome, gameStatusFrom(row.UserGame.Status), otherPlaying)
+	nextStatus, ok := statusAfterOutcomeChange(currentOutcome, outcome, gameStatusFrom(userGame.Status), otherPlaying)
 	if ok {
 		err = q.UpdateUserGameStatus(ctx, dbgen.UpdateUserGameStatusParams{
-			ID:     row.UserGame.ID,
+			ID:     userGame.ID,
 			Status: nextStatus.StringPtr(),
 		})
 		if err != nil {
@@ -164,14 +164,14 @@ func (s *Store) UpdatePlaythroughDetails(ctx context.Context, userID, igdbID, pl
 	defer func() { _ = tx.Rollback() }()
 	q := dbgen.New(tx)
 
-	row, err := getLibraryUserGame(ctx, q, userID, igdbID)
+	userGame, err := getLibraryUserGame(ctx, q, userID, igdbID)
 	if err != nil {
 		return fmt.Errorf("get library user game: %w", err)
 	}
 
 	playthrough, err := q.GetPlaythrough(ctx, dbgen.GetPlaythroughParams{
 		ID:         playthroughID,
-		UserGameID: row.UserGame.ID,
+		UserGameID: userGame.ID,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -214,19 +214,19 @@ func (s *Store) DeletePlaythrough(
 	igdbID,
 	playthroughID int64,
 ) error {
-	row, err := getLibraryUserGame(ctx, s.queries, userID, igdbID)
+	userGame, err := getLibraryUserGame(ctx, s.queries, userID, igdbID)
 	if err != nil {
 		return fmt.Errorf("get library user game: %w", err)
 	}
 
-	rows, err := s.queries.DeletePlaythrough(ctx, dbgen.DeletePlaythroughParams{
+	deletedRows, err := s.queries.DeletePlaythrough(ctx, dbgen.DeletePlaythroughParams{
 		ID:         playthroughID,
-		UserGameID: row.UserGame.ID,
+		UserGameID: userGame.ID,
 	})
 	if err != nil {
 		return fmt.Errorf("delete playthrough: %w", err)
 	}
-	if rows == 0 {
+	if deletedRows == 0 {
 		return ErrPlaythroughNotFound
 	}
 

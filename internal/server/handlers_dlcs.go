@@ -15,9 +15,9 @@ import (
 func (server *Server) fetchDLCs(ctx context.Context, igdbID int64) error {
 	now := time.Now().UTC()
 
-	ctxTimeout, cancel := context.WithTimeout(ctx, 3*time.Second)
+	igdbCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-	dlcs, err := server.igdbClient.DLCs(ctxTimeout, int(igdbID))
+	dlcs, err := server.igdbClient.DLCs(igdbCtx, int(igdbID))
 	if err != nil {
 		return fmt.Errorf("fetch from igdb: %w", err)
 	}

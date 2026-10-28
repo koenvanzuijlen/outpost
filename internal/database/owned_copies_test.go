@@ -14,7 +14,7 @@ func TestRemoveOwnedCopy(t *testing.T) {
 		t.Fatalf("SetDLCOwned() failed: %v", err)
 	}
 	pc := int64(6)
-	pt, err := store.StartPlaythrough(ctx, 1, 100, &pc, nil, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, &pc, nil, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
@@ -23,18 +23,18 @@ func TestRemoveOwnedCopy(t *testing.T) {
 		t.Fatalf("RemoveOwnedCopy(PC) failed: %v", err)
 	}
 
-	game := getUserGame(t, store, 100)
-	assertPlatformIDs(t, game.OwnedPlatforms, 48)
-	if _, ok := game.CopyDLCs[6]; ok {
+	details := getUserGame(t, store, 100)
+	assertPlatformIDs(t, details.OwnedPlatforms, 48)
+	if _, ok := details.CopyDLCs[6]; ok {
 		t.Errorf("CopyDLCs has key 6, want none")
 	}
-	if len(game.Playthroughs) != 1 {
-		t.Fatalf("len(Playthroughs) = %d, want 1", len(game.Playthroughs))
+	if len(details.Playthroughs) != 1 {
+		t.Fatalf("len(Playthroughs) = %d, want 1", len(details.Playthroughs))
 	}
-	if game.Playthroughs[0].Playthrough.ID != pt.ID {
-		t.Errorf("Playthrough ID = %d, want %d", game.Playthroughs[0].Playthrough.ID, pt.ID)
+	if details.Playthroughs[0].Playthrough.ID != playthrough.ID {
+		t.Errorf("Playthrough ID = %d, want %d", details.Playthroughs[0].Playthrough.ID, playthrough.ID)
 	}
-	if name := game.Playthroughs[0].PlatformName; name == nil || *name != "PC" {
+	if name := details.Playthroughs[0].PlatformName; name == nil || *name != "PC" {
 		t.Errorf("Playthrough PlatformName = %v, want %q", derefOrNil(name), "PC")
 	}
 
@@ -42,12 +42,12 @@ func TestRemoveOwnedCopy(t *testing.T) {
 		t.Fatalf("RemoveOwnedCopy(PS4) failed: %v", err)
 	}
 
-	game, err = store.GetUserGame(ctx, 1, 100)
+	details, err = store.GetUserGame(ctx, 1, 100)
 	if err != nil {
 		t.Fatalf("GetUserGame() after removing last copy failed: %v", err)
 	}
-	assertPlatformIDs(t, game.OwnedPlatforms)
-	if s := game.UserGame.Status; s == nil || *s != string(GameStatusPlaying) {
+	assertPlatformIDs(t, details.OwnedPlatforms)
+	if s := details.UserGame.Status; s == nil || *s != string(GameStatusPlaying) {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusPlaying)
 	}
 }

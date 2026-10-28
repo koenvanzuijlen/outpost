@@ -18,18 +18,18 @@ func TestStartPlaythrough(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	pt, err := store.StartPlaythrough(ctx, 1, 100, &platformIGDBID, &playthroughName, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, &platformIGDBID, &playthroughName, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
-	if pt.Name == nil || *pt.Name != playthroughName {
-		t.Errorf("Name = %s, want %s", derefOrNil(pt.Name), playthroughName)
+	if playthrough.Name == nil || *playthrough.Name != playthroughName {
+		t.Errorf("Name = %s, want %s", derefOrNil(playthrough.Name), playthroughName)
 	}
-	if pt.Outcome != "playing" {
-		t.Errorf("Outcome = %s, want %s", pt.Outcome, "playing")
+	if playthrough.Outcome != "playing" {
+		t.Errorf("Outcome = %s, want %s", playthrough.Outcome, "playing")
 	}
 
-	pts, err := store.queries.ListPlaythroughsForUserGameID(ctx, pt.UserGameID)
+	pts, err := store.queries.ListPlaythroughsForUserGameID(ctx, playthrough.UserGameID)
 	if err != nil {
 		t.Fatalf("ListPlaythroughsForUserGameID() failed: %v", err)
 	}
@@ -40,12 +40,12 @@ func TestStartPlaythrough(t *testing.T) {
 		t.Errorf("PlatformName = %s, want %s", derefOrNil(pts[0].PlatformName), platformName)
 	}
 
-	game, err := store.GetUserGame(ctx, 1, 100)
+	details, err := store.GetUserGame(ctx, 1, 100)
 	if err != nil {
 		t.Fatalf("GetUserGame() failed: %v", err)
 	}
-	if game.UserGame.Status == nil || *game.UserGame.Status != "playing" {
-		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(game.UserGame.Status), "playing")
+	if details.UserGame.Status == nil || *details.UserGame.Status != "playing" {
+		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(details.UserGame.Status), "playing")
 	}
 }
 
@@ -58,16 +58,16 @@ func TestStartPlaythroughWithoutPlatformAndName(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
-	if pt.PlatformID != nil {
-		t.Errorf("PlatformID = %d, want nil", derefOrNil(pt.PlatformID))
+	if playthrough.PlatformID != nil {
+		t.Errorf("PlatformID = %d, want nil", derefOrNil(playthrough.PlatformID))
 	}
-	if pt.Name != nil {
-		t.Errorf("Name = %s, want nil", derefOrNil(pt.Name))
+	if playthrough.Name != nil {
+		t.Errorf("Name = %s, want nil", derefOrNil(playthrough.Name))
 	}
 }
 
@@ -138,9 +138,9 @@ func TestStartPlaythroughStatus(t *testing.T) {
 				t.Fatalf("StartPlaythrough() failed: %v", err)
 			}
 
-			game := getUserGame(t, store, 100)
-			if game.UserGame.Status == nil || *game.UserGame.Status != string(tt.wantStatus) {
-				t.Errorf("UserGame.Status = %v, want %v", derefOrNil(game.UserGame.Status), tt.wantStatus)
+			details := getUserGame(t, store, 100)
+			if details.UserGame.Status == nil || *details.UserGame.Status != string(tt.wantStatus) {
+				t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), tt.wantStatus)
 			}
 		})
 	}
@@ -162,30 +162,30 @@ func TestSetPlaythroughOutcome(t *testing.T) {
 			store := newTestStore(t)
 			addOwnedGame(t, store, 100)
 
-			pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+			playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 			if err != nil {
 				t.Fatalf("StartPlaythrough() failed: %v", err)
 			}
 
 			changedAt := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
-			err = store.SetPlaythroughOutcome(ctx, 1, 100, pt.ID, tt.outcome, changedAt)
+			err = store.SetPlaythroughOutcome(ctx, 1, 100, playthrough.ID, tt.outcome, changedAt)
 			if err != nil {
 				t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 			}
 
-			game := getUserGame(t, store, 100)
-			if len(game.Playthroughs) != 1 {
-				t.Fatalf("len(Playthroughs) = %d, want 1", len(game.Playthroughs))
+			details := getUserGame(t, store, 100)
+			if len(details.Playthroughs) != 1 {
+				t.Fatalf("len(Playthroughs) = %d, want 1", len(details.Playthroughs))
 			}
-			got := game.Playthroughs[0].Playthrough
+			got := details.Playthroughs[0].Playthrough
 			if got.Outcome != string(tt.outcome) {
 				t.Errorf("Outcome = %v, want %v", got.Outcome, tt.outcome)
 			}
 			if got.FinishedAt == nil || !got.FinishedAt.Equal(changedAt) {
 				t.Errorf("FinishedAt = %v, want %v", derefOrNil(got.FinishedAt), changedAt)
 			}
-			if game.UserGame.Status == nil || *game.UserGame.Status != string(tt.wantStatus) {
-				t.Errorf("UserGame.Status = %v, want %v", derefOrNil(game.UserGame.Status), tt.wantStatus)
+			if details.UserGame.Status == nil || *details.UserGame.Status != string(tt.wantStatus) {
+				t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), tt.wantStatus)
 			}
 		})
 	}
@@ -196,7 +196,7 @@ func TestSetPlaythroughOutcomeOtherPlaying(t *testing.T) {
 	store := newTestStore(t)
 	addOwnedGame(t, store, 100)
 
-	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
@@ -205,14 +205,14 @@ func TestSetPlaythroughOutcomeOtherPlaying(t *testing.T) {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
-	err = store.SetPlaythroughOutcome(ctx, 1, 100, pt.ID, PlaythroughOutcomeCompleted, time.Now().UTC())
+	err = store.SetPlaythroughOutcome(ctx, 1, 100, playthrough.ID, PlaythroughOutcomeCompleted, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 	}
 
-	game := getUserGame(t, store, 100)
-	if game.UserGame.Status == nil || *game.UserGame.Status != string(GameStatusPlaying) {
-		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(game.UserGame.Status), GameStatusPlaying)
+	details := getUserGame(t, store, 100)
+	if details.UserGame.Status == nil || *details.UserGame.Status != string(GameStatusPlaying) {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), GameStatusPlaying)
 	}
 }
 
@@ -221,26 +221,26 @@ func TestSetPlaythroughOutcomeReopen(t *testing.T) {
 	store := newTestStore(t)
 	addOwnedGame(t, store, 100)
 
-	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
-	err = store.SetPlaythroughOutcome(ctx, 1, 100, pt.ID, PlaythroughOutcomeCompleted, time.Now().UTC())
+	err = store.SetPlaythroughOutcome(ctx, 1, 100, playthrough.ID, PlaythroughOutcomeCompleted, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 	}
 
-	err = store.SetPlaythroughOutcome(ctx, 1, 100, pt.ID, PlaythroughOutcomePlaying, time.Now().UTC())
+	err = store.SetPlaythroughOutcome(ctx, 1, 100, playthrough.ID, PlaythroughOutcomePlaying, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 	}
 
-	libraryGame := getUserGame(t, store, 100)
-	if len(libraryGame.Playthroughs) == 0 {
+	details := getUserGame(t, store, 100)
+	if len(details.Playthroughs) == 0 {
 		t.Fatalf("no playthroughs found")
 	}
-	got := libraryGame.Playthroughs[0].Playthrough
+	got := details.Playthroughs[0].Playthrough
 	if got.Outcome != string(PlaythroughOutcomePlaying) {
 		t.Errorf("Outcome = %v, want %v", got.Outcome, PlaythroughOutcomePlaying)
 	}
@@ -254,33 +254,33 @@ func TestSetPlaythroughOutcomeSameOutcomeTwice(t *testing.T) {
 	store := newTestStore(t)
 	addOwnedGame(t, store, 100)
 
-	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
 	firstChangedAt := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
-	err = store.SetPlaythroughOutcome(ctx, 1, 100, pt.ID, PlaythroughOutcomeCompleted, firstChangedAt)
+	err = store.SetPlaythroughOutcome(ctx, 1, 100, playthrough.ID, PlaythroughOutcomeCompleted, firstChangedAt)
 	if err != nil {
 		t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 	}
 
-	libraryGame := getUserGame(t, store, 100)
-	if len(libraryGame.Playthroughs) == 0 {
+	details := getUserGame(t, store, 100)
+	if len(details.Playthroughs) == 0 {
 		t.Fatalf("no playthroughs found")
 	}
-	before := libraryGame.Playthroughs[0].Playthrough
+	before := details.Playthroughs[0].Playthrough
 
-	err = store.SetPlaythroughOutcome(ctx, 1, 100, pt.ID, PlaythroughOutcomeCompleted, firstChangedAt.Add(24*time.Hour))
+	err = store.SetPlaythroughOutcome(ctx, 1, 100, playthrough.ID, PlaythroughOutcomeCompleted, firstChangedAt.Add(24*time.Hour))
 	if err != nil {
 		t.Fatalf("SetPlaythroughOutcome() second call failed: %v", err)
 	}
 
-	libraryGame = getUserGame(t, store, 100)
-	if len(libraryGame.Playthroughs) == 0 {
+	details = getUserGame(t, store, 100)
+	if len(details.Playthroughs) == 0 {
 		t.Fatalf("no playthroughs found")
 	}
-	after := libraryGame.Playthroughs[0].Playthrough
+	after := details.Playthroughs[0].Playthrough
 	if before.FinishedAt == nil || after.FinishedAt == nil || !after.FinishedAt.Equal(*before.FinishedAt) {
 		t.Errorf("FinishedAt = %v, want %v", derefOrNil(after.FinishedAt), derefOrNil(before.FinishedAt))
 	}
@@ -305,12 +305,12 @@ func TestSetPlaythroughOutcomeErrors(t *testing.T) {
 			addOwnedGame(t, store, 100)
 			addOwnedGame(t, store, 101)
 
-			pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+			playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 			if err != nil {
 				t.Fatalf("StartPlaythrough() failed: %v", err)
 			}
 
-			err = store.SetPlaythroughOutcome(ctx, 1, tt.igdbID, pt.ID, tt.outcome, time.Now().UTC())
+			err = store.SetPlaythroughOutcome(ctx, 1, tt.igdbID, playthrough.ID, tt.outcome, time.Now().UTC())
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
@@ -323,11 +323,11 @@ func TestUpdatePlaythroughDetails(t *testing.T) {
 	store := newTestStore(t)
 	addOwnedGame(t, store, 100)
 
-	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
-	err = store.SetPlaythroughOutcome(ctx, 1, 100, pt.ID, PlaythroughOutcomeCompleted, time.Now().UTC())
+	err = store.SetPlaythroughOutcome(ctx, 1, 100, playthrough.ID, PlaythroughOutcomeCompleted, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 	}
@@ -336,7 +336,7 @@ func TestUpdatePlaythroughDetails(t *testing.T) {
 	name := "Updated PT"
 	startedAt := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	finishedAt := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
-	err = store.UpdatePlaythroughDetails(ctx, 1, 100, pt.ID, PlaythroughDetails{
+	err = store.UpdatePlaythroughDetails(ctx, 1, 100, playthrough.ID, PlaythroughDetails{
 		PlatformIGDBID: &platformIGDBID,
 		Name:           &name,
 		StartedAt:      &startedAt,
@@ -346,11 +346,11 @@ func TestUpdatePlaythroughDetails(t *testing.T) {
 		t.Fatalf("UpdatePlaythroughDetails() failed: %v", err)
 	}
 
-	game := getUserGame(t, store, 100)
-	if len(game.Playthroughs) != 1 {
-		t.Fatalf("len(Playthroughs) = %d, want 1", len(game.Playthroughs))
+	details := getUserGame(t, store, 100)
+	if len(details.Playthroughs) != 1 {
+		t.Fatalf("len(Playthroughs) = %d, want 1", len(details.Playthroughs))
 	}
-	got := game.Playthroughs[0]
+	got := details.Playthroughs[0]
 	if got.Playthrough.Name == nil || *got.Playthrough.Name != name {
 		t.Errorf("Name = %v, want %v", derefOrNil(got.Playthrough.Name), name)
 	}
@@ -373,21 +373,21 @@ func TestUpdatePlaythroughDetailsClearFields(t *testing.T) {
 	platformIGDBID := int64(11)
 	name := "Test PT"
 	startedAt := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	pt, err := store.StartPlaythrough(ctx, 1, 100, &platformIGDBID, &name, startedAt)
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, &platformIGDBID, &name, startedAt)
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
-	err = store.UpdatePlaythroughDetails(ctx, 1, 100, pt.ID, PlaythroughDetails{StartedAt: &startedAt})
+	err = store.UpdatePlaythroughDetails(ctx, 1, 100, playthrough.ID, PlaythroughDetails{StartedAt: &startedAt})
 	if err != nil {
 		t.Fatalf("UpdatePlaythroughDetails() failed: %v", err)
 	}
 
-	game := getUserGame(t, store, 100)
-	if len(game.Playthroughs) != 1 {
-		t.Fatalf("len(Playthroughs) = %d, want 1", len(game.Playthroughs))
+	details := getUserGame(t, store, 100)
+	if len(details.Playthroughs) != 1 {
+		t.Fatalf("len(Playthroughs) = %d, want 1", len(details.Playthroughs))
 	}
-	got := game.Playthroughs[0]
+	got := details.Playthroughs[0]
 	if got.Playthrough.Name != nil {
 		t.Errorf("Name = %v, want nil", *got.Playthrough.Name)
 	}
@@ -423,12 +423,12 @@ func TestUpdatePlaythroughDetailsErrors(t *testing.T) {
 			addOwnedGame(t, store, 100)
 			addOwnedGame(t, store, 101)
 
-			pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+			playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 			if err != nil {
 				t.Fatalf("StartPlaythrough() failed: %v", err)
 			}
 
-			err = store.UpdatePlaythroughDetails(ctx, 1, tt.igdbID, pt.ID, tt.details)
+			err = store.UpdatePlaythroughDetails(ctx, 1, tt.igdbID, playthrough.ID, tt.details)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("err = %v, want %v", err, tt.wantErr)
 			}
@@ -445,17 +445,17 @@ func TestDeletePlaythrough(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
-	err = store.DeletePlaythrough(ctx, 1, 100, pt.ID)
+	err = store.DeletePlaythrough(ctx, 1, 100, playthrough.ID)
 	if err != nil {
 		t.Fatalf("DeletePlaythrough() failed: %v", err)
 	}
 
-	pts, err := store.queries.ListPlaythroughsForUserGameID(ctx, pt.UserGameID)
+	pts, err := store.queries.ListPlaythroughsForUserGameID(ctx, playthrough.UserGameID)
 	if err != nil {
 		t.Fatalf("ListPlaythroughsForUserGameID() failed: %v", err)
 	}
@@ -463,12 +463,12 @@ func TestDeletePlaythrough(t *testing.T) {
 		t.Fatalf("len(pts) = %d, want 0", len(pts))
 	}
 
-	game, err := store.GetUserGame(ctx, 1, 100)
+	details, err := store.GetUserGame(ctx, 1, 100)
 	if err != nil {
 		t.Fatalf("GetUserGame() failed: %v", err)
 	}
-	if game.UserGame.Status == nil || *game.UserGame.Status != "playing" {
-		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(game.UserGame.Status), "playing")
+	if details.UserGame.Status == nil || *details.UserGame.Status != "playing" {
+		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(details.UserGame.Status), "playing")
 	}
 }
 
@@ -481,17 +481,17 @@ func TestDeletePlaythroughTwice(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
-	err = store.DeletePlaythrough(ctx, 1, 100, pt.ID)
+	err = store.DeletePlaythrough(ctx, 1, 100, playthrough.ID)
 	if err != nil {
 		t.Fatalf("DeletePlaythrough() failed: %v", err)
 	}
 
-	err = store.DeletePlaythrough(ctx, 1, 100, pt.ID)
+	err = store.DeletePlaythrough(ctx, 1, 100, playthrough.ID)
 	if !errors.Is(err, ErrPlaythroughNotFound) {
 		t.Fatalf("err = %v, want %v", err, ErrPlaythroughNotFound)
 	}
@@ -511,12 +511,12 @@ func TestDeletePlaythroughOtherGame(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
+	playthrough, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
-	err = store.DeletePlaythrough(ctx, 1, 101, pt.ID)
+	err = store.DeletePlaythrough(ctx, 1, 101, playthrough.ID)
 	if !errors.Is(err, ErrPlaythroughNotFound) {
 		t.Fatalf("err = %v, want %v", err, ErrPlaythroughNotFound)
 	}
