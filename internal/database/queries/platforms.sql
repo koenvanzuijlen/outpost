@@ -1,3 +1,14 @@
+-- name: ListPlatformsForGame :many
+SELECT
+    p.*
+FROM
+    platforms p
+    JOIN game_platforms gp ON gp.platform_id = p.id
+WHERE
+    gp.game_id = ?
+ORDER BY
+    p.name;
+
 -- name: ListPlatformsForUserGameID :many
 SELECT
     p.*

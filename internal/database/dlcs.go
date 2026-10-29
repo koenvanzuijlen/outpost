@@ -51,26 +51,9 @@ func (s *Store) SaveDLCs(ctx context.Context, parentIGDBID int64, dlcs []DLC, fe
 	q := dbgen.New(tx)
 
 	for _, dlc := range dlcs {
-		storedGame, err := q.UpsertGame(ctx, dlc.Game)
+		err := saveGameWithPlatforms(ctx, q, dlc.Game, dlc.Platforms)
 		if err != nil {
-			return fmt.Errorf("upsert game: %w", err)
-		}
-		err = q.DeleteGamePlatforms(ctx, storedGame.ID)
-		if err != nil {
-			return fmt.Errorf("delete game platform: %w", err)
-		}
-		for _, platform := range dlc.Platforms {
-			storedPlatform, err := q.UpsertPlatform(ctx, platform)
-			if err != nil {
-				return fmt.Errorf("upsert platform: %w", err)
-			}
-			err = q.CreateGamePlatform(ctx, dbgen.CreateGamePlatformParams{
-				GameID:     storedGame.ID,
-				PlatformID: storedPlatform.ID,
-			})
-			if err != nil {
-				return fmt.Errorf("create game platform: %w", err)
-			}
+			return fmt.Errorf("upsert game with platforms: %w", err)
 		}
 	}
 
