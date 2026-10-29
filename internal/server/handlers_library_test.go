@@ -158,13 +158,14 @@ func TestHandleHomeShowsPlayingGames(t *testing.T) {
 	}
 
 	w := getPage(t, server, "/")
-	_, rest, ok := strings.Cut(w.Body.String(), "<h2>Playing</h2>")
+	body := collapseSpace(w.Body.String())
+	_, rest, ok := strings.Cut(body, "<h2>Playing</h2>")
 	if !ok {
-		t.Fatalf("body missing playing section:\n%s", w.Body.String())
+		t.Fatalf("body missing playing section:\n%s", body)
 	}
 	playing, _, ok := strings.Cut(rest, "<h2>Backlog")
 	if !ok {
-		t.Fatalf("body missing backlog section:\n%s", w.Body.String())
+		t.Fatalf("body missing backlog section:\n%s", body)
 	}
 
 	if !strings.Contains(playing, `<a href="/games/1942">`) {

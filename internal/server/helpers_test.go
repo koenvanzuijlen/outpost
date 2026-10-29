@@ -158,18 +158,24 @@ func postForm(t *testing.T, server *Server, path, body string) *httptest.Respons
 	return w
 }
 
-// assertBodyContains reports an error if the response body does not contain want.
+// collapseSpace replaces every run of whitespace in s with a single space, so assertions don't depend on template
+// formatting.
+func collapseSpace(s string) string {
+	return strings.Join(strings.Fields(s), " ")
+}
+
+// assertBodyContains reports an error if the response body does not contain want, ignoring whitespace differences.
 func assertBodyContains(t *testing.T, w *httptest.ResponseRecorder, want string) {
 	t.Helper()
-	if !strings.Contains(w.Body.String(), want) {
+	if !strings.Contains(collapseSpace(w.Body.String()), collapseSpace(want)) {
 		t.Errorf("body does not contain %q", want)
 	}
 }
 
-// assertBodyNotContains reports an error if the response body contains unwanted.
+// assertBodyNotContains reports an error if the response body contains unwanted, ignoring whitespace differences.
 func assertBodyNotContains(t *testing.T, w *httptest.ResponseRecorder, unwanted string) {
 	t.Helper()
-	if strings.Contains(w.Body.String(), unwanted) {
+	if strings.Contains(collapseSpace(w.Body.String()), collapseSpace(unwanted)) {
 		t.Errorf("body unexpectedly contains %q", unwanted)
 	}
 }
