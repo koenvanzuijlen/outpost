@@ -402,7 +402,7 @@ func TestListLibraryOrder(t *testing.T) {
 	if err := store.SetDLCOwned(ctx, 1, 300, 6, 401, true); err != nil {
 		t.Fatalf("SetDLCOwned(401, PC) failed: %v", err)
 	}
-	// Both main games are titled "Test Game"; rename 300 so their PC copies don't tie on (title, platform).
+	// Both main games are titled "Test Game"; rename 300 so the order is decided by title.
 	if _, err := store.queries.UpsertGame(ctx, newGameParams(300, "Other Game")); err != nil {
 		t.Fatalf("UpsertGame(300) failed: %v", err)
 	}
@@ -422,29 +422,133 @@ func TestListLibraryOrder(t *testing.T) {
 	}
 
 	type entry struct {
-		igdbID   int64
-		platform string
+		igdbID    int64
+		platforms []string
 	}
 	got := make([]entry, 0, len(games))
 	for _, g := range games {
-		e := entry{igdbID: g.Game.IgdbID, platform: "<nil>"}
-		if g.PlatformName != nil {
-			e.platform = *g.PlatformName
-		}
-		got = append(got, e)
+		got = append(got, entry{igdbID: g.Game.IgdbID, platforms: g.Platforms})
 	}
 	want := []entry{
-		{201, "PC"},
-		{201, "PS4"},
-		{202, "<nil>"},
-		{300, "PC"},
-		{500, "<nil>"},
-		{100, "PC"},
-		{100, "PS4"},
+		{201, []string{"PC", "PS4"}},
+		{202, []string{}},
+		{300, []string{"PC"}},
+		{500, []string{}},
+		{100, []string{"PC", "PS4"}},
 	}
-	if !slices.Equal(got, want) {
+	equal := slices.EqualFunc(got, want, func(a, b entry) bool {
+		return a.igdbID == b.igdbID && slices.Equal(a.platforms, b.platforms)
+	})
+	if !equal {
 		t.Errorf("ListLibrary() = %v, want %v", got, want)
 	}
+}
+
+func TestListLibraryEntry(t *testing.T) {
+	date := func(month time.Month, day int) time.Time { return time.Date(2026, month, day, 0, 0, 0, 0, time.UTC) }
+
+	tests := []struct {
+		name          string
+		setup         func(t *testing.T, store *Store)
+		wantPlatforms []string
+		wantStarted   *time.Time
+		wantFinished  *time.Time
+	}{
+		{
+			name: "two platforms",
+			setup: func(t *testing.T, store *Store) {
+				addOwnedGame(t, store, 100)
+				if err := store.AddToLibrary(t.Context(), newGameParams(100, "Test Game"), new(newPlatformParams(6, "PC")), 1, time.Now().UTC()); err != nil {
+					t.Fatalf("AddToLibrary(PC) failed: %v", err)
+				}
+			},
+			wantPlatforms: []string{"PC", "Xbox"},
+		},
+		{
+			name: "no playthroughs",
+			setup: func(t *testing.T, store *Store) {
+				addOwnedGame(t, store, 100)
+			},
+			wantPlatforms: []string{"Xbox"},
+		},
+		{
+			name: "latest dates of two playthroughs",
+			setup: func(t *testing.T, store *Store) {
+				ctx := t.Context()
+				addOwnedGame(t, store, 100)
+				first, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, date(1, 1))
+				if err != nil {
+					t.Fatalf("StartPlaythrough(first) failed: %v", err)
+				}
+				second, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, date(3, 1))
+				if err != nil {
+					t.Fatalf("StartPlaythrough(second) failed: %v", err)
+				}
+				// The first playthrough started earlier but finished later.
+				if err := store.SetPlaythroughOutcome(ctx, 1, 100, second.ID, PlaythroughOutcomeCompleted, date(3, 15)); err != nil {
+					t.Fatalf("SetPlaythroughOutcome(second) failed: %v", err)
+				}
+				if err := store.SetPlaythroughOutcome(ctx, 1, 100, first.ID, PlaythroughOutcomeCompleted, date(4, 1)); err != nil {
+					t.Fatalf("SetPlaythroughOutcome(first) failed: %v", err)
+				}
+			},
+			wantPlatforms: []string{"Xbox"},
+			wantStarted:   new(date(3, 1)),
+			wantFinished:  new(date(4, 1)),
+		},
+		{
+			name: "only finish date",
+			setup: func(t *testing.T, store *Store) {
+				ctx := t.Context()
+				addOwnedGame(t, store, 100)
+				pt, err := store.StartPlaythrough(ctx, 1, 100, nil, nil, date(1, 1))
+				if err != nil {
+					t.Fatalf("StartPlaythrough() failed: %v", err)
+				}
+				if err := store.SetPlaythroughOutcome(ctx, 1, 100, pt.ID, PlaythroughOutcomeCompleted, date(2, 1)); err != nil {
+					t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
+				}
+				if err := store.UpdatePlaythroughDetails(ctx, 1, 100, pt.ID, PlaythroughDetails{FinishedAt: new(date(2, 1))}); err != nil {
+					t.Fatalf("UpdatePlaythroughDetails() failed: %v", err)
+				}
+			},
+			wantPlatforms: []string{"Xbox"},
+			wantFinished:  new(date(2, 1)),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newTestStore(t)
+			tt.setup(t, store)
+
+			games, err := store.ListLibrary(t.Context(), 1)
+			if err != nil {
+				t.Fatalf("ListLibrary() failed: %v", err)
+			}
+			if len(games) != 1 {
+				t.Fatalf("len(ListLibrary()) = %d, want 1", len(games))
+			}
+			got := games[0]
+			if !slices.Equal(got.Platforms, tt.wantPlatforms) {
+				t.Errorf("Platforms = %v, want %v", got.Platforms, tt.wantPlatforms)
+			}
+			if !equalTimePtr(got.LastStartedAt, tt.wantStarted) {
+				t.Errorf("LastStartedAt = %v, want %v", derefOrNil(got.LastStartedAt), derefOrNil(tt.wantStarted))
+			}
+			if !equalTimePtr(got.LastFinishedAt, tt.wantFinished) {
+				t.Errorf("LastFinishedAt = %v, want %v", derefOrNil(got.LastFinishedAt), derefOrNil(tt.wantFinished))
+			}
+		})
+	}
+}
+
+// equalTimePtr reports whether a and b are both nil or point to the same instant.
+func equalTimePtr(a, b *time.Time) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.Equal(*b)
 }
 
 func TestAddToLibraryClearsWishlist(t *testing.T) {
@@ -493,7 +597,7 @@ func TestAddToLibraryNotOwned(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListLibrary() failed: %v", err)
 	}
-	if len(games) != 1 || games[0].Game.IgdbID != 100 || games[0].PlatformName != nil {
+	if len(games) != 1 || games[0].Game.IgdbID != 100 || len(games[0].Platforms) != 0 {
 		t.Errorf("ListLibrary() = %v, want one entry for 100 without platform", games)
 	}
 }

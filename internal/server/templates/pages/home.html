@@ -1,0 +1,37 @@
+{{define "content"}}
+  <h1>Outpost</h1>
+  {{template "searchForm" ""}}
+  <div>
+    <h2>Playing</h2>
+    <ul>
+      {{range .PlayingGames}}
+        {{template "libraryEntry" .}}
+      {{else}}
+        <li>You are not currently playing any games.</li>
+      {{end}}
+    </ul>
+    <a href="/library?status=playing&sort=started">Show all</a>
+  </div>
+  <div>
+    <h2>Backlog ({{.BacklogCount}})</h2>
+    <ul>
+      {{range .BacklogGames}}
+        {{template "libraryEntry" .}}
+      {{else}}
+        <li>Your backlog is empty.</li>
+      {{end}}
+    </ul>
+    <a href="/library?status=backlog">Show all</a>
+  </div>
+  <div>
+    <h2>Wishlist ({{.WishlistCount}})</h2>
+    <ul>
+      {{range .WishlistGames}}
+        {{template "wishlistEntry" .}}
+      {{else}}
+        <li>Your wishlist is empty.</li>
+      {{end}}
+    </ul>
+    <a href="/wishlist">Show all</a>
+  </div>
+{{end}}

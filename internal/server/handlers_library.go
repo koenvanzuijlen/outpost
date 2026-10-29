@@ -12,13 +12,21 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
-type libraryPage struct {
-	Games           []database.LibraryEntry
-	WishlistedGames []dbgen.ListWishlistedUserGamesRow
+// homeSampleSize is the number of random games shown in the backlog and wishlist sections of the home page.
+const homeSampleSize = 10
+
+// homePage represents the data needed to render the home page: all playing games, a random sample of the backlog and
+// the wishlist, and the total size of both.
+type homePage struct {
+	PlayingGames  []database.LibraryEntry
+	BacklogGames  []database.LibraryEntry
+	BacklogCount  int
+	WishlistGames []dbgen.ListWishlistedUserGamesRow
+	WishlistCount int
 }
 
-// handleLibrary renders the home page: the library and the wishlist.
-func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
+// handleHome renders the home page: playing games by last started, and a random sample of the backlog and wishlist.
+func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	games, err := server.store.ListLibrary(ctx, defaultUserID)
 	if err != nil {
@@ -33,9 +41,73 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	playing := sortLibrary(
+		filterLibrary(slices.Clone(games), database.GameStatusPlaying),
+		librarySortStarted,
+	)
+
+	backlog := filterLibrary(slices.Clone(games), database.GameStatusBacklog)
+	backlogCount := len(backlog)
+	backlog = randomSample(backlog, homeSampleSize)
+
+	wishlistCount := len(wishlistedGames)
+	wishlistedGames = randomSample(wishlistedGames, homeSampleSize)
+
+	server.render(w, "home.html", homePage{
+		PlayingGames:  playing,
+		BacklogGames:  backlog,
+		BacklogCount:  backlogCount,
+		WishlistGames: wishlistedGames,
+		WishlistCount: wishlistCount,
+	})
+}
+
+// libraryPage represents the data needed to render the library page: the filtered and sorted entries, and the current
+// and available values of the status and sort selects.
+type libraryPage struct {
+	Games         []database.LibraryEntry
+	Status        database.GameStatus
+	StatusOptions []database.GameStatus
+	Sort          librarySort
+	SortOptions   []librarySortOption
+}
+
+// handleLibrary renders the library page. It reads query values status (empty for all statuses) and sort (default title),
+// and returns 400 for an unknown value.
+func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	status := database.GameStatus(r.URL.Query().Get("status"))
+	if status != "" && !status.Valid() {
+		http.Error(w, "Invalid game status", http.StatusBadRequest)
+		return
+	}
+
+	sort := librarySort(r.URL.Query().Get("sort"))
+	if sort == "" {
+		sort = librarySortTitle
+	}
+	if !sort.Valid() {
+		http.Error(w, "Invalid sort", http.StatusBadRequest)
+		return
+	}
+
+	games, err := server.store.ListLibrary(ctx, defaultUserID)
+	if err != nil {
+		server.logger.Error("failed to list library", "error", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	games = filterLibrary(games, status)
+	games = sortLibrary(games, sort)
+
 	server.render(w, "library.html", libraryPage{
-		Games:           games,
-		WishlistedGames: wishlistedGames,
+		Games:         games,
+		Status:        status,
+		StatusOptions: database.GameStatuses,
+		Sort:          sort,
+		SortOptions:   librarySortOptions(),
 	})
 }
 

@@ -3,8 +3,10 @@ package server
 // routes registers every HTTP route the server handles. It is called by New and must not be called again on a Server
 // that is already serving.
 func (server *Server) routes() {
-	server.mux.HandleFunc("GET /{$}", server.handleLibrary)
+	server.mux.HandleFunc("GET /{$}", server.handleHome)
 	server.mux.HandleFunc("GET /search", server.handleSearch)
+	server.mux.HandleFunc("GET /library", server.handleLibrary)
+	server.mux.HandleFunc("GET /wishlist", server.handleWishlist)
 	server.mux.HandleFunc("GET /games/{igdbID}", server.handleGame)
 	server.mux.HandleFunc("GET /health", server.handleHealth)
 

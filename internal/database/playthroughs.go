@@ -252,6 +252,20 @@ func optionalDateOf(t *time.Time) *time.Time {
 	return new(dateOf(*t))
 }
 
+// latest returns the later of current and candidate, handling nil values as absent dates. If both are nil, returns nil.
+func latest(current, candidate *time.Time) *time.Time {
+	if current == nil {
+		return candidate
+	}
+	if candidate == nil {
+		return current
+	}
+	if candidate.After(*current) {
+		return candidate
+	}
+	return current
+}
+
 // validPlaythroughDates reports whether the dates fit a playthrough with the given outcome: no finished date while
 // playing, and not finished before started. Both dates are optional.
 func validPlaythroughDates(outcome PlaythroughOutcome, startedAt, finishedAt *time.Time) bool {
