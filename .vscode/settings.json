@@ -4,6 +4,7 @@
     "editor.formatOnSave": true
   },
   "djlint.executablePath": ".tools/djlint",
+  "djlint.useEditorIndentation": false,
   "djlint.useVenv": false,
   "go.lintTool": "golangci-lint-v2",
   "go.lintOnSave": "package",
