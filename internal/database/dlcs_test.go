@@ -485,6 +485,54 @@ func TestGetGameStandaloneExpansion(t *testing.T) {
 	assertPlatformIDs(t, details.OwnedPlatforms, 130)
 }
 
+func TestGetGameDLCParentInLibrary(t *testing.T) {
+	store := newTestStore(t)
+	setupLibraryDLCs(t, store)
+
+	details := getGame(t, store, 202)
+	if !details.ParentInLibrary {
+		t.Error("ParentInLibrary = false, want true")
+	}
+}
+
+func TestGetGameDLCParentWishlisted(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+
+	if err := store.AddToWishlist(ctx, newGameParams(100, "Test Game"), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToWishlist() failed: %v", err)
+	}
+	dlc := newDLC(201, 100, "Test DLC", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)).Game
+	if err := store.SaveGame(ctx, dlc, nil); err != nil {
+		t.Fatalf("SaveGame() failed: %v", err)
+	}
+
+	details := getGame(t, store, 201)
+	if details.Parent == nil || details.Parent.IgdbID != 100 {
+		t.Errorf("Parent = %v, want game 100", derefOrNil(details.Parent))
+	}
+	if details.ParentInLibrary {
+		t.Error("ParentInLibrary = true, want false")
+	}
+}
+
+func TestGetGameDLCParentNotInCatalog(t *testing.T) {
+	store := newTestStore(t)
+
+	dlc := newDLC(201, 100, "Orphan DLC", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)).Game
+	if err := store.SaveGame(t.Context(), dlc, nil); err != nil {
+		t.Fatalf("SaveGame() failed: %v", err)
+	}
+
+	details := getGame(t, store, 201)
+	if details.Parent != nil {
+		t.Errorf("Parent = %v, want nil", *details.Parent)
+	}
+	if details.ParentInLibrary {
+		t.Error("ParentInLibrary = true, want false")
+	}
+}
+
 func TestAddToLibraryKeepsDLCsFetchedAt(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)

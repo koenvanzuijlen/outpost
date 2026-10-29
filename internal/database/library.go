@@ -25,16 +25,19 @@ var ErrGameNotInCatalog = errors.New("game not in the catalog")
 // GameOverview is a catalog game with everything the game page shows. Platforms are the platforms the game is released
 // on, from the catalog. UserGame is the user's library or wishlist entry, or nil if the game is in neither.
 // OwnedPlatforms are the platforms of the user's copies (for DLC: the base game's copies it is owned on). DLCs and
-// Parent come from the catalog. CopyDLCs and Playthroughs need a user game and are empty without one.
+// Parent come from the catalog; Parent is nil for a DLC whose base game isn't in the catalog. ParentInLibrary reports
+// whether that base game is in the user's library (not on the wishlist). CopyDLCs and Playthroughs need a user game and
+// are empty without one.
 type GameOverview struct {
-	Game           dbgen.Game
-	Platforms      []dbgen.Platform
-	UserGame       *dbgen.UserGame
-	OwnedPlatforms []dbgen.Platform
-	DLCs           []dbgen.ListDLCGamesRow
-	Parent         *dbgen.Game
-	CopyDLCs       map[int64][]CopyDLC // key: platform IGDB ID
-	Playthroughs   []dbgen.ListPlaythroughsForUserGameIDRow
+	Game            dbgen.Game
+	Platforms       []dbgen.Platform
+	UserGame        *dbgen.UserGame
+	OwnedPlatforms  []dbgen.Platform
+	DLCs            []dbgen.ListDLCGamesRow
+	Parent          *dbgen.Game
+	ParentInLibrary bool
+	CopyDLCs        map[int64][]CopyDLC // key: platform IGDB ID
+	Playthroughs    []dbgen.ListPlaythroughsForUserGameIDRow
 }
 
 // GetGame returns the overview of the catalog game with the given IGDB ID for the user. A game that isn't in the
@@ -71,6 +74,7 @@ func (s *Store) GetGame(ctx context.Context, userID, igdbID int64) (GameOverview
 	copyDLCs := make(map[int64][]CopyDLC)
 	var parentGame *dbgen.Game
 	var ownedPlatforms []dbgen.Platform
+	var parentInLibrary bool
 	if !isDLC {
 		dlcs, err = s.queries.ListDLCGames(ctx, dbgen.ListDLCGamesParams{
 			UserID:       userID,
@@ -107,10 +111,23 @@ func (s *Store) GetGame(ctx context.Context, userID, igdbID int64) (GameOverview
 			return GameOverview{}, fmt.Errorf("dlc %d has no parent", game.ID)
 		}
 		parent, err := s.queries.GetGameByIGDBID(ctx, *game.ParentIgdbID)
-		if err != nil {
+		switch {
+		case err == nil:
+			parentGame = &parent
+		case !errors.Is(err, sql.ErrNoRows):
 			return GameOverview{}, fmt.Errorf("get parent game: %w", err)
 		}
-		parentGame = &parent
+
+		if parentGame != nil {
+			parentUserGame, err := s.queries.GetUserGame(ctx, dbgen.GetUserGameParams{
+				UserID: userID,
+				GameID: parentGame.ID,
+			})
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return GameOverview{}, fmt.Errorf("get parent user game: %w", err)
+			}
+			parentInLibrary = !errors.Is(err, sql.ErrNoRows) && !parentUserGame.Wishlisted
+		}
 
 		ownedPlatforms, err = s.queries.ListPlatformsForOwnedDLC(ctx, dbgen.ListPlatformsForOwnedDLCParams{
 			UserID:    userID,
@@ -130,14 +147,15 @@ func (s *Store) GetGame(ctx context.Context, userID, igdbID int64) (GameOverview
 	}
 
 	return GameOverview{
-		Game:           game,
-		Platforms:      platforms,
-		DLCs:           dlcs,
-		UserGame:       userGame,
-		OwnedPlatforms: ownedPlatforms,
-		Playthroughs:   playthroughs,
-		CopyDLCs:       copyDLCs,
-		Parent:         parentGame,
+		Game:            game,
+		Platforms:       platforms,
+		DLCs:            dlcs,
+		UserGame:        userGame,
+		OwnedPlatforms:  ownedPlatforms,
+		Playthroughs:    playthroughs,
+		CopyDLCs:        copyDLCs,
+		Parent:          parentGame,
+		ParentInLibrary: parentInLibrary,
 	}, nil
 }
 

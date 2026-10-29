@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
 func TestHandleGameValidation(t *testing.T) {
@@ -34,8 +36,65 @@ func TestHandleGameValidation(t *testing.T) {
 	}
 }
 
-func TestHandleGameNotInLibrary(t *testing.T) {
+func TestHandleGameFromIGDB(t *testing.T) {
 	server := newTestServer(t)
+	server.igdbClient = &fakeIGDB{game: loadIGDBGame(t, "game_by_id.json")}
+
+	w := getTestGamePage(t, server)
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
+	assertBodyContains(t, w, "Add to library")
+	assertBodyNotContains(t, w, `name="status"`)
+}
+
+func TestHandleGameCachedIGDBError(t *testing.T) {
+	server := newTestServer(t)
+	fake := &fakeIGDB{game: loadIGDBGame(t, "game_by_id.json")}
+	server.igdbClient = fake
+	getTestGamePage(t, server)
+
+	fake.gameErr = errors.New("down")
+	w := getTestGamePage(t, server)
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
+}
+
+func TestHandleGameUncachedIGDBError(t *testing.T) {
+	server := newTestServer(t)
+	server.igdbClient = &fakeIGDB{gameErr: errors.New("down")}
+
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/games/1942", nil))
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestHandleGameDLCParentInLibrary(t *testing.T) {
+	server := newTestServer(t)
+	fake := addTestGame(t, server)
+	fake.game = loadIGDBGame(t, "game_by_id_dlc.json")
+
+	w := getGamePage(t, server, 13166)
+	assertBodyContains(t, w, `action="/games/1942/dlcs/13166/library"`)
+	assertBodyContains(t, w, "Add to library")
+}
+
+func TestHandleGameDLCParentNotInLibrary(t *testing.T) {
+	server := newTestServer(t)
+	fake := &fakeIGDB{game: loadIGDBGame(t, "game_by_id.json")}
+	server.igdbClient = fake
+	getTestGamePage(t, server)
+	fake.game = loadIGDBGame(t, "game_by_id_dlc.json")
+
+	w := getGamePage(t, server, 13166)
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt - Blood and Wine")
+	assertBodyNotContains(t, w, `action="/games/1942/dlcs/13166/library"`)
+	assertBodyNotContains(t, w, "Add to library")
+}
+
+func TestHandleGameNotInIGDB(t *testing.T) {
+	server := newTestServer(t)
+	server.igdbClient = &fakeIGDB{gameErr: igdb.ErrGameNotFound}
+
 	req := httptest.NewRequest(http.MethodGet, "/games/999999", nil)
 	w := httptest.NewRecorder()
 	server.ServeHTTP(w, req)

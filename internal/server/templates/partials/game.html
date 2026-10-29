@@ -5,16 +5,18 @@
   {{end}}
   <div>
     {{if $.Details.Game.CoverUrl}}<img alt="{{$.Details.Game.Title}}" src="{{$.Details.Game.CoverUrl}}">{{end}}
-    {{if $.Details.UserGame.Wishlisted}}
-      <p>On your wishlist</p>
-    {{end}}
-    {{with $.Details.UserGame.Status}}
-      <p>Status: {{.}}</p>
+    {{with $.Details.UserGame}}
+      {{if .Wishlisted}}
+        <p>On your wishlist</p>
+      {{end}}
+      {{with .Status}}
+        <p>Status: {{.}}</p>
+      {{end}}
+      {{with .Rating}}
+        <span title="{{ratingLabel .}}" aria-label="{{ratingLabel .}}" role="img">{{ratingText .}}</span>
+      {{end}}
     {{end}}
   </div>
-  {{with $.Details.UserGame.Rating}}<span title="{{ratingLabel .}}"
-      aria-label="{{ratingLabel .}}"
-      role="img">{{ratingText .}}</span>{{end}}
   {{with $.Details.Game.ReleasedAt}}
     <p>Released: {{.Format "2 January 2006"}}</p>
   {{end}}
@@ -24,6 +26,31 @@
       <br>
       {{.}}
     </p>
+  {{end}}
+{{end}}
+{{define "gameLibraryState"}}
+  {{if $.CanAddGame}}
+    <form method="post" action="/library">
+      <input type="hidden" name="igdb_id" value="{{$.Details.Game.IgdbID}}">
+      <label>
+        Owned on
+        <select name="platform_id">
+          {{range $.Details.Platforms}}
+            <option value="{{.IgdbID}}">{{.Name}}</option>
+          {{end}}
+          <option value="">Not owned</option>
+        </select>
+      </label>
+      <button type="submit">Add to library</button>
+    </form>
+    <form method="post" action="/wishlist">
+      <input type="hidden" name="igdb_id" value="{{$.Details.Game.IgdbID}}">
+      <button type="submit">Add to wishlist</button>
+    </form>
+  {{else if $.CanAddDLC}}
+    <form method="post" action="/games/{{$.Details.Parent.IgdbID}}/dlcs/{{$.Details.Game.IgdbID}}/library">
+      <button type="submit">Add to library</button>
+    </form>
   {{end}}
 {{end}}
 {{define "gameCopies"}}

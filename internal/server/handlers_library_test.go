@@ -290,11 +290,8 @@ func TestHandleRemoveUserGame(t *testing.T) {
 	}
 	assertLocation(t, w, "/")
 
-	w = httptest.NewRecorder()
-	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/games/1942", nil))
-	if w.Code != http.StatusNotFound {
-		t.Errorf("game page status = %d, want %d", w.Code, http.StatusNotFound)
-	}
+	w = getTestGamePage(t, server)
+	assertBodyContains(t, w, "Add to library")
 }
 
 func TestHandleRemoveUserGameTwice(t *testing.T) {

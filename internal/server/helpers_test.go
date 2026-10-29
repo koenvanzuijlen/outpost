@@ -59,6 +59,16 @@ func loadIGDBGames(t *testing.T, name string) []igdb.Game {
 	return games
 }
 
+// loadIGDBGame loads the first IGDB game from a fixture located in the testdata directory.
+func loadIGDBGame(t *testing.T, name string) igdb.Game {
+	t.Helper()
+	games := loadIGDBGames(t, name)
+	if len(games) == 0 {
+		t.Fatalf("len(%s) = 0, want at least 1", name)
+	}
+	return games[0]
+}
+
 // newTestServer returns a Server with a fresh database in a temporary directory and no IGDB client. Tests that call
 // IGDB set server.igdbClient to a fakeIGDB.
 func newTestServer(t *testing.T) *Server {

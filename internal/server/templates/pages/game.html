@@ -1,13 +1,18 @@
 {{define "content"}}
   {{template "gameInfo" .}}
-  {{template "gameCopies" .}}
+  {{template "gameLibraryState" .}}
+  {{if or .Details.UserGame .Details.Parent}}
+    {{template "gameCopies" .}}
+  {{end}}
   {{if not .Details.Parent}}
     {{template "gameDLC" .}}
   {{end}}
-  {{if not .Details.UserGame.Wishlisted}}
-    {{template "gameDetails" .}}
-    {{template "gamePlaythroughs" .}}
+  {{with .Details.UserGame}}
+    {{if not .Wishlisted}}
+      {{template "gameDetails" $}}
+      {{template "gamePlaythroughs" $}}
+    {{end}}
+    {{template "gameRemove" $}}
   {{end}}
-  {{template "gameRemove" .}}
+  <a href="/">Back to home</a>
 {{end}}
-<a href="/">Back to home</a>
