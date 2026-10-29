@@ -11,6 +11,17 @@ ORDER BY
     pt.started_at DESC,
     pt.id DESC;
 
+-- name: ListPlaythroughDates :many
+SELECT
+    pt.user_game_id,
+    pt.started_at,
+    pt.finished_at
+FROM
+    playthroughs pt
+    JOIN user_games ug ON pt.user_game_id = ug.id
+WHERE
+    ug.user_id = ?;
+
 -- name: GetPlaythrough :one
 SELECT
     *
