@@ -280,7 +280,7 @@ func (s *Store) UpdateGameDetails(ctx context.Context, userID, igdbID int64, det
 		IgdbID: igdbID,
 	})
 	if err != nil {
-		return fmt.Errorf("update user game detailsTestUpdateGameDetails: %w", err)
+		return fmt.Errorf("update user game details: %w", err)
 	}
 	if updatedRows == 0 {
 		return ErrUserGameNotFound
