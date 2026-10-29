@@ -1,22 +1,29 @@
 {{define "content"}}
-  <h1>Outpost</h1>
-  {{template "searchForm" ""}}
-  <div>
-    <h2>Library</h2>
+    <h1>Library</h1>
+    <a href="/">Back to home</a>
+    <form method="GET" action="/library">
+        <label>Status:
+            <select name="status">
+                <option value="">All</option>
+                {{range .StatusOptions}}
+                    <option value="{{.}}" {{if eq $.Status .}}selected{{end}}>{{.}}</option>
+                {{end}}
+            </select>
+        </label>
+        <label>Sort by:
+            <select name="sort">
+                {{range .SortOptions}}
+                    <option value="{{.Value}}" {{if eq $.Sort .Value}}selected{{end}}>{{.Label}}</option>
+                {{end}}
+            </select>
+        </label>
+        <button type="submit">Apply</button>
+    </form>
     <ul>
       {{range .Games}}
         <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}} - {{with .Platforms}}{{range $index, $platform := .}}{{if $index}}, {{end}}{{$platform}}{{end}}{{else}}not owned{{end}}{{with .UserGame.Status}} - {{.}}{{end}}</li>
       {{else}}
-        <li>Your library is empty.</li>
+        <li>No results.</li>
       {{end}}
     </ul>
-  </div>
-  <h2>Wishlist</h2>
-  <ul>
-    {{range .WishlistedGames}}
-      <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}}</li>
-    {{else}}
-      <li>Your wishlist is empty.</li>
-    {{end}}
-  </ul>
 {{end}}

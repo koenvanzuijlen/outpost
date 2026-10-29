@@ -124,7 +124,7 @@ func TestHandleAddToLibraryDatabaseFailure(t *testing.T) {
 	assertLocation(t, w, "")
 }
 
-func TestHandleLibraryRendersLibraryAndWishlist(t *testing.T) {
+func TestHandleHomeRendersLibraryAndWishlist(t *testing.T) {
 	searchResponse := loadIGDBGames(t, "games_search.json")
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: searchResponse[0]}
@@ -142,7 +142,7 @@ func TestHandleLibraryRendersLibraryAndWishlist(t *testing.T) {
 	getPage(t, server, "/")
 }
 
-func TestHandleLibraryRendersUnownedDLC(t *testing.T) {
+func TestHandleHomeRendersUnownedDLC(t *testing.T) {
 	server := newTestServer(t)
 	addTestGameWithDLCs(t, server)
 	if w := postForm(t, server, testAddDLCPath, ""); w.Code != http.StatusSeeOther {
@@ -152,6 +152,88 @@ func TestHandleLibraryRendersUnownedDLC(t *testing.T) {
 	w := getPage(t, server, "/")
 	assertBodyContains(t, w, `<a href="/games/12503">`)
 	assertBodyContains(t, w, "not owned")
+}
+
+// addBacklogAndCompletedGames adds The Witcher IV (194662) with status backlog and The Witcher 3 (1942) with status
+// completed to the library.
+func addBacklogAndCompletedGames(t *testing.T, server *Server) {
+	t.Helper()
+	addTestGame(t, server)
+	if w := postForm(t, server, "/games/1942", "status=completed"); w.Code != http.StatusSeeOther {
+		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "games_search.json")[0]}
+	if w := postForm(t, server, "/library", "igdb_id=194662&platform_id=6"); w.Code != http.StatusSeeOther {
+		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+}
+
+func TestHandleLibraryFiltersByStatus(t *testing.T) {
+	server := newTestServer(t)
+	addBacklogAndCompletedGames(t, server)
+
+	w := getPage(t, server, "/library?status=backlog")
+	assertBodyContains(t, w, `<a href="/games/194662">`)
+	assertBodyNotContains(t, w, `<a href="/games/1942">`)
+}
+
+func TestHandleLibraryInvalidQuery(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+	}{
+		{"invalid sort", "/library?sort=bogus"},
+		{"invalid status", "/library?status=bogus"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			w := httptest.NewRecorder()
+			server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, tt.path, nil))
+
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+			}
+		})
+	}
+}
+
+func TestHandleLibrarySelectedOptions(t *testing.T) {
+	tests := []struct {
+		name         string
+		path         string
+		wantSelected []string
+		wantNot      []string
+	}{
+		{
+			"defaults",
+			"/library",
+			[]string{`<option value="title" selected>`},
+			[]string{`<option value="backlog" selected>`, `<option value="added" selected>`},
+		},
+		{
+			"status and sort",
+			"/library?status=backlog&sort=added",
+			[]string{`<option value="backlog" selected>`, `<option value="added" selected>`},
+			[]string{`<option value="completed" selected>`, `<option value="title" selected>`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			w := getPage(t, server, tt.path)
+
+			for _, want := range tt.wantSelected {
+				assertBodyContains(t, w, want)
+			}
+			for _, unwanted := range tt.wantNot {
+				assertBodyNotContains(t, w, unwanted)
+			}
+		})
+	}
 }
 
 func TestHandleRemoveUserGame(t *testing.T) {

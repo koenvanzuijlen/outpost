@@ -12,13 +12,13 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
-type libraryPage struct {
+type homePage struct {
 	Games           []database.LibraryEntry
 	WishlistedGames []dbgen.ListWishlistedUserGamesRow
 }
 
-// handleLibrary renders the home page: the library and the wishlist.
-func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
+// handleHome renders the home page: the library and the wishlist.
+func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	games, err := server.store.ListLibrary(ctx, defaultUserID)
 	if err != nil {
@@ -33,9 +33,58 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	server.render(w, "library.html", libraryPage{
+	server.render(w, "home.html", homePage{
 		Games:           games,
 		WishlistedGames: wishlistedGames,
+	})
+}
+
+// libraryPage represents the data needed to render the library page: the filtered and sorted entries, and the current
+// and available values of the status and sort selects.
+type libraryPage struct {
+	Games         []database.LibraryEntry
+	Status        database.GameStatus
+	StatusOptions []database.GameStatus
+	Sort          librarySort
+	SortOptions   []librarySortOption
+}
+
+// handleLibrary renders the library page. It reads query values status (empty for all statuses) and sort (default title),
+// and returns 400 for an unknown value.
+func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	status := database.GameStatus(r.URL.Query().Get("status"))
+	if status != "" && !status.Valid() {
+		http.Error(w, "Invalid game status", http.StatusBadRequest)
+		return
+	}
+
+	sort := librarySort(r.URL.Query().Get("sort"))
+	if sort == "" {
+		sort = librarySortTitle
+	}
+	if !sort.Valid() {
+		http.Error(w, "Invalid sort", http.StatusBadRequest)
+		return
+	}
+
+	games, err := server.store.ListLibrary(ctx, defaultUserID)
+	if err != nil {
+		server.logger.Error("failed to list library", "error", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	games = filterLibrary(games, status)
+	games = sortLibrary(games, sort)
+
+	server.render(w, "library.html", libraryPage{
+		Games:         games,
+		Status:        status,
+		StatusOptions: database.GameStatuses,
+		Sort:          sort,
+		SortOptions:   librarySortOptions(),
 	})
 }
 
