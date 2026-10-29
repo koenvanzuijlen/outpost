@@ -70,6 +70,9 @@ func TestAddToWishlistOwnedGame(t *testing.T) {
 
 	// Ensure the game is still in the collection
 	details := getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	if details.UserGame.Wishlisted {
 		t.Errorf("Wishlisted = true, want false")
 	}

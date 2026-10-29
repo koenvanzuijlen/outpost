@@ -45,9 +45,9 @@ func TestStartPlaythrough(t *testing.T) {
 		t.Errorf("PlatformName = %s, want %s", derefOrNil(pts[0].PlatformName), platformName)
 	}
 
-	details := getGame(t, store, 100)
-	if details.UserGame.Status == nil || *details.UserGame.Status != "playing" {
-		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(details.UserGame.Status), "playing")
+	userGame := getUserGame(t, store, 100)
+	if userGame.Status == nil || *userGame.Status != "playing" {
+		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(userGame.Status), "playing")
 	}
 }
 
@@ -134,9 +134,9 @@ func TestStartPlaythroughStatus(t *testing.T) {
 				t.Fatalf("StartPlaythrough() failed: %v", err)
 			}
 
-			details := getGame(t, store, 100)
-			if details.UserGame.Status == nil || *details.UserGame.Status != string(tt.wantStatus) {
-				t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), tt.wantStatus)
+			userGame := getUserGame(t, store, 100)
+			if userGame.Status == nil || *userGame.Status != string(tt.wantStatus) {
+				t.Errorf("UserGame.Status = %v, want %v", derefOrNil(userGame.Status), tt.wantStatus)
 			}
 		})
 	}
@@ -170,6 +170,9 @@ func TestSetPlaythroughOutcome(t *testing.T) {
 			}
 
 			details := getGame(t, store, 100)
+			if details.UserGame == nil {
+				t.Fatal("UserGame = nil, want an entry")
+			}
 			got := onlyPlaythrough(t, details).Playthrough
 			if got.Outcome != string(tt.outcome) {
 				t.Errorf("Outcome = %v, want %v", got.Outcome, tt.outcome)
@@ -204,9 +207,9 @@ func TestSetPlaythroughOutcomeOtherPlaying(t *testing.T) {
 		t.Fatalf("SetPlaythroughOutcome() failed: %v", err)
 	}
 
-	details := getGame(t, store, 100)
-	if details.UserGame.Status == nil || *details.UserGame.Status != string(GameStatusPlaying) {
-		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), GameStatusPlaying)
+	userGame := getUserGame(t, store, 100)
+	if userGame.Status == nil || *userGame.Status != string(GameStatusPlaying) {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(userGame.Status), GameStatusPlaying)
 	}
 }
 
@@ -439,9 +442,9 @@ func TestDeletePlaythrough(t *testing.T) {
 		t.Fatalf("len(pts) = %d, want 0", len(pts))
 	}
 
-	details := getGame(t, store, 100)
-	if details.UserGame.Status == nil || *details.UserGame.Status != "playing" {
-		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(details.UserGame.Status), "playing")
+	userGame := getUserGame(t, store, 100)
+	if userGame.Status == nil || *userGame.Status != "playing" {
+		t.Errorf("UserGame.Status = %s, want %s", derefOrNil(userGame.Status), "playing")
 	}
 }
 

@@ -55,8 +55,8 @@ func addOwnedGame(t *testing.T, store *Store, igdbID int64) {
 	}
 }
 
-// getGame returns the game with the given IGDB ID from user 1's library or wishlist. It fails the test if it isn't
-// there.
+// getGame returns the overview of the game with the given IGDB ID for user 1. It fails the test if GetGame returns an
+// error.
 func getGame(t *testing.T, store *Store, igdbID int64) GameOverview {
 	t.Helper()
 	details, err := store.GetGame(t.Context(), 1, igdbID)
@@ -64,6 +64,16 @@ func getGame(t *testing.T, store *Store, igdbID int64) GameOverview {
 		t.Fatalf("GetGame() failed: %v", err)
 	}
 	return details
+}
+
+// getUserGame returns user 1's library or wishlist entry for the given IGDB ID. It fails the test if there is none.
+func getUserGame(t *testing.T, store *Store, igdbID int64) dbgen.UserGame {
+	t.Helper()
+	details := getGame(t, store, igdbID)
+	if details.UserGame == nil {
+		t.Fatalf("GetGame(%d) UserGame = nil, want an entry", igdbID)
+	}
+	return *details.UserGame
 }
 
 // onlyPlaythrough returns the single playthrough of details. It fails the test if there isn't exactly one.

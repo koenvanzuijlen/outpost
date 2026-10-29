@@ -41,6 +41,9 @@ func TestRemoveOwnedCopy(t *testing.T) {
 	}
 
 	details = getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	assertPlatformIDs(t, details.OwnedPlatforms)
 	if s := details.UserGame.Status; s == nil || *s != string(GameStatusPlaying) {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusPlaying)

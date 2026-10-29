@@ -72,12 +72,17 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 
 	details, err := server.store.GetGame(r.Context(), defaultUserID, igdbID)
 	if err != nil {
-		if errors.Is(err, database.ErrUserGameNotFound) {
-			http.Error(w, "Game not in library", http.StatusNotFound)
+		if errors.Is(err, database.ErrGameNotInCatalog) {
+			http.Error(w, "Game not found", http.StatusNotFound)
 		} else {
-			server.logger.Error("failed to get library game", "error", err)
+			server.logger.Error("failed to get game", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
+		return
+	}
+
+	if details.UserGame == nil {
+		http.Error(w, "Game not in library", http.StatusNotFound)
 		return
 	}
 

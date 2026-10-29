@@ -136,6 +136,9 @@ func getTestGame(t *testing.T, server *Server) database.GameOverview {
 	if err != nil {
 		t.Fatalf("GetGame() failed: %v", err)
 	}
+	if details.UserGame == nil {
+		t.Fatal("GetGame(1942) UserGame = nil, want an entry")
+	}
 	return details
 }
 
