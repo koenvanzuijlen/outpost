@@ -1,0 +1,264 @@
+{{define "gameInfo"}}
+  <h1>{{$.Details.Game.Title}}</h1>
+  {{with $.Details.Parent}}
+    <p>DLC of <a href="/games/{{.IgdbID}}">{{.Title}}</a></p>
+  {{end}}
+  <div>
+    {{if $.Details.Game.CoverUrl}}<img alt="{{$.Details.Game.Title}}" src="{{$.Details.Game.CoverUrl}}">{{end}}
+    {{with $.Details.UserGame}}
+      {{if .Wishlisted}}
+        <p>On your wishlist</p>
+      {{end}}
+      {{with .Status}}
+        <p>Status: {{.}}</p>
+      {{end}}
+      {{with .Rating}}
+        <span title="{{ratingLabel .}}" aria-label="{{ratingLabel .}}" role="img">{{ratingText .}}</span>
+      {{end}}
+    {{end}}
+  </div>
+  {{with $.Details.Game.ReleasedAt}}
+    <p>Released: {{.Format "2 January 2006"}}</p>
+  {{end}}
+  {{with $.Details.Game.Summary}}
+    <p>
+      Summary:
+      <br>
+      {{.}}
+    </p>
+  {{end}}
+{{end}}
+{{define "gameLibraryState"}}
+  {{if $.CanAddGame}}
+    <form method="post" action="/library">
+      <input type="hidden" name="igdb_id" value="{{$.Details.Game.IgdbID}}">
+      <label>
+        Owned on
+        <select name="platform_id">
+          {{range $.Details.Platforms}}
+            <option value="{{.IgdbID}}">{{.Name}}</option>
+          {{end}}
+          <option value="">Not owned</option>
+        </select>
+      </label>
+      <button type="submit">Add to library</button>
+    </form>
+    <form method="post" action="/wishlist">
+      <input type="hidden" name="igdb_id" value="{{$.Details.Game.IgdbID}}">
+      <button type="submit">Add to wishlist</button>
+    </form>
+  {{else if $.CanAddDLC}}
+    <form method="post" action="/games/{{$.Details.Parent.IgdbID}}/dlcs/{{$.Details.Game.IgdbID}}/library">
+      <button type="submit">Add to library</button>
+    </form>
+  {{end}}
+{{end}}
+{{define "gameCopies"}}
+  {{if $.Details.OwnedPlatforms}}
+    <p>Owned on:</p>
+    <ul>
+      {{range $.Details.OwnedPlatforms}}
+        {{$platformIGDBID := .IgdbID}}
+        <li>
+          {{.Name}}
+          {{with index $.Details.CopyDLCs .IgdbID}}
+            <br>
+            DLC:
+            <ul>
+              {{range .}}
+                <li>
+                  <form method="post"
+                        action="/games/{{$.Details.Game.IgdbID}}/platforms/{{$platformIGDBID}}/dlcs/{{.Game.IgdbID}}">
+                    {{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}} - {{if .Owned}}owned{{else}}not owned{{end}}
+                    <button type="submit" name="owned" value="{{not .Owned}}" aria-pressed="{{.Owned}}">Owned</button>
+                  </form>
+                </li>
+              {{end}}
+            </ul>
+          {{end}}
+          {{if not $.Details.Parent}}
+            <details>
+              <summary>Remove copy</summary>
+              <form method="post" action="/games/{{$.Details.Game.IgdbID}}/platforms/{{.IgdbID}}/delete">
+                <p>This also removes the DLC you marked as owned on this copy.</p>
+                <button type="submit">Really remove</button>
+              </form>
+            </details>
+          {{end}}
+        </li>
+      {{end}}
+    </ul>
+  {{else if not $.Details.Parent}}
+    <p>Not owned on any platform.</p>
+  {{end}}
+  {{with $.Details.Parent}}
+    <p>
+      {{if not $.Details.OwnedPlatforms}}Not owned on any platform. {{end}}
+      Ownership of this DLC is managed on the page of <a href="/games/{{.IgdbID}}">{{.Title}}</a>.
+    </p>
+  {{end}}
+{{end}}
+{{define "gameDLC"}}
+  <div>
+    <h2>DLC</h2>
+    {{if $.Details.Game.DlcsFetchedAt}}
+      <ul>
+        {{range $.Details.DLCs}}
+          <li>
+            {{if .InLibrary}}
+              <a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}</a> – In library · {{.Status}}
+            {{else}}
+              {{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}
+              <form method="post" action="/games/{{$.Details.Game.IgdbID}}/dlcs/{{.Game.IgdbID}}/library">
+                <button type="submit"
+                        title="Gives this DLC its own status, rating and playthroughs">Add to library separately</button>
+              </form>
+            {{end}}
+          </li>
+        {{else}}
+          <li>No DLC.</li>
+        {{end}}
+      </ul>
+    {{else}}
+      <p>DLC couldn't be loaded.</p>
+    {{end}}
+  </div>
+{{end}}
+{{define "gameDetails"}}
+  <div>
+    <form method="post" action="/games/{{$.Details.Game.IgdbID}}">
+      <h2>Status, rating and notes</h2>
+      <label>
+        Status
+        <select name="status">
+          {{range $.Statuses}}
+            <option value="{{.}}"{{if eq . $.CurrentStatus}} selected{{end}}>{{.}}</option>
+          {{end}}
+        </select>
+      </label>
+      <label>
+        Rating
+        <select name="rating">
+          <option value=""{{if eq 0 $.CurrentRating}} selected{{end}}>Unrated</option>
+          {{range $.RatingOptions}}
+            <option value="{{.Value}}" {{if eq .Value $.CurrentRating}} selected{{end}}>{{.Label}}</option>
+          {{end}}
+        </select>
+      </label>
+      <label>
+        Notes
+        <textarea name="notes" maxlength="{{$.MaxNotesLength}}">{{with $.Details.UserGame.Notes}}{{.}}{{end}}</textarea>
+      </label>
+      <button type="submit">Save</button>
+    </form>
+  </div>
+{{end}}
+{{define "gamePlaythroughs"}}
+  <div>
+    <h2>Playthroughs</h2>
+    <ul>
+      {{range $.Details.Playthroughs}}
+        <li>
+          {{with .Playthrough.Name}}
+            <p>{{.}}</p>
+          {{end}}
+          {{with .PlatformName}}
+            <p>Platform: {{.}}</p>
+          {{end}}
+          <p>Outcome: {{outcomeLabel .Playthrough.Outcome}}</p>
+          {{with .Playthrough.StartedAt}}
+            <p>Started: {{.Format "2 January 2006"}}</p>
+          {{end}}
+          {{with .Playthrough.FinishedAt}}
+            <p>Finished: {{.Format "2 January 2006"}}</p>
+          {{end}}
+          <form method="post" action="/games/{{$.Details.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/outcome">
+            {{$outcome := .Playthrough.Outcome}}
+            {{range $.OutcomeOptions}}
+              <button type="submit"
+                      name="outcome"
+                      value="{{.Value}}"
+                      aria-pressed="{{if eq .Value $outcome}}true{{else}}false{{end}}">{{.Label}}</button>
+            {{end}}
+          </form>
+          <details>
+            <summary>Edit</summary>
+            <form method="post" action="/games/{{$.Details.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}">
+              <label>
+                Playthrough name
+                <input type="text" name="name" value="{{with .Playthrough.Name}}{{.}}{{end}}">
+              </label>
+              <label>
+                Platform
+                <select name="platform">
+                  {{$platformID := derefInt64 .Playthrough.PlatformID}}
+                  <option value="" {{if eq 0 $platformID}}selected{{end}}>No platform</option>
+                  {{range $.Details.OwnedPlatforms}}
+                    <option value="{{.IgdbID}}" {{if eq .ID $platformID}}selected{{end}}>{{.Name}}</option>
+                  {{end}}
+                </select>
+              </label>
+              <label>
+                Started at
+                <input type="date"
+                       name="started_at"
+                       value="{{with .Playthrough.StartedAt}}{{.Format "2006-01-02"}}{{end}}">
+              </label>
+              {{if ne .Playthrough.Outcome "playing"}}
+                <label>
+                  Finished at
+                  <input type="date"
+                         name="finished_at"
+                         value="{{with .Playthrough.FinishedAt}}{{.Format "2006-01-02"}}{{end}}">
+                </label>
+              {{end}}
+              <button type="submit">Update playthrough</button>
+            </form>
+          </details>
+          <details>
+            <summary>Delete</summary>
+            <form method="post" action="/games/{{$.Details.Game.IgdbID}}/playthroughs/{{.Playthrough.ID}}/delete">
+              <button type="submit">Really delete</button>
+            </form>
+          </details>
+        </li>
+      {{else}}
+        <li>No playthroughs yet.</li>
+      {{end}}
+    </ul>
+  </div>
+  <div>
+    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/playthroughs">
+      <h3>Start a new playthrough</h3>
+      <label>
+        Playthrough name
+        <input type="text" name="name">
+      </label>
+      <label>
+        Platform
+        <select name="platform">
+          <option value="">No platform</option>
+          {{range $.Details.OwnedPlatforms}}
+            <option value="{{.IgdbID}}">{{.Name}}</option>
+          {{end}}
+        </select>
+      </label>
+      <button type="submit">Start</button>
+    </form>
+  </div>
+{{end}}
+{{define "gameRemove"}}
+  <details>
+    <summary>{{if $.Details.UserGame.Wishlisted}}Remove from wishlist{{else}}Remove from library{{end}}</summary>
+    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/delete">
+      {{if not $.Details.UserGame.Wishlisted}}
+        {{if $.Details.Parent}}
+          <p>Removes its status, rating and playthroughs. Ownership, managed on the base game's page, is kept.</p>
+        {{else}}
+          <p>Removes its copies, DLC ownership, playthroughs, and its DLC in the library.</p>
+        {{end}}
+      {{end}}
+      <button type="submit">Really remove</button>
+    </form>
+  </details>
+{{end}}

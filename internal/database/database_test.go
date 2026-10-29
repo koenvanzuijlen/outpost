@@ -236,7 +236,7 @@ func TestPlaythroughChecks(t *testing.T) {
 			ctx := t.Context()
 			store := newTestStore(t)
 			addOwnedGame(t, store, 100)
-			userGameID := getUserGame(t, store, 100).UserGame.ID
+			userGameID := getUserGame(t, store, 100).ID
 
 			_, err := store.db.ExecContext(ctx,
 				"INSERT INTO playthroughs(user_game_id, name, outcome, started_at, finished_at) VALUES (?, ?, ?, ?, ?)",

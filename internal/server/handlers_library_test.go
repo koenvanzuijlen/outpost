@@ -75,7 +75,7 @@ func TestHandleAddToLibrary(t *testing.T) {
 				return
 			}
 
-			details := getTestUserGame(t, server)
+			details := getTestGame(t, server)
 			if len(details.OwnedPlatforms) != len(tt.wantPlatforms) {
 				t.Fatalf("len(Platforms) = %d, want %d", len(details.OwnedPlatforms), len(tt.wantPlatforms))
 			}
@@ -158,13 +158,14 @@ func TestHandleHomeShowsPlayingGames(t *testing.T) {
 	}
 
 	w := getPage(t, server, "/")
-	_, rest, ok := strings.Cut(w.Body.String(), "<h2>Playing</h2>")
+	body := collapseSpace(w.Body.String())
+	_, rest, ok := strings.Cut(body, "<h2>Playing</h2>")
 	if !ok {
-		t.Fatalf("body missing playing section:\n%s", w.Body.String())
+		t.Fatalf("body missing playing section:\n%s", body)
 	}
 	playing, _, ok := strings.Cut(rest, "<h2>Backlog")
 	if !ok {
-		t.Fatalf("body missing backlog section:\n%s", w.Body.String())
+		t.Fatalf("body missing backlog section:\n%s", body)
 	}
 
 	if !strings.Contains(playing, `<a href="/games/1942">`) {
@@ -289,11 +290,8 @@ func TestHandleRemoveUserGame(t *testing.T) {
 	}
 	assertLocation(t, w, "/")
 
-	w = httptest.NewRecorder()
-	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/games/1942", nil))
-	if w.Code != http.StatusNotFound {
-		t.Errorf("game page status = %d, want %d", w.Code, http.StatusNotFound)
-	}
+	w = getTestGamePage(t, server)
+	assertBodyContains(t, w, "Add to library")
 }
 
 func TestHandleRemoveUserGameTwice(t *testing.T) {

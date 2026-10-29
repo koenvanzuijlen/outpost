@@ -23,7 +23,7 @@ func TestRemoveOwnedCopy(t *testing.T) {
 		t.Fatalf("RemoveOwnedCopy(PC) failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
 	assertPlatformIDs(t, details.OwnedPlatforms, 48)
 	if _, ok := details.CopyDLCs[6]; ok {
 		t.Errorf("CopyDLCs has key 6, want none")
@@ -40,7 +40,10 @@ func TestRemoveOwnedCopy(t *testing.T) {
 		t.Fatalf("RemoveOwnedCopy(PS4) failed: %v", err)
 	}
 
-	details = getUserGame(t, store, 100)
+	details = getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	assertPlatformIDs(t, details.OwnedPlatforms)
 	if s := details.UserGame.Status; s == nil || *s != string(GameStatusPlaying) {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusPlaying)

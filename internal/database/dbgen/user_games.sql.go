@@ -102,6 +102,37 @@ func (q *Queries) DeleteUserGame(ctx context.Context, id int64) error {
 	return err
 }
 
+const getUserGame = `-- name: GetUserGame :one
+SELECT
+    id, user_id, game_id, status, rating, wishlisted, notes, added_at
+FROM
+    user_games
+WHERE
+    user_id = ?
+    AND game_id = ?
+`
+
+type GetUserGameParams struct {
+	UserID int64
+	GameID int64
+}
+
+func (q *Queries) GetUserGame(ctx context.Context, arg GetUserGameParams) (UserGame, error) {
+	row := q.db.QueryRowContext(ctx, getUserGame, arg.UserID, arg.GameID)
+	var i UserGame
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.GameID,
+		&i.Status,
+		&i.Rating,
+		&i.Wishlisted,
+		&i.Notes,
+		&i.AddedAt,
+	)
+	return i, err
+}
+
 const getUserGameByIGDBID = `-- name: GetUserGameByIGDBID :one
 SELECT
     ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,

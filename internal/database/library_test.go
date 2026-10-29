@@ -9,12 +9,15 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
-func TestGetUserGameOwned(t *testing.T) {
+func TestGetGameOwned(t *testing.T) {
 	store := newTestStore(t)
 
 	addOwnedGame(t, store, 100)
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	if details.Game.Title != "Test Game" {
 		t.Errorf("Title = %v, want %v", details.Game.Title, "Test Game")
 	}
@@ -35,7 +38,7 @@ func TestGetUserGameOwned(t *testing.T) {
 	}
 }
 
-func TestGetUserGameWithPlaythroughs(t *testing.T) {
+func TestGetGameWithPlaythroughs(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 	platformIGDBID := int64(11)
@@ -57,7 +60,7 @@ func TestGetUserGameWithPlaythroughs(t *testing.T) {
 		t.Fatalf("StartPlaythrough() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
 	if len(details.Playthroughs) != 2 {
 		t.Fatalf("len(Playthroughs) = %d, want 2", len(details.Playthroughs))
 	}
@@ -76,7 +79,7 @@ func TestGetUserGameWithPlaythroughs(t *testing.T) {
 	}
 }
 
-func TestGetUserGameWishlist(t *testing.T) {
+func TestGetGameWishlist(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
@@ -86,7 +89,10 @@ func TestGetUserGameWishlist(t *testing.T) {
 		t.Fatalf("AddToWishlist() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	if details.Game.Title != "Test Game" {
 		t.Errorf("Title = %v, want %v", details.Game.Title, "Test Game")
 	}
@@ -101,15 +107,66 @@ func TestGetUserGameWishlist(t *testing.T) {
 	}
 }
 
-func TestGetUserGameNotFound(t *testing.T) {
+func TestGetGameNotInCatalog(t *testing.T) {
+	store := newTestStore(t)
+
+	_, err := store.GetGame(t.Context(), 1, 999)
+	if !errors.Is(err, ErrGameNotInCatalog) {
+		t.Fatalf("GetGame() error = %v, want %v", err, ErrGameNotInCatalog)
+	}
+}
+
+func TestGetGameCatalogOnly(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 
-	// Attempt to retrieve a game that doesn't exist in the library
-	_, err := store.GetUserGame(ctx, 1, 999)
-	if !errors.Is(err, ErrUserGameNotFound) {
-		t.Fatalf("GetUserGame() error = %v, want %v", err, ErrUserGameNotFound)
+	if _, err := store.queries.UpsertGame(ctx, newGameParams(100, "Test Game")); err != nil {
+		t.Fatalf("UpsertGame() failed: %v", err)
 	}
+	releasedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	dlcs := []DLC{
+		newDLC(201, 100, "DLC A", releasedAt, newPlatformParams(6, "PC")),
+		newDLC(202, 100, "DLC B", releasedAt, newPlatformParams(6, "PC")),
+	}
+	if err := store.SaveDLCs(ctx, 100, dlcs, time.Now().UTC()); err != nil {
+		t.Fatalf("SaveDLCs() failed: %v", err)
+	}
+
+	details := getGame(t, store, 100)
+	if details.Game.Title != "Test Game" {
+		t.Errorf("Title = %v, want %v", details.Game.Title, "Test Game")
+	}
+	if details.UserGame != nil {
+		t.Errorf("UserGame = %+v, want nil", *details.UserGame)
+	}
+	if len(details.OwnedPlatforms) != 0 {
+		t.Errorf("len(OwnedPlatforms) = %d, want 0", len(details.OwnedPlatforms))
+	}
+	if len(details.Playthroughs) != 0 {
+		t.Errorf("len(Playthroughs) = %d, want 0", len(details.Playthroughs))
+	}
+	if len(details.DLCs) != 2 {
+		t.Fatalf("len(DLCs) = %d, want 2", len(details.DLCs))
+	}
+	for _, igdbID := range []int64{201, 202} {
+		if findDLC(t, details, igdbID).InLibrary {
+			t.Errorf("DLC %d InLibrary = true, want false", igdbID)
+		}
+	}
+}
+
+func TestGetGameOwnedDLCNotInLibrary(t *testing.T) {
+	store := newTestStore(t)
+	setupDLCOwnership(t, store)
+	if err := store.SetDLCOwned(t.Context(), 1, 100, 6, 201, true); err != nil {
+		t.Fatalf("SetDLCOwned() failed: %v", err)
+	}
+
+	details := getGame(t, store, 201)
+	if details.UserGame != nil {
+		t.Errorf("UserGame = %+v, want nil", *details.UserGame)
+	}
+	assertPlatformIDs(t, details.OwnedPlatforms, 6)
 }
 
 func TestUpdateGameDetails(t *testing.T) {
@@ -125,7 +182,10 @@ func TestUpdateGameDetails(t *testing.T) {
 		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	if details.Game.Title != "Test Game" {
 		t.Errorf("Title = %v, want %v", details.Game.Title, "Test Game")
 	}
@@ -151,7 +211,10 @@ func TestUpdateGameDetailsInvalidStatus(t *testing.T) {
 	}
 
 	// Verify the status and rating were left unchanged
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	if details.Game.Title != "Test Game" {
 		t.Errorf("Title = %v, want %v", details.Game.Title, "Test Game")
 	}
@@ -177,9 +240,9 @@ func TestUpdateGameDetailsClearRating(t *testing.T) {
 	}
 
 	// Verify the rating was set
-	details := getUserGame(t, store, 100)
-	if details.UserGame.Rating == nil || *details.UserGame.Rating != 5 {
-		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(details.UserGame.Rating), 5)
+	userGame := getUserGame(t, store, 100)
+	if userGame.Rating == nil || *userGame.Rating != 5 {
+		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(userGame.Rating), 5)
 	}
 
 	// Clear the rating by passing nil
@@ -189,9 +252,9 @@ func TestUpdateGameDetailsClearRating(t *testing.T) {
 	}
 
 	// Verify the rating was cleared
-	details = getUserGame(t, store, 100)
-	if details.UserGame.Rating != nil {
-		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(details.UserGame.Rating), nil)
+	userGame = getUserGame(t, store, 100)
+	if userGame.Rating != nil {
+		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(userGame.Rating), nil)
 	}
 }
 
@@ -208,15 +271,15 @@ func TestUpdateGameDetailsNotes(t *testing.T) {
 		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
-	if details.UserGame.Status == nil || *details.UserGame.Status != "playing" {
-		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), "playing")
+	userGame := getUserGame(t, store, 100)
+	if userGame.Status == nil || *userGame.Status != "playing" {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(userGame.Status), "playing")
 	}
-	if details.UserGame.Rating == nil || *details.UserGame.Rating != 7 {
-		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(details.UserGame.Rating), 7)
+	if userGame.Rating == nil || *userGame.Rating != 7 {
+		t.Errorf("UserGame.Rating = %v, want %v", derefOrNil(userGame.Rating), 7)
 	}
-	if details.UserGame.Notes == nil || *details.UserGame.Notes != notes {
-		t.Errorf("UserGame.Notes = %v, want %q", derefOrNil(details.UserGame.Notes), notes)
+	if userGame.Notes == nil || *userGame.Notes != notes {
+		t.Errorf("UserGame.Notes = %v, want %q", derefOrNil(userGame.Notes), notes)
 	}
 
 	// Updating without notes clears them
@@ -225,9 +288,9 @@ func TestUpdateGameDetailsNotes(t *testing.T) {
 		t.Fatalf("UpdateGameDetails() failed: %v", err)
 	}
 
-	details = getUserGame(t, store, 100)
-	if details.UserGame.Notes != nil {
-		t.Errorf("UserGame.Notes = %v, want %v", derefOrNil(details.UserGame.Notes), nil)
+	userGame = getUserGame(t, store, 100)
+	if userGame.Notes != nil {
+		t.Errorf("UserGame.Notes = %v, want %v", derefOrNil(userGame.Notes), nil)
 	}
 }
 
@@ -248,9 +311,9 @@ func TestUpdateGameDetailsWishlistedGame(t *testing.T) {
 	}
 
 	// Verify the wishlisted game was left without a status
-	details := getUserGame(t, store, 100)
-	if details.UserGame.Status != nil {
-		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(details.UserGame.Status), nil)
+	userGame := getUserGame(t, store, 100)
+	if userGame.Status != nil {
+		t.Errorf("UserGame.Status = %v, want %v", derefOrNil(userGame.Status), nil)
 	}
 }
 
@@ -280,14 +343,14 @@ func TestRemoveUserGame(t *testing.T) {
 	}
 
 	for _, igdbID := range []int64{100, 201, 202} {
-		if _, err := store.GetUserGame(ctx, 1, igdbID); !errors.Is(err, ErrUserGameNotFound) {
-			t.Errorf("GetUserGame(%d) error = %v, want %v", igdbID, err, ErrUserGameNotFound)
+		if details := getGame(t, store, igdbID); details.UserGame != nil {
+			t.Errorf("GetGame(%d) UserGame = %+v, want nil", igdbID, *details.UserGame)
 		}
 	}
 
-	details := getUserGame(t, store, 300)
+	details := getGame(t, store, 300)
 	assertDLCStatus(t, findDLC(t, details, 401), GameStatusBacklog)
-	getUserGame(t, store, 401)
+	getGame(t, store, 401)
 
 	if _, err := store.queries.GetGameByIGDBID(ctx, 201); err != nil {
 		t.Errorf("GetGameByIGDBID(201) failed: %v", err)
@@ -306,7 +369,10 @@ func TestRemoveUserGameReAdd(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	if details.UserGame.Status == nil || *details.UserGame.Status != string(GameStatusBacklog) {
 		t.Errorf("UserGame.Status = %v, want %q", derefOrNil(details.UserGame.Status), GameStatusBacklog)
 	}
@@ -328,10 +394,10 @@ func TestRemoveUserGameLibraryDLC(t *testing.T) {
 		t.Fatalf("RemoveUserGame() failed: %v", err)
 	}
 
-	if _, err := store.GetUserGame(ctx, 1, 201); !errors.Is(err, ErrUserGameNotFound) {
-		t.Errorf("GetUserGame(201) error = %v, want %v", err, ErrUserGameNotFound)
+	if details := getGame(t, store, 201); details.UserGame != nil {
+		t.Errorf("GetGame(201) UserGame = %+v, want nil", *details.UserGame)
 	}
-	assertCopyDLCs(t, getUserGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: true, 202: false})
+	assertCopyDLCs(t, getGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: true, 202: false})
 }
 
 func TestRemoveUserGameWishlisted(t *testing.T) {
@@ -369,7 +435,7 @@ func TestRemoveUserGameKeepsStandaloneExpansion(t *testing.T) {
 		t.Fatalf("RemoveUserGame() failed: %v", err)
 	}
 
-	assertPlatformIDs(t, getUserGame(t, store, 501).OwnedPlatforms, 130)
+	assertPlatformIDs(t, getGame(t, store, 501).OwnedPlatforms, 130)
 }
 
 func TestRemoveUserGameNotFound(t *testing.T) {
@@ -571,7 +637,7 @@ func TestAddToLibraryClearsWishlist(t *testing.T) {
 		t.Errorf("len(wishlisted) = %d, want 0", len(wishlisted))
 	}
 
-	assertPlatformIDs(t, getUserGame(t, store, 100).OwnedPlatforms, 6)
+	assertPlatformIDs(t, getGame(t, store, 100).OwnedPlatforms, 6)
 }
 
 func TestAddToLibraryNotOwned(t *testing.T) {
@@ -587,7 +653,10 @@ func TestAddToLibraryNotOwned(t *testing.T) {
 		t.Fatalf("AddToLibrary() second failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	assertPlatformIDs(t, details.OwnedPlatforms)
 	if s := details.UserGame.Status; s == nil || *s != string(GameStatusBacklog) {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusBacklog)
@@ -617,7 +686,10 @@ func TestAddToLibraryNotOwnedThenOwned(t *testing.T) {
 		t.Fatalf("AddToLibrary(PC) failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	assertPlatformIDs(t, details.OwnedPlatforms, 6)
 	if s := details.UserGame.Status; s == nil || *s != string(GameStatusCompleted) {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusCompleted)
@@ -636,11 +708,11 @@ func TestAddToLibraryNotOwnedClearsWishlist(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
-	if details.UserGame.Wishlisted {
+	userGame := getUserGame(t, store, 100)
+	if userGame.Wishlisted {
 		t.Errorf("Wishlisted = true, want false")
 	}
-	if s := details.UserGame.Status; s == nil || *s != string(GameStatusBacklog) {
+	if s := userGame.Status; s == nil || *s != string(GameStatusBacklog) {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), GameStatusBacklog)
 	}
 }
@@ -657,7 +729,7 @@ func TestAddToLibrarySameGameDifferentPlatforms(t *testing.T) {
 	}
 
 	// One library entry with two owned copies.
-	assertPlatformIDs(t, getUserGame(t, store, 100).OwnedPlatforms, 6, 11)
+	assertPlatformIDs(t, getGame(t, store, 100).OwnedPlatforms, 6, 11)
 }
 
 func TestAddToLibraryDifferentGamesSamePlatform(t *testing.T) {
@@ -673,8 +745,8 @@ func TestAddToLibraryDifferentGamesSamePlatform(t *testing.T) {
 	}
 
 	// Two library entries, each with its own copy on the same platform.
-	assertPlatformIDs(t, getUserGame(t, store, 100).OwnedPlatforms, 6)
-	assertPlatformIDs(t, getUserGame(t, store, 101).OwnedPlatforms, 6)
+	assertPlatformIDs(t, getGame(t, store, 100).OwnedPlatforms, 6)
+	assertPlatformIDs(t, getGame(t, store, 101).OwnedPlatforms, 6)
 }
 
 func TestAddToLibrarySameGameSamePlatform(t *testing.T) {
@@ -690,7 +762,7 @@ func TestAddToLibrarySameGameSamePlatform(t *testing.T) {
 		t.Fatalf("AddToLibrary() error = %v, want %v", err, ErrAlreadyOwnedOnPlatform)
 	}
 
-	assertPlatformIDs(t, getUserGame(t, store, 100).OwnedPlatforms, 6)
+	assertPlatformIDs(t, getGame(t, store, 100).OwnedPlatforms, 6)
 }
 
 func TestAddToLibraryPreservesStatus(t *testing.T) {
@@ -710,7 +782,10 @@ func TestAddToLibraryPreservesStatus(t *testing.T) {
 		t.Fatalf("AddToLibrary() second failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
 	assertPlatformIDs(t, details.OwnedPlatforms, 6, 11)
 	if s := details.UserGame.Status; s == nil || *s != "completed" {
 		t.Errorf("Status = %v, want %q", derefOrNil(s), "completed")
@@ -731,7 +806,7 @@ func TestAddToLibraryUpdatesGameInfo(t *testing.T) {
 	if err := store.AddToLibrary(ctx, updated, new(newPlatformParams(11, "Xbox")), 1, time.Now().UTC()); err != nil {
 		t.Fatalf("AddToLibrary() second failed: %v", err)
 	}
-	assertPlatformIDs(t, getUserGame(t, store, 100).OwnedPlatforms, 6, 11)
+	assertPlatformIDs(t, getGame(t, store, 100).OwnedPlatforms, 6, 11)
 
 	game, err := store.queries.GetGameByIGDBID(ctx, 100)
 	if err != nil {

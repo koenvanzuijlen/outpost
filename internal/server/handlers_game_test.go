@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
 func TestHandleGameValidation(t *testing.T) {
@@ -34,8 +36,65 @@ func TestHandleGameValidation(t *testing.T) {
 	}
 }
 
-func TestHandleGameNotInLibrary(t *testing.T) {
+func TestHandleGameFromIGDB(t *testing.T) {
 	server := newTestServer(t)
+	server.igdbClient = &fakeIGDB{game: loadIGDBGame(t, "game_by_id.json")}
+
+	w := getTestGamePage(t, server)
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
+	assertBodyContains(t, w, "Add to library")
+	assertBodyNotContains(t, w, `name="status"`)
+}
+
+func TestHandleGameCachedIGDBError(t *testing.T) {
+	server := newTestServer(t)
+	fake := &fakeIGDB{game: loadIGDBGame(t, "game_by_id.json")}
+	server.igdbClient = fake
+	getTestGamePage(t, server)
+
+	fake.gameErr = errors.New("down")
+	w := getTestGamePage(t, server)
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
+}
+
+func TestHandleGameUncachedIGDBError(t *testing.T) {
+	server := newTestServer(t)
+	server.igdbClient = &fakeIGDB{gameErr: errors.New("down")}
+
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/games/1942", nil))
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestHandleGameDLCParentInLibrary(t *testing.T) {
+	server := newTestServer(t)
+	fake := addTestGame(t, server)
+	fake.game = loadIGDBGame(t, "game_by_id_dlc.json")
+
+	w := getGamePage(t, server, 13166)
+	assertBodyContains(t, w, `action="/games/1942/dlcs/13166/library"`)
+	assertBodyContains(t, w, "Add to library")
+}
+
+func TestHandleGameDLCParentNotInLibrary(t *testing.T) {
+	server := newTestServer(t)
+	fake := &fakeIGDB{game: loadIGDBGame(t, "game_by_id.json")}
+	server.igdbClient = fake
+	getTestGamePage(t, server)
+	fake.game = loadIGDBGame(t, "game_by_id_dlc.json")
+
+	w := getGamePage(t, server, 13166)
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt - Blood and Wine")
+	assertBodyNotContains(t, w, `action="/games/1942/dlcs/13166/library"`)
+	assertBodyNotContains(t, w, "Add to library")
+}
+
+func TestHandleGameNotInIGDB(t *testing.T) {
+	server := newTestServer(t)
+	server.igdbClient = &fakeIGDB{gameErr: igdb.ErrGameNotFound}
+
 	req := httptest.NewRequest(http.MethodGet, "/games/999999", nil)
 	w := httptest.NewRecorder()
 	server.ServeHTTP(w, req)
@@ -75,7 +134,7 @@ func TestHandleGameActivePlaythrough(t *testing.T) {
 	server := newTestServer(t)
 	startTestPlaythrough(t, server, "Hard mode run", "6")
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	playthrough := onlyPlaythrough(t, details).Playthrough
 	if playthrough.StartedAt == nil {
 		t.Fatal("StartedAt = nil, want a date")
@@ -212,7 +271,7 @@ func TestHandleUpdateGame(t *testing.T) {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 	assertLocation(t, w, "/games/1942")
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	if details.UserGame.Status == nil || *details.UserGame.Status != "completed" {
 		t.Errorf("status = %v, want %q", derefOrNil(details.UserGame.Status), "completed")
 	}
@@ -230,7 +289,7 @@ func TestHandleUpdateGameNoRating(t *testing.T) {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 	assertLocation(t, w, "/games/1942")
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	if details.UserGame.Status == nil || *details.UserGame.Status != "completed" {
 		t.Errorf("status = %v, want %q", derefOrNil(details.UserGame.Status), "completed")
 	}
@@ -259,7 +318,7 @@ func TestHandleUpdateGameNotes(t *testing.T) {
 			if w.Code != http.StatusSeeOther {
 				t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 			}
-			details := getTestUserGame(t, server)
+			details := getTestGame(t, server)
 			got := details.UserGame.Notes
 			if (got == nil) != (tt.want == nil) || (got != nil && *got != *tt.want) {
 				t.Errorf("notes = %v, want %v", derefOrNil(got), derefOrNil(tt.want))

@@ -58,6 +58,46 @@ func (q *Queries) GetPlatformByIGDBID(ctx context.Context, igdbID int64) (Platfo
 	return i, err
 }
 
+const listPlatformsForGame = `-- name: ListPlatformsForGame :many
+SELECT
+    p.id, p.igdb_id, p.fetched_at, p.name
+FROM
+    platforms p
+    JOIN game_platforms gp ON gp.platform_id = p.id
+WHERE
+    gp.game_id = ?
+ORDER BY
+    p.name
+`
+
+func (q *Queries) ListPlatformsForGame(ctx context.Context, gameID int64) ([]Platform, error) {
+	rows, err := q.db.QueryContext(ctx, listPlatformsForGame, gameID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Platform
+	for rows.Next() {
+		var i Platform
+		if err := rows.Scan(
+			&i.ID,
+			&i.IgdbID,
+			&i.FetchedAt,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPlatformsForOwnedDLC = `-- name: ListPlatformsForOwnedDLC :many
 SELECT
     p.id, p.igdb_id, p.fetched_at, p.name

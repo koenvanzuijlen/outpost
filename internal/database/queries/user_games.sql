@@ -49,6 +49,15 @@ WHERE
     ug.user_id = sqlc.arg(user_id)
     AND g.game_type IN (sqlc.slice(game_types));
 
+-- name: GetUserGame :one
+SELECT
+    *
+FROM
+    user_games
+WHERE
+    user_id = ?
+    AND game_id = ?;
+
 -- name: GetUserGameByIGDBID :one
 SELECT
     sqlc.embed(ug),

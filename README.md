@@ -50,7 +50,7 @@ These terms are used the same way in the UI, the code and the database.
 | **catalog** | Game and platform data cached from IGDB. Never shown as such. | `games`, `platforms`, `game_platforms` |
 | **library** | Games and DLC you log: status, rating, notes, playthroughs. Owned or not. | `user_games` where `NOT wishlisted` |
 | **wishlist** | Games you want. No status, no copies. | `user_games` where `wishlisted` |
-| **user game** | Code only: an entry in either the library or the wishlist. | `user_games`, `GetUserGame`, `RemoveUserGame` |
+| **user game** | Code only: an entry in either the library or the wishlist. | `user_games`, `GetGame`, `RemoveUserGame` |
 | **owned on** | The platforms you own a game on. A property of a library game, not a separate list. | derived from the tables below |
 | **owned copy** | One platform you own a game on. | `owned_copies` |
 | **owned DLC** | A DLC you own on one of your copies of the base game. | `owned_dlc` |

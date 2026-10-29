@@ -19,7 +19,7 @@ func TestHandleStartPlaythrough(t *testing.T) {
 	}
 	assertLocation(t, w, "/games/1942")
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	playthrough := onlyPlaythrough(t, details)
 	if playthrough.Playthrough.Name == nil || *playthrough.Playthrough.Name != "First run" {
 		t.Errorf("name = %v, want %q", derefOrNil(playthrough.Playthrough.Name), "First run")
@@ -41,7 +41,7 @@ func TestHandleStartPlaythroughBlankName(t *testing.T) {
 		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	if name := onlyPlaythrough(t, details).Playthrough.Name; name != nil {
 		t.Errorf("name = %v, want %v", derefOrNil(name), nil)
 	}
@@ -102,7 +102,7 @@ func TestHandleSetPlaythroughOutcome(t *testing.T) {
 			}
 			assertLocation(t, w, "/games/1942")
 
-			details := getTestUserGame(t, server)
+			details := getTestGame(t, server)
 			if details.UserGame.Status == nil || *details.UserGame.Status != outcome {
 				t.Errorf("status = %v, want %q", derefOrNil(details.UserGame.Status), outcome)
 			}
@@ -125,7 +125,7 @@ func TestHandleSetPlaythroughOutcomeBackToPlaying(t *testing.T) {
 		}
 	}
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	if got := onlyPlaythrough(t, details).Playthrough.Outcome; got != "playing" {
 		t.Errorf("outcome = %q, want %q", got, "playing")
 	}
@@ -189,7 +189,7 @@ func TestHandleUpdatePlaythrough(t *testing.T) {
 	}
 	assertLocation(t, w, "/games/1942")
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	playthrough := onlyPlaythrough(t, details)
 	if playthrough.PlatformName == nil || *playthrough.PlatformName != "PC (Microsoft Windows)" {
 		t.Errorf("platform name = %v, want %q", derefOrNil(playthrough.PlatformName), "PC (Microsoft Windows)")
@@ -217,7 +217,7 @@ func TestHandleUpdatePlaythroughClearsFields(t *testing.T) {
 		t.Fatalf("update status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	playthrough := onlyPlaythrough(t, details)
 	if playthrough.Playthrough.Name != nil {
 		t.Errorf("name = %v, want %v", derefOrNil(playthrough.Playthrough.Name), nil)
@@ -293,7 +293,7 @@ func TestHandleDeletePlaythrough(t *testing.T) {
 	}
 	assertLocation(t, w, "/games/1942")
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	if len(details.Playthroughs) != 0 {
 		t.Errorf("playthroughs = %v, want empty", details.Playthroughs)
 	}
@@ -310,7 +310,7 @@ func TestHandleDeletePlaythroughUnknown(t *testing.T) {
 	}
 	assertLocation(t, w, "/games/1942")
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	if len(details.Playthroughs) != 1 {
 		t.Errorf("playthroughs = %v, want 1", details.Playthroughs)
 	}
@@ -326,7 +326,7 @@ func TestHandleDeletePlaythroughInvalid(t *testing.T) {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	if len(details.Playthroughs) != 1 {
 		t.Errorf("playthroughs = %v, want 1", details.Playthroughs)
 	}

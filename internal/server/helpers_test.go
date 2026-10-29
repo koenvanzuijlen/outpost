@@ -59,6 +59,16 @@ func loadIGDBGames(t *testing.T, name string) []igdb.Game {
 	return games
 }
 
+// loadIGDBGame loads the first IGDB game from a fixture located in the testdata directory.
+func loadIGDBGame(t *testing.T, name string) igdb.Game {
+	t.Helper()
+	games := loadIGDBGames(t, name)
+	if len(games) == 0 {
+		t.Fatalf("len(%s) = 0, want at least 1", name)
+	}
+	return games[0]
+}
+
 // newTestServer returns a Server with a fresh database in a temporary directory and no IGDB client. Tests that call
 // IGDB set server.igdbClient to a fakeIGDB.
 func newTestServer(t *testing.T) *Server {
@@ -129,18 +139,21 @@ func getPage(t *testing.T, server *Server, path string) *httptest.ResponseRecord
 	return w
 }
 
-// getTestUserGame returns The Witcher 3 (1942) from the library or wishlist. It fails the test if it isn't there.
-func getTestUserGame(t *testing.T, server *Server) database.UserGameDetails {
+// getTestGame returns The Witcher 3 (1942) from the library or wishlist. It fails the test if it isn't there.
+func getTestGame(t *testing.T, server *Server) database.GameOverview {
 	t.Helper()
-	details, err := server.store.GetUserGame(t.Context(), defaultUserID, 1942)
+	details, err := server.store.GetGame(t.Context(), defaultUserID, 1942)
 	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
+		t.Fatalf("GetGame() failed: %v", err)
+	}
+	if details.UserGame == nil {
+		t.Fatal("GetGame(1942) UserGame = nil, want an entry")
 	}
 	return details
 }
 
 // onlyPlaythrough returns the single playthrough of details. It fails the test if there isn't exactly one.
-func onlyPlaythrough(t *testing.T, details database.UserGameDetails) dbgen.ListPlaythroughsForUserGameIDRow {
+func onlyPlaythrough(t *testing.T, details database.GameOverview) dbgen.ListPlaythroughsForUserGameIDRow {
 	t.Helper()
 	if len(details.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want 1", len(details.Playthroughs))
@@ -158,18 +171,24 @@ func postForm(t *testing.T, server *Server, path, body string) *httptest.Respons
 	return w
 }
 
-// assertBodyContains reports an error if the response body does not contain want.
+// collapseSpace replaces every run of whitespace in s with a single space, so assertions don't depend on template
+// formatting.
+func collapseSpace(s string) string {
+	return strings.Join(strings.Fields(s), " ")
+}
+
+// assertBodyContains reports an error if the response body does not contain want, ignoring whitespace differences.
 func assertBodyContains(t *testing.T, w *httptest.ResponseRecorder, want string) {
 	t.Helper()
-	if !strings.Contains(w.Body.String(), want) {
+	if !strings.Contains(collapseSpace(w.Body.String()), collapseSpace(want)) {
 		t.Errorf("body does not contain %q", want)
 	}
 }
 
-// assertBodyNotContains reports an error if the response body contains unwanted.
+// assertBodyNotContains reports an error if the response body contains unwanted, ignoring whitespace differences.
 func assertBodyNotContains(t *testing.T, w *httptest.ResponseRecorder, unwanted string) {
 	t.Helper()
-	if strings.Contains(w.Body.String(), unwanted) {
+	if strings.Contains(collapseSpace(w.Body.String()), collapseSpace(unwanted)) {
 		t.Errorf("body unexpectedly contains %q", unwanted)
 	}
 }
@@ -214,6 +233,6 @@ func startTestPlaythrough(t *testing.T, server *Server, name, platformIGDBID str
 		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	return onlyPlaythrough(t, details).Playthrough.ID
 }

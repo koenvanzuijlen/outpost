@@ -17,7 +17,7 @@
           {{if .CoverURL}}
             <img src="{{.CoverURL}}" alt="{{.Name}}" />
           {{end}}
-          <p>{{.Name}}{{if .ReleaseYear}} ({{.ReleaseYear}}){{end}}</p>
+          <p><a href="/games/{{.ID}}">{{.Name}}</a>{{if .ReleaseYear}} ({{.ReleaseYear}}){{end}}</p>
           <form method="post" action="/library">
             <input type="hidden" name="igdb_id" value="{{.ID}}" />
             <label>
