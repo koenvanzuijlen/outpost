@@ -39,7 +39,7 @@ func TestSaveDLCs(t *testing.T) {
 		t.Fatalf("SaveDLCs() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
 	if details.Game.DlcsFetchedAt == nil {
 		t.Errorf("DlcsFetchedAt = nil, want set")
 	}
@@ -104,7 +104,7 @@ func TestSaveDLCsEmpty(t *testing.T) {
 		t.Fatalf("SaveDLCs() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
 	if details.Game.DlcsFetchedAt == nil {
 		t.Errorf("DlcsFetchedAt = nil, want set")
 	}
@@ -158,7 +158,7 @@ func TestSaveDLCsTwice(t *testing.T) {
 		t.Fatalf("SaveDLCs() second failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
 	if len(details.DLCs) != 2 {
 		t.Fatalf("len(DLCs) = %d, want 2", len(details.DLCs))
 	}
@@ -186,7 +186,7 @@ func TestSaveDLCsExcludesStandaloneExpansion(t *testing.T) {
 		t.Fatalf("UpsertGame() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
 	if len(details.DLCs) != 1 {
 		t.Fatalf("len(DLCs) = %d, want 1", len(details.DLCs))
 	}
@@ -195,7 +195,7 @@ func TestSaveDLCsExcludesStandaloneExpansion(t *testing.T) {
 	}
 }
 
-func TestGetUserGameCopyDLCs(t *testing.T) {
+func TestGetGameCopyDLCs(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 	game := newGameParams(100, "Test Game")
@@ -218,7 +218,7 @@ func TestGetUserGameCopyDLCs(t *testing.T) {
 		t.Fatalf("SetDLCOwned() failed: %v", err)
 	}
 
-	copyDLCs := getUserGame(t, store, 100).CopyDLCs
+	copyDLCs := getGame(t, store, 100).CopyDLCs
 
 	assertCopyDLCs(t, copyDLCs[6], map[int64]bool{201: true, 202: false})
 	assertCopyDLCs(t, copyDLCs[48], map[int64]bool{201: false})
@@ -237,7 +237,7 @@ func TestSetDLCOwned(t *testing.T) {
 		t.Fatalf("SetDLCOwned() failed: %v", err)
 	}
 
-	copyDLCs := getUserGame(t, store, 100).CopyDLCs
+	copyDLCs := getGame(t, store, 100).CopyDLCs
 	assertCopyDLCs(t, copyDLCs[6], map[int64]bool{201: true, 202: false})
 	assertCopyDLCs(t, copyDLCs[48], map[int64]bool{201: false})
 }
@@ -253,7 +253,7 @@ func TestSetDLCOwnedTwice(t *testing.T) {
 		}
 	}
 
-	assertCopyDLCs(t, getUserGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: true, 202: false})
+	assertCopyDLCs(t, getGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: true, 202: false})
 }
 
 func TestSetDLCOwnedUnown(t *testing.T) {
@@ -268,7 +268,7 @@ func TestSetDLCOwnedUnown(t *testing.T) {
 		t.Fatalf("SetDLCOwned(false) failed: %v", err)
 	}
 
-	assertCopyDLCs(t, getUserGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: false, 202: false})
+	assertCopyDLCs(t, getGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: false, 202: false})
 }
 
 func TestSetDLCOwnedUnownNotOwned(t *testing.T) {
@@ -280,7 +280,7 @@ func TestSetDLCOwnedUnownNotOwned(t *testing.T) {
 		t.Fatalf("SetDLCOwned(false) failed: %v", err)
 	}
 
-	assertCopyDLCs(t, getUserGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: false, 202: false})
+	assertCopyDLCs(t, getGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: false, 202: false})
 }
 
 func TestSetDLCOwnedCopyDLCNotFound(t *testing.T) {
@@ -340,7 +340,7 @@ func TestAddDLCToLibrary(t *testing.T) {
 		t.Fatalf("AddDLCToLibrary() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
 	assertDLCStatus(t, findDLC(t, details, 201), GameStatusBacklog)
 	if findDLC(t, details, 202).InLibrary {
 		t.Errorf("DLC 202 InLibrary = true, want false")
@@ -362,7 +362,7 @@ func TestAddDLCToLibraryTwice(t *testing.T) {
 		t.Fatalf("AddDLCToLibrary() second failed: %v", err)
 	}
 
-	assertDLCStatus(t, findDLC(t, getUserGame(t, store, 100), 201), GameStatusCompleted)
+	assertDLCStatus(t, findDLC(t, getGame(t, store, 100), 201), GameStatusCompleted)
 }
 
 func TestAddDLCToLibraryKeepsOwnership(t *testing.T) {
@@ -377,7 +377,7 @@ func TestAddDLCToLibraryKeepsOwnership(t *testing.T) {
 		t.Fatalf("AddDLCToLibrary() failed: %v", err)
 	}
 
-	assertCopyDLCs(t, getUserGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: true, 202: false})
+	assertCopyDLCs(t, getGame(t, store, 100).CopyDLCs[6], map[int64]bool{201: true, 202: false})
 }
 
 func TestAddDLCToLibraryNotFound(t *testing.T) {
@@ -434,40 +434,40 @@ func TestAddDLCToLibraryUserGameNotFound(t *testing.T) {
 	}
 }
 
-func TestGetUserGameOwnedDLC(t *testing.T) {
+func TestGetGameOwnedDLC(t *testing.T) {
 	store := newTestStore(t)
 	setupLibraryDLCs(t, store)
 
-	details := getUserGame(t, store, 201)
+	details := getGame(t, store, 201)
 	if details.Parent == nil || details.Parent.IgdbID != 100 {
 		t.Errorf("Parent = %v, want game 100", derefOrNil(details.Parent))
 	}
 	assertPlatformIDs(t, details.OwnedPlatforms, 6)
 }
 
-func TestGetUserGameUnownedLibraryDLC(t *testing.T) {
+func TestGetGameUnownedLibraryDLC(t *testing.T) {
 	store := newTestStore(t)
 	setupLibraryDLCs(t, store)
 
-	details := getUserGame(t, store, 202)
+	details := getGame(t, store, 202)
 	if details.Parent == nil || details.Parent.IgdbID != 100 {
 		t.Errorf("Parent = %v, want game 100", derefOrNil(details.Parent))
 	}
 	assertPlatformIDs(t, details.OwnedPlatforms)
 }
 
-func TestGetUserGameParentOfLibraryDLC(t *testing.T) {
+func TestGetGameParentOfLibraryDLC(t *testing.T) {
 	store := newTestStore(t)
 	setupLibraryDLCs(t, store)
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
 	if details.Parent != nil {
 		t.Errorf("Parent = %v, want nil", *details.Parent)
 	}
 	assertPlatformIDs(t, details.OwnedPlatforms, 6, 48)
 }
 
-func TestGetUserGameStandaloneExpansion(t *testing.T) {
+func TestGetGameStandaloneExpansion(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)
 	setupLibraryDLCs(t, store)
@@ -478,7 +478,7 @@ func TestGetUserGameStandaloneExpansion(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 501)
+	details := getGame(t, store, 501)
 	if details.Parent != nil {
 		t.Errorf("Parent = %v, want nil", *details.Parent)
 	}
@@ -497,7 +497,7 @@ func TestAddToLibraryKeepsDLCsFetchedAt(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	details := getUserGame(t, store, 100)
+	details := getGame(t, store, 100)
 	if details.Game.DlcsFetchedAt == nil {
 		t.Errorf("DlcsFetchedAt = nil, want still set")
 	}

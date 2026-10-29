@@ -75,7 +75,7 @@ func TestHandleAddToLibrary(t *testing.T) {
 				return
 			}
 
-			details := getTestUserGame(t, server)
+			details := getTestGame(t, server)
 			if len(details.OwnedPlatforms) != len(tt.wantPlatforms) {
 				t.Fatalf("len(Platforms) = %d, want %d", len(details.OwnedPlatforms), len(tt.wantPlatforms))
 			}

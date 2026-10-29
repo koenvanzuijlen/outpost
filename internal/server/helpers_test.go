@@ -129,18 +129,18 @@ func getPage(t *testing.T, server *Server, path string) *httptest.ResponseRecord
 	return w
 }
 
-// getTestUserGame returns The Witcher 3 (1942) from the library or wishlist. It fails the test if it isn't there.
-func getTestUserGame(t *testing.T, server *Server) database.UserGameDetails {
+// getTestGame returns The Witcher 3 (1942) from the library or wishlist. It fails the test if it isn't there.
+func getTestGame(t *testing.T, server *Server) database.GameOverview {
 	t.Helper()
-	details, err := server.store.GetUserGame(t.Context(), defaultUserID, 1942)
+	details, err := server.store.GetGame(t.Context(), defaultUserID, 1942)
 	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
+		t.Fatalf("GetGame() failed: %v", err)
 	}
 	return details
 }
 
 // onlyPlaythrough returns the single playthrough of details. It fails the test if there isn't exactly one.
-func onlyPlaythrough(t *testing.T, details database.UserGameDetails) dbgen.ListPlaythroughsForUserGameIDRow {
+func onlyPlaythrough(t *testing.T, details database.GameOverview) dbgen.ListPlaythroughsForUserGameIDRow {
 	t.Helper()
 	if len(details.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want 1", len(details.Playthroughs))
@@ -220,6 +220,6 @@ func startTestPlaythrough(t *testing.T, server *Server, name, platformIGDBID str
 		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	details := getTestUserGame(t, server)
+	details := getTestGame(t, server)
 	return onlyPlaythrough(t, details).Playthrough.ID
 }

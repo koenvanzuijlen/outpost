@@ -19,10 +19,10 @@ import (
 // library entry and the game is only on the wishlist.
 var ErrUserGameNotFound = errors.New("game not found in library")
 
-// UserGameDetails is a game in the user's library or wishlist with everything the game page shows: the game, the
+// GameOverview is a game in the user's library or wishlist with everything the game page shows: the game, the
 // user's entry, the platforms it is owned on, its DLC (with library state and ownership per copy), its parent for DLC,
 // and its playthroughs.
-type UserGameDetails struct {
+type GameOverview struct {
 	Game           dbgen.Game
 	UserGame       dbgen.UserGame
 	OwnedPlatforms []dbgen.Platform
@@ -32,18 +32,18 @@ type UserGameDetails struct {
 	Playthroughs   []dbgen.ListPlaythroughsForUserGameIDRow
 }
 
-// GetUserGame retrieves a game from the user's library or wishlist by its IGDB ID. Returns ErrUserGameNotFound if the
+// GetGame retrieves a game from the user's library or wishlist by its IGDB ID. Returns ErrUserGameNotFound if the
 // game is in neither.
-func (s *Store) GetUserGame(ctx context.Context, userID, igdbID int64) (UserGameDetails, error) {
+func (s *Store) GetGame(ctx context.Context, userID, igdbID int64) (GameOverview, error) {
 	entry, err := s.queries.GetUserGameByIGDBID(ctx, dbgen.GetUserGameByIGDBIDParams{
 		UserID: userID,
 		IgdbID: igdbID,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return UserGameDetails{}, ErrUserGameNotFound
+			return GameOverview{}, ErrUserGameNotFound
 		}
-		return UserGameDetails{}, fmt.Errorf("get user game: %w", err)
+		return GameOverview{}, fmt.Errorf("get user game: %w", err)
 	}
 
 	isDLC := igdb.GameType(entry.Game.GameType).DLC()
@@ -59,12 +59,12 @@ func (s *Store) GetUserGame(ctx context.Context, userID, igdbID int64) (UserGame
 			GameTypes:    dlcGameTypes(),
 		})
 		if err != nil {
-			return UserGameDetails{}, fmt.Errorf("list dlc games: %w", err)
+			return GameOverview{}, fmt.Errorf("list dlc games: %w", err)
 		}
 
 		platforms, err = s.queries.ListPlatformsForUserGameID(ctx, entry.UserGame.ID)
 		if err != nil {
-			return UserGameDetails{}, fmt.Errorf("list owned platforms: %w", err)
+			return GameOverview{}, fmt.Errorf("list owned platforms: %w", err)
 		}
 
 		ownedCopyDLCs, err := s.queries.ListOwnedCopyDLCs(ctx, dbgen.ListOwnedCopyDLCsParams{
@@ -73,7 +73,7 @@ func (s *Store) GetUserGame(ctx context.Context, userID, igdbID int64) (UserGame
 			GameTypes:    dlcGameTypes(),
 		})
 		if err != nil {
-			return UserGameDetails{}, fmt.Errorf("list owned copy dlcs: %w", err)
+			return GameOverview{}, fmt.Errorf("list owned copy dlcs: %w", err)
 		}
 		for _, ownedCopyDLC := range ownedCopyDLCs {
 			copyDLCs[ownedCopyDLC.PlatformIgdbID] = append(copyDLCs[ownedCopyDLC.PlatformIgdbID], CopyDLC{
@@ -83,11 +83,11 @@ func (s *Store) GetUserGame(ctx context.Context, userID, igdbID int64) (UserGame
 		}
 	} else {
 		if entry.Game.ParentIgdbID == nil {
-			return UserGameDetails{}, fmt.Errorf("dlc %d has no parent", entry.Game.ID)
+			return GameOverview{}, fmt.Errorf("dlc %d has no parent", entry.Game.ID)
 		}
 		parent, err := s.queries.GetGameByIGDBID(ctx, *entry.Game.ParentIgdbID)
 		if err != nil {
-			return UserGameDetails{}, fmt.Errorf("get parent game: %w", err)
+			return GameOverview{}, fmt.Errorf("get parent game: %w", err)
 		}
 		parentGame = &parent
 
@@ -96,16 +96,16 @@ func (s *Store) GetUserGame(ctx context.Context, userID, igdbID int64) (UserGame
 			DlcGameID: entry.Game.ID,
 		})
 		if err != nil {
-			return UserGameDetails{}, fmt.Errorf("list owned platforms dlc: %w", err)
+			return GameOverview{}, fmt.Errorf("list owned platforms dlc: %w", err)
 		}
 	}
 
 	playthroughs, err := s.queries.ListPlaythroughsForUserGameID(ctx, entry.UserGame.ID)
 	if err != nil {
-		return UserGameDetails{}, fmt.Errorf("list playthroughs: %w", err)
+		return GameOverview{}, fmt.Errorf("list playthroughs: %w", err)
 	}
 
-	return UserGameDetails{
+	return GameOverview{
 		Game:           entry.Game,
 		DLCs:           dlcs,
 		UserGame:       entry.UserGame,

@@ -52,7 +52,7 @@ func outcomeOptions() []outcomeOption {
 
 // gamePage represents the data needed to render the game detail page.
 type gamePage struct {
-	Details        database.UserGameDetails
+	Details        database.GameOverview
 	Statuses       []database.GameStatus
 	CurrentStatus  database.GameStatus
 	RatingOptions  []ratingOption
@@ -70,7 +70,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	details, err := server.store.GetUserGame(r.Context(), defaultUserID, igdbID)
+	details, err := server.store.GetGame(r.Context(), defaultUserID, igdbID)
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			http.Error(w, "Game not in library", http.StatusNotFound)
@@ -86,7 +86,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			server.logger.Warn("failed to fetch DLCs", "igdb_id", igdbID, "error", err)
 		} else {
-			details, err = server.store.GetUserGame(r.Context(), defaultUserID, igdbID)
+			details, err = server.store.GetGame(r.Context(), defaultUserID, igdbID)
 			if err != nil {
 				server.logger.Error("failed to get library game", "error", err)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

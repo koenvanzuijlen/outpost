@@ -55,19 +55,19 @@ func addOwnedGame(t *testing.T, store *Store, igdbID int64) {
 	}
 }
 
-// getUserGame returns the game with the given IGDB ID from user 1's library or wishlist. It fails the test if it isn't
+// getGame returns the game with the given IGDB ID from user 1's library or wishlist. It fails the test if it isn't
 // there.
-func getUserGame(t *testing.T, store *Store, igdbID int64) UserGameDetails {
+func getGame(t *testing.T, store *Store, igdbID int64) GameOverview {
 	t.Helper()
-	details, err := store.GetUserGame(t.Context(), 1, igdbID)
+	details, err := store.GetGame(t.Context(), 1, igdbID)
 	if err != nil {
-		t.Fatalf("GetUserGame() failed: %v", err)
+		t.Fatalf("GetGame() failed: %v", err)
 	}
 	return details
 }
 
 // onlyPlaythrough returns the single playthrough of details. It fails the test if there isn't exactly one.
-func onlyPlaythrough(t *testing.T, details UserGameDetails) dbgen.ListPlaythroughsForUserGameIDRow {
+func onlyPlaythrough(t *testing.T, details GameOverview) dbgen.ListPlaythroughsForUserGameIDRow {
 	t.Helper()
 	if len(details.Playthroughs) != 1 {
 		t.Fatalf("len(Playthroughs) = %d, want 1", len(details.Playthroughs))
@@ -141,7 +141,7 @@ func setupLibraryDLCs(t *testing.T, store *Store) {
 }
 
 // findDLC returns the DLC row with the given IGDB ID from the library game, failing the test if it's missing.
-func findDLC(t *testing.T, game UserGameDetails, igdbID int64) dbgen.ListDLCGamesRow {
+func findDLC(t *testing.T, game GameOverview, igdbID int64) dbgen.ListDLCGamesRow {
 	t.Helper()
 	i := slices.IndexFunc(game.DLCs, func(g dbgen.ListDLCGamesRow) bool { return g.Game.IgdbID == igdbID })
 	if i == -1 {
