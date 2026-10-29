@@ -110,6 +110,47 @@ func (q *Queries) GetPlaythrough(ctx context.Context, arg GetPlaythroughParams) 
 	return i, err
 }
 
+const listPlaythroughDates = `-- name: ListPlaythroughDates :many
+SELECT
+    pt.user_game_id,
+    pt.started_at,
+    pt.finished_at
+FROM
+    playthroughs pt
+    JOIN user_games ug ON pt.user_game_id = ug.id
+WHERE
+    ug.user_id = ?
+`
+
+type ListPlaythroughDatesRow struct {
+	UserGameID int64
+	StartedAt  *time.Time
+	FinishedAt *time.Time
+}
+
+func (q *Queries) ListPlaythroughDates(ctx context.Context, userID int64) ([]ListPlaythroughDatesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPlaythroughDates, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPlaythroughDatesRow
+	for rows.Next() {
+		var i ListPlaythroughDatesRow
+		if err := rows.Scan(&i.UserGameID, &i.StartedAt, &i.FinishedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPlaythroughsForUserGameID = `-- name: ListPlaythroughsForUserGameID :many
 SELECT
     pt.id, pt.user_game_id, pt.platform_id, pt.name, pt.outcome, pt.started_at, pt.finished_at,

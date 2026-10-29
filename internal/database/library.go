@@ -116,17 +116,18 @@ func (s *Store) GetUserGame(ctx context.Context, userID, igdbID int64) (UserGame
 	}, nil
 }
 
-// LibraryEntry is one row of the library list: a game on one of the platforms it is owned on, or without a platform
-// when it isn't owned anywhere. For DLC, the platforms are the base game's copies it is owned on.
+// LibraryEntry is one game in the user's library, with all platforms it is owned on (for DLC: the base game's copies it
+// is owned on). LastStartedAt and LastFinishedAt are the latest playthrough dates, or nil if there are none.
 type LibraryEntry struct {
-	Game         dbgen.Game
-	UserGame     dbgen.UserGame
-	PlatformName *string
+	Game           dbgen.Game
+	UserGame       dbgen.UserGame
+	Platforms      []string
+	LastStartedAt  *time.Time
+	LastFinishedAt *time.Time
 }
 
-// ListLibrary returns the user's library (games and DLC, owned or not, excluding the wishlist), sorted by title and
-// platform. A game owned on several platforms appears once per platform; a game that isn't owned anywhere appears once
-// with PlatformName set to nil.
+// ListLibrary returns the user's library (games and DLC, owned or not, excluding the wishlist), sorted by title. A game
+// owned on several platforms appears once with a list of platforms, and the platform list can be empty.
 func (s *Store) ListLibrary(ctx context.Context, userID int64) ([]LibraryEntry, error) {
 	games, err := s.queries.ListLibraryGames(ctx, dbgen.ListLibraryGamesParams{
 		UserID:       userID,
@@ -144,33 +145,56 @@ func (s *Store) ListLibrary(ctx context.Context, userID int64) ([]LibraryEntry, 
 		return nil, fmt.Errorf("list library dlcs: %w", err)
 	}
 
+	// Group library games by user game ID, so that each game appears once with all its platforms aggregated.
 	library := make([]LibraryEntry, 0, len(games)+len(dlcs))
-	for _, game := range games {
-		library = append(library, LibraryEntry{
-			Game:         game.Game,
-			UserGame:     game.UserGame,
-			PlatformName: game.PlatformName,
-		})
-	}
-	for _, dlc := range dlcs {
-		library = append(library, LibraryEntry{
-			Game:         dlc.Game,
-			UserGame:     dlc.UserGame,
-			PlatformName: dlc.PlatformName,
-		})
+	indexByUserGame := make(map[int64]int)
+	add := func(ug dbgen.UserGame, g dbgen.Game, platform *string) {
+		idx, ok := indexByUserGame[ug.ID]
+		if !ok {
+			idx = len(library)
+			library = append(library, LibraryEntry{
+				Game:      g,
+				UserGame:  ug,
+				Platforms: []string{},
+			})
+			indexByUserGame[ug.ID] = idx
+		}
+		if platform != nil {
+			library[idx].Platforms = append(library[idx].Platforms, *platform)
+		}
 	}
 
-	platformName := func(e LibraryEntry) string {
-		if e.PlatformName == nil {
-			return ""
+	for _, game := range games {
+		add(game.UserGame, game.Game, game.PlatformName)
+	}
+	for _, dlc := range dlcs {
+		add(dlc.UserGame, dlc.Game, dlc.PlatformName)
+	}
+
+	for _, entry := range library {
+		slices.Sort(entry.Platforms)
+	}
+
+	// Fill in the last started and finished dates for each library entry based on playthroughs.
+	playthroughDates, err := s.queries.ListPlaythroughDates(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list playthrough dates: %w", err)
+	}
+
+	for _, pt := range playthroughDates {
+		idx, ok := indexByUserGame[pt.UserGameID]
+		if !ok {
+			continue
 		}
-		return *e.PlatformName
+		entry := &library[idx]
+		entry.LastStartedAt = latest(entry.LastStartedAt, pt.StartedAt)
+		entry.LastFinishedAt = latest(entry.LastFinishedAt, pt.FinishedAt)
 	}
 
 	slices.SortFunc(library, func(a, b LibraryEntry) int {
 		return cmp.Or(
 			cmp.Compare(a.Game.Title, b.Game.Title),
-			cmp.Compare(platformName(a), platformName(b)),
+			cmp.Compare(a.Game.IgdbID, b.Game.IgdbID),
 		)
 	})
 
