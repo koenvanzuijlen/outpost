@@ -38,6 +38,21 @@ func TestHandleAddToWishlist(t *testing.T) {
 	assertLocation(t, w, "/")
 }
 
+func TestHandleWishlistsGames(t *testing.T) {
+	server := newTestServer(t)
+	wishlistTestGame(t, server)
+	w := getPage(t, server, "/wishlist")
+
+	assertBodyContains(t, w, `<a href="/games/1942">`)
+}
+
+func TestHandleWishlistEmpty(t *testing.T) {
+	server := newTestServer(t)
+	w := getPage(t, server, "/wishlist")
+
+	assertBodyContains(t, w, "Your wishlist is empty.")
+}
+
 func TestHandleAddToWishlistDLC(t *testing.T) {
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}
