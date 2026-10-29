@@ -23,7 +23,10 @@ run = "go test -race ./..."
 
 [tasks.setup]
 description = "Build local dev tool binaries into .tools/"
-run = "go build -o .tools/golangci-lint-v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
+run = [
+	"go build -o .tools/golangci-lint-v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
+	'ln -sf "$(mise which djlint)" .tools/djlint',
+]
 
 [tasks.lint]
 description = "Run linters"
