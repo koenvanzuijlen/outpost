@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3](https://github.com/koenvanzuijlen/outpost/compare/v0.0.2...v0.0.3) (2026-10-29)
+
+
+### Features
+
+* **game:** show the game page for games outside the library ([#9](https://github.com/koenvanzuijlen/outpost/issues/9)) ([240518e](https://github.com/koenvanzuijlen/outpost/commit/240518e7a954edd5b8fbb48238233e40c8874096))
+
 ## [0.0.2](https://github.com/koenvanzuijlen/outpost/compare/v0.0.1...v0.0.2) (2026-10-29)
 
 
