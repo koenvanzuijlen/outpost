@@ -2,6 +2,7 @@ package server
 
 import (
 	"cmp"
+	"math/rand/v2"
 	"slices"
 	"time"
 
@@ -106,4 +107,16 @@ func compareNewestFirstNilLast(a, b *time.Time) int {
 		return -1
 	}
 	return b.Compare(*a)
+}
+
+// randomSample returns a random sample of n entries from the given slice. If n is greater than or equal to the number
+// of entries, it returns all entries. The original slice is shuffled in place.
+func randomSample[T any](entries []T, n int) []T {
+	rand.Shuffle(len(entries), func(i, j int) {
+		entries[i], entries[j] = entries[j], entries[i]
+	})
+	if n >= len(entries) {
+		return entries
+	}
+	return entries[:n]
 }

@@ -2,21 +2,36 @@
   <h1>Outpost</h1>
   {{template "searchForm" ""}}
   <div>
-    <h2>Library</h2>
+    <h2>Playing</h2>
     <ul>
-      {{range .Games}}
-        <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}} - {{with .Platforms}}{{range $index, $platform := .}}{{if $index}}, {{end}}{{$platform}}{{end}}{{else}}not owned{{end}}{{with .UserGame.Status}} - {{.}}{{end}}</li>
+      {{range .PlayingGames}}
+        {{template "libraryEntry" .}}
       {{else}}
-        <li>Your library is empty.</li>
+        <li>You are not currently playing any games.</li>
       {{end}}
     </ul>
+    <a href="/library?status=playing&sort=started">Show all</a>
   </div>
-  <h2>Wishlist</h2>
-  <ul>
-    {{range .WishlistedGames}}
-      <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}}</li>
-    {{else}}
-      <li>Your wishlist is empty.</li>
-    {{end}}
-  </ul>
+  <div>
+    <h2>Backlog ({{.BacklogCount}})</h2>
+    <ul>
+      {{range .BacklogGames}}
+        {{template "libraryEntry" .}}
+      {{else}}
+        <li>Your backlog is empty.</li>
+      {{end}}
+    </ul>
+    <a href="/library?status=backlog">Show all</a>
+  </div>
+  <div>
+    <h2>Wishlist ({{.WishlistCount}})</h2>
+    <ul>
+      {{range .WishlistGames}}
+        {{template "wishlistEntry" .}}
+      {{else}}
+        <li>Your wishlist is empty.</li>
+      {{end}}
+    </ul>
+    <a href="/wishlist">Show all</a>
+  </div>
 {{end}}

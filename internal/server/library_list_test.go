@@ -75,6 +75,42 @@ func TestFilterLibrary(t *testing.T) {
 	}
 }
 
+func TestRandomSample(t *testing.T) {
+	tests := []struct {
+		name    string
+		entries []int
+		n       int
+		wantLen int
+	}{
+		{name: "n bigger than input returns all", entries: []int{1, 2, 3}, n: 10, wantLen: 3},
+		{name: "n equal to input returns all", entries: []int{1, 2, 3}, n: 3, wantLen: 3},
+		{name: "n smaller than input returns n", entries: []int{1, 2, 3, 4, 5}, n: 2, wantLen: 2},
+		{name: "empty input", entries: []int{}, n: 10, wantLen: 0},
+		{name: "nil input", entries: nil, n: 10, wantLen: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := slices.Clone(tt.entries)
+			got := randomSample(input, tt.n)
+
+			if len(got) != tt.wantLen {
+				t.Fatalf("len(randomSample(%v, %d)) = %d, want %d", tt.entries, tt.n, len(got), tt.wantLen)
+			}
+			seen := make(map[int]bool, len(got))
+			for _, v := range got {
+				if !slices.Contains(tt.entries, v) {
+					t.Errorf("randomSample(%v, %d) returned %d, not in input", tt.entries, tt.n, v)
+				}
+				if seen[v] {
+					t.Errorf("randomSample(%v, %d) returned %d more than once", tt.entries, tt.n, v)
+				}
+				seen[v] = true
+			}
+		})
+	}
+}
+
 func TestSortLibrary(t *testing.T) {
 	e := entryBuilder()
 	tests := []struct {

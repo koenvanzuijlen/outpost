@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
@@ -139,7 +140,49 @@ func TestHandleHomeRendersLibraryAndWishlist(t *testing.T) {
 		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
-	getPage(t, server, "/")
+	w = getPage(t, server, "/")
+	assertBodyContains(t, w, `<a href="/games/194662">`)
+	assertBodyContains(t, w, `<a href="/games/1942">`)
+}
+
+func TestHandleHomeShowsPlayingGames(t *testing.T) {
+	server := newTestServer(t)
+	addTestGame(t, server)
+	if w := postForm(t, server, "/games/1942", "status=playing"); w.Code != http.StatusSeeOther {
+		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "games_search.json")[0]}
+	if w := postForm(t, server, "/library", "igdb_id=194662&platform_id=6"); w.Code != http.StatusSeeOther {
+		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	w := getPage(t, server, "/")
+	_, rest, ok := strings.Cut(w.Body.String(), "<h2>Playing</h2>")
+	if !ok {
+		t.Fatalf("body missing playing section:\n%s", w.Body.String())
+	}
+	playing, _, ok := strings.Cut(rest, "<h2>Backlog")
+	if !ok {
+		t.Fatalf("body missing backlog section:\n%s", w.Body.String())
+	}
+
+	if !strings.Contains(playing, `<a href="/games/1942">`) {
+		t.Errorf("playing section missing playing game 1942:\n%s", playing)
+	}
+	if strings.Contains(playing, `<a href="/games/194662">`) {
+		t.Errorf("playing section contains backlog game 194662:\n%s", playing)
+	}
+}
+
+func TestHandleHomeLinks(t *testing.T) {
+	server := newTestServer(t)
+	w := getPage(t, server, "/")
+
+	// html/template only escapes action output, so the literal & in the template stays unescaped.
+	assertBodyContains(t, w, `href="/library?status=playing&sort=started"`)
+	assertBodyContains(t, w, `href="/library?status=backlog"`)
+	assertBodyContains(t, w, `href="/wishlist"`)
 }
 
 func TestHandleHomeRendersUnownedDLC(t *testing.T) {

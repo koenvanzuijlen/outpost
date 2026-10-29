@@ -12,12 +12,20 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
+// homeSampleSize is the number of random games shown in the backlog and wishlist sections of the home page.
+const homeSampleSize = 10
+
+// homePage represents the data needed to render the home page: all playing games, a random sample of the backlog and
+// the wishlist, and the total size of both.
 type homePage struct {
-	Games           []database.LibraryEntry
-	WishlistedGames []dbgen.ListWishlistedUserGamesRow
+	PlayingGames  []database.LibraryEntry
+	BacklogGames  []database.LibraryEntry
+	BacklogCount  int
+	WishlistGames []dbgen.ListWishlistedUserGamesRow
+	WishlistCount int
 }
 
-// handleHome renders the home page: the library and the wishlist.
+// handleHome renders the home page: playing games by last started, and a random sample of the backlog and wishlist.
 func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	games, err := server.store.ListLibrary(ctx, defaultUserID)
@@ -33,9 +41,24 @@ func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	playing := sortLibrary(
+		filterLibrary(slices.Clone(games), database.GameStatusPlaying),
+		librarySortStarted,
+	)
+
+	backlog := filterLibrary(slices.Clone(games), database.GameStatusBacklog)
+	backlogCount := len(backlog)
+	backlog = randomSample(backlog, homeSampleSize)
+
+	wishlistCount := len(wishlistedGames)
+	wishlistedGames = randomSample(wishlistedGames, homeSampleSize)
+
 	server.render(w, "home.html", homePage{
-		Games:           games,
-		WishlistedGames: wishlistedGames,
+		PlayingGames:  playing,
+		BacklogGames:  backlog,
+		BacklogCount:  backlogCount,
+		WishlistGames: wishlistedGames,
+		WishlistCount: wishlistCount,
 	})
 }
 

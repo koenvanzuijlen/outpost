@@ -3,7 +3,7 @@
     <a href="/">Back to home</a>    
     <ul>
         {{range .Games}}
-            <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}}</li>
+            {{template "wishlistEntry" .}}
         {{else}}
             <li>Your wishlist is empty.</li>
         {{end}}

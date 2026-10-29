@@ -21,7 +21,7 @@
     </form>
     <ul>
       {{range .Games}}
-        <li><a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}</a>{{if .Game.ReleasedAt}} ({{.Game.ReleasedAt.Year}}){{end}} - {{with .Platforms}}{{range $index, $platform := .}}{{if $index}}, {{end}}{{$platform}}{{end}}{{else}}not owned{{end}}{{with .UserGame.Status}} - {{.}}{{end}}</li>
+        {{template "libraryEntry" .}}
       {{else}}
         <li>No results.</li>
       {{end}}
