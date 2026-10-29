@@ -1,29 +1,31 @@
 {{define "content"}}
-    <h1>Library</h1>
-    <a href="/">Back to home</a>
-    <form method="GET" action="/library">
-        <label>Status:
-            <select name="status">
-                <option value="">All</option>
-                {{range .StatusOptions}}
-                    <option value="{{.}}" {{if eq $.Status .}}selected{{end}}>{{.}}</option>
-                {{end}}
-            </select>
-        </label>
-        <label>Sort by:
-            <select name="sort">
-                {{range .SortOptions}}
-                    <option value="{{.Value}}" {{if eq $.Sort .Value}}selected{{end}}>{{.Label}}</option>
-                {{end}}
-            </select>
-        </label>
-        <button type="submit">Apply</button>
-    </form>
-    <ul>
-      {{range .Games}}
-        {{template "libraryEntry" .}}
-      {{else}}
-        <li>No results.</li>
-      {{end}}
-    </ul>
+  <h1>Library</h1>
+  <a href="/">Back to home</a>
+  <form method="get" action="/library">
+    <label>
+      Status:
+      <select name="status">
+        <option value="">All</option>
+        {{range .StatusOptions}}
+          <option value="{{.}}" {{if eq $.Status .}}selected{{end}}>{{.}}</option>
+        {{end}}
+      </select>
+    </label>
+    <label>
+      Sort by:
+      <select name="sort">
+        {{range .SortOptions}}
+          <option value="{{.Value}}" {{if eq $.Sort .Value}}selected{{end}}>{{.Label}}</option>
+        {{end}}
+      </select>
+    </label>
+    <button type="submit">Apply</button>
+  </form>
+  <ul>
+    {{range .Games}}
+      {{template "libraryEntry" .}}
+    {{else}}
+      <li>No results.</li>
+    {{end}}
+  </ul>
 {{end}}

@@ -1,46 +1,47 @@
-{{define "content"}} 
-	{{template "searchForm" .Query}} 
-	{{if eq .State "initial"}}
-		<div>
-		<p>Enter a search query to find games.</p>
-		</div>
-	{{end}}
-	{{if eq .State "no_results"}}
-		<div>
-		<p>No results found.</p>
-		</div>
-	{{end}}
-	{{if eq .State "results"}}
-		<div>
-		{{range .Results}}
-			<div>
-				{{if .CoverURL}}
-					<img src="{{.CoverURL}}" alt="{{.Name}}" />
-				{{end}}
-				<p>{{.Name}}{{if .ReleaseYear}} ({{.ReleaseYear}}){{end}}</p>
-				<form method="post" action="/library">
-					<input type="hidden" name="igdb_id" value="{{.ID}}" />
-					<label>Owned on: 
-						<select name="platform_id">
-						{{range .Platforms}}
-							<option value="{{.ID}}">{{.Name}}</option>
-						{{end}}
-							<option value="">Not owned</option>
-						</select>
-					</label>
-					<button type="submit">Add to library</button>
-				</form>
-				<form method="post" action="/wishlist">
-					<input type="hidden" name="igdb_id" value="{{.ID}}" />
-					<button type="submit">Add to wishlist</button>
-				</form>
-			</div>
-		{{end}}
-		</div>
-	{{end}}
-	{{if eq .State "error"}}
-		<div>
-		<p>{{.Error}}</p>
-		</div>
-	{{end}} 
+{{define "content"}}
+  {{template "searchForm" .Query}}
+  {{if eq .State "initial"}}
+    <div>
+      <p>Enter a search query to find games.</p>
+    </div>
+  {{end}}
+  {{if eq .State "no_results"}}
+    <div>
+      <p>No results found.</p>
+    </div>
+  {{end}}
+  {{if eq .State "results"}}
+    <div>
+      {{range .Results}}
+        <div>
+          {{if .CoverURL}}
+            <img src="{{.CoverURL}}" alt="{{.Name}}" />
+          {{end}}
+          <p>{{.Name}}{{if .ReleaseYear}} ({{.ReleaseYear}}){{end}}</p>
+          <form method="post" action="/library">
+            <input type="hidden" name="igdb_id" value="{{.ID}}" />
+            <label>
+              Owned on:
+              <select name="platform_id">
+                {{range .Platforms}}
+                  <option value="{{.ID}}">{{.Name}}</option>
+                {{end}}
+                <option value="">Not owned</option>
+              </select>
+            </label>
+            <button type="submit">Add to library</button>
+          </form>
+          <form method="post" action="/wishlist">
+            <input type="hidden" name="igdb_id" value="{{.ID}}" />
+            <button type="submit">Add to wishlist</button>
+          </form>
+        </div>
+      {{end}}
+    </div>
+  {{end}}
+  {{if eq .State "error"}}
+    <div>
+      <p>{{.Error}}</p>
+    </div>
+  {{end}}
 {{end}}

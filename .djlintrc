@@ -1,0 +1,6 @@
+{
+  "profile": "golang",
+  "indent": 2,
+  "max_line_length": 120,
+  "max_attribute_length": 120
+}

@@ -1,4 +1,10 @@
 {
+  "[html]": {
+    "editor.defaultFormatter": "monosans.djlint",
+    "editor.formatOnSave": true
+  },
+  "djlint.executablePath": ".tools/djlint",
+  "djlint.useVenv": false,
   "go.lintTool": "golangci-lint-v2",
   "go.lintOnSave": "package",
   "go.lintFlags": ["--path-mode=abs"],
