@@ -74,7 +74,7 @@ func TestHandleGameDLCParentInLibrary(t *testing.T) {
 	fake.game = loadIGDBGame(t, "game_by_id_dlc.json")
 
 	w := getGamePage(t, server, 13166)
-	assertBodyContains(t, w, `action="/games/1942/dlcs/13166/library"`)
+	assertBodyContains(t, w, `action="/games/13166/library"`)
 	assertBodyContains(t, w, "Add to library")
 }
 
@@ -87,7 +87,7 @@ func TestHandleGameDLCParentNotInLibrary(t *testing.T) {
 
 	w := getGamePage(t, server, 13166)
 	assertBodyContains(t, w, "The Witcher 3: Wild Hunt - Blood and Wine")
-	assertBodyNotContains(t, w, `action="/games/1942/dlcs/13166/library"`)
+	assertBodyNotContains(t, w, `action="/games/13166/library"`)
 	assertBodyNotContains(t, w, "Add to library")
 }
 
@@ -108,7 +108,7 @@ func TestHandleGameInLibrary(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
 
-	w := postForm(t, server, "/games/1942", "status=completed&rating=9")
+	w := postForm(t, server, "/games/1942/details", "status=completed&rating=9")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -242,12 +242,12 @@ func TestHandleUpdateGameValidation(t *testing.T) {
 		path string
 		body string
 	}{
-		{"bad id", "/games/abc", "status=backlog&rating=10"},
-		{"no status", "/games/1942", "rating=10"},
-		{"invalid status", "/games/1942", "status=invalid&rating=10"},
-		{"low rating", "/games/1942", "status=backlog&rating=0"},
-		{"high rating", "/games/1942", "status=backlog&rating=11"},
-		{"invalid rating", "/games/1942", "status=backlog&rating=abc"},
+		{"bad id", "/games/abc/details", "status=backlog&rating=10"},
+		{"no status", "/games/1942/details", "rating=10"},
+		{"invalid status", "/games/1942/details", "status=invalid&rating=10"},
+		{"low rating", "/games/1942/details", "status=backlog&rating=0"},
+		{"high rating", "/games/1942/details", "status=backlog&rating=11"},
+		{"invalid rating", "/games/1942/details", "status=backlog&rating=abc"},
 	}
 
 	for _, tt := range tests {
@@ -266,7 +266,7 @@ func TestHandleUpdateGame(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
 
-	w := postForm(t, server, "/games/1942", "status=completed&rating=9")
+	w := postForm(t, server, "/games/1942/details", "status=completed&rating=9")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -284,7 +284,7 @@ func TestHandleUpdateGameNoRating(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
 
-	w := postForm(t, server, "/games/1942", "status=completed&rating=")
+	w := postForm(t, server, "/games/1942/details", "status=completed&rating=")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -314,7 +314,7 @@ func TestHandleUpdateGameNotes(t *testing.T) {
 			addTestGame(t, server)
 
 			body := url.Values{"status": {"completed"}, "notes": {tt.notes}}.Encode()
-			w := postForm(t, server, "/games/1942", body)
+			w := postForm(t, server, "/games/1942/details", body)
 			if w.Code != http.StatusSeeOther {
 				t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 			}
@@ -344,7 +344,7 @@ func TestHandleUpdateGameNotesLength(t *testing.T) {
 			addTestGame(t, server)
 
 			body := url.Values{"status": {"completed"}, "notes": {tt.notes}}.Encode()
-			w := postForm(t, server, "/games/1942", body)
+			w := postForm(t, server, "/games/1942/details", body)
 			if w.Code != tt.want {
 				t.Errorf("update game status = %d, want %d", w.Code, tt.want)
 			}
@@ -357,7 +357,7 @@ func TestHandleGameNotesPrefill(t *testing.T) {
 	addTestGame(t, server)
 
 	body := url.Values{"status": {"completed"}, "notes": {"<b>hi</b>"}}.Encode()
-	w := postForm(t, server, "/games/1942", body)
+	w := postForm(t, server, "/games/1942/details", body)
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -370,7 +370,7 @@ func TestHandleUpdateGameWishlisted(t *testing.T) {
 	server := newTestServer(t)
 	wishlistTestGame(t, server)
 
-	w := postForm(t, server, "/games/1942", "status=completed&rating=9")
+	w := postForm(t, server, "/games/1942/details", "status=completed&rating=9")
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusNotFound)
 	}

@@ -30,8 +30,7 @@
 {{end}}
 {{define "gameLibraryState"}}
   {{if $.CanAddGame}}
-    <form method="post" action="/library">
-      <input type="hidden" name="igdb_id" value="{{$.Details.Game.IgdbID}}">
+    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/library">
       <label>
         Owned on
         <select name="platform_id">
@@ -43,12 +42,11 @@
       </label>
       <button type="submit">Add to library</button>
     </form>
-    <form method="post" action="/wishlist">
-      <input type="hidden" name="igdb_id" value="{{$.Details.Game.IgdbID}}">
+    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/wishlist">
       <button type="submit">Add to wishlist</button>
     </form>
   {{else if $.CanAddDLC}}
-    <form method="post" action="/games/{{$.Details.Parent.IgdbID}}/dlcs/{{$.Details.Game.IgdbID}}/library">
+    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/library">
       <button type="submit">Add to library</button>
     </form>
   {{end}}
@@ -68,7 +66,7 @@
               {{range .}}
                 <li>
                   <form method="post"
-                        action="/games/{{$.Details.Game.IgdbID}}/platforms/{{$platformIGDBID}}/dlcs/{{.Game.IgdbID}}">
+                        action="/games/{{$.Details.Game.IgdbID}}/copies/{{$platformIGDBID}}/dlcs/{{.Game.IgdbID}}">
                     {{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}} - {{if .Owned}}owned{{else}}not owned{{end}}
                     <button type="submit" name="owned" value="{{not .Owned}}" aria-pressed="{{.Owned}}">Owned</button>
                   </form>
@@ -79,7 +77,7 @@
           {{if not $.Details.Parent}}
             <details>
               <summary>Remove copy</summary>
-              <form method="post" action="/games/{{$.Details.Game.IgdbID}}/platforms/{{.IgdbID}}/delete">
+              <form method="post" action="/games/{{$.Details.Game.IgdbID}}/copies/{{.IgdbID}}/remove">
                 <p>This also removes the DLC you marked as owned on this copy.</p>
                 <button type="submit">Really remove</button>
               </form>
@@ -109,7 +107,7 @@
               <a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}</a> – In library · {{.Status}}
             {{else}}
               {{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}
-              <form method="post" action="/games/{{$.Details.Game.IgdbID}}/dlcs/{{.Game.IgdbID}}/library">
+              <form method="post" action="/games/{{.Game.IgdbID}}/library">
                 <button type="submit"
                         title="Gives this DLC its own status, rating and playthroughs">Add to library separately</button>
               </form>
@@ -126,7 +124,7 @@
 {{end}}
 {{define "gameDetails"}}
   <div>
-    <form method="post" action="/games/{{$.Details.Game.IgdbID}}">
+    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/details">
       <h2>Status, rating and notes</h2>
       <label>
         Status
@@ -250,15 +248,16 @@
 {{define "gameRemove"}}
   <details>
     <summary>{{if $.Details.UserGame.Wishlisted}}Remove from wishlist{{else}}Remove from library{{end}}</summary>
-    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/delete">
-      {{if not $.Details.UserGame.Wishlisted}}
-        {{if $.Details.Parent}}
-          <p>Removes its status, rating and playthroughs. Ownership, managed on the base game's page, is kept.</p>
-        {{else}}
-          <p>Removes its copies, DLC ownership, playthroughs, and its DLC in the library.</p>
-        {{end}}
+<form method="post"
+      action="/games/{{$.Details.Game.IgdbID}}/{{if $.Details.UserGame.Wishlisted}}wishlist{{else}}library{{end}}/remove">
+    {{if not $.Details.UserGame.Wishlisted}}
+      {{if $.Details.Parent}}
+        <p>Removes its status, rating and playthroughs. Ownership, managed on the base game's page, is kept.</p>
+      {{else}}
+        <p>Removes its copies, DLC ownership, playthroughs, and its DLC in the library.</p>
       {{end}}
-      <button type="submit">Really remove</button>
-    </form>
+    {{end}}
+    <button type="submit">Really remove</button>
+  </form>
   </details>
 {{end}}

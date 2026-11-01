@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -13,19 +14,19 @@ import (
 func TestHandleAddToLibraryValidation(t *testing.T) {
 	tests := []struct {
 		name string
+		path string
 		body string
 	}{
-		{"missing body", ""},
-		{"invalid id", "igdb_id=abc&platform_id=6"},
-		{"negative id", "igdb_id=-1&platform_id=6"},
-		{"invalid platform", "igdb_id=1942&platform_id=abc"},
-		{"negative platform", "igdb_id=1942&platform_id=-1"},
+		{"invalid id", "/games/abc/library", "platform_id=6"},
+		{"negative id", "/games/-1/library", "platform_id=6"},
+		{"invalid platform", "/games/1942/library", "platform_id=abc"},
+		{"negative platform", "/games/1942/library", "platform_id=-1"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
-			w := postForm(t, server, "/library", tt.body)
+			w := postForm(t, server, tt.path, tt.body)
 
 			if w.Code != http.StatusBadRequest {
 				t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
@@ -37,27 +38,26 @@ func TestHandleAddToLibraryValidation(t *testing.T) {
 func TestHandleAddToLibrary(t *testing.T) {
 	tests := []struct {
 		name          string
+		path          string
 		body          string
 		fake          *fakeIGDB
 		wantStatus    int
 		wantLocation  string
 		wantPlatforms []int64
 	}{
-		{"owned", "igdb_id=1942&platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", []int64{6}},
-		{"not owned", "igdb_id=1942&platform_id=", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", nil},
-		{"no platform field", "igdb_id=1942", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", nil},
-		{"dlc game type", "igdb_id=13166&platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}, http.StatusBadRequest, "", nil},
-		{"dlc game type not owned", "igdb_id=13166", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}, http.StatusBadRequest, "", nil},
-		{"game not on platform", "igdb_id=1942&platform_id=999", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusBadRequest, "", nil},
-		{"not found", "igdb_id=1942&platform_id=6", &fakeIGDB{gameErr: igdb.ErrGameNotFound}, http.StatusNotFound, "", nil},
-		{"igdb error", "igdb_id=1942&platform_id=6", &fakeIGDB{gameErr: errors.New("IGDB failure")}, http.StatusInternalServerError, "", nil},
+		{"owned", "/games/1942/library", "platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", []int64{6}},
+		{"not owned", "/games/1942/library", "platform_id=", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", nil},
+		{"no platform field", "/games/1942/library", "", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", nil},
+		{"game not on platform", "/games/1942/library", "platform_id=999", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusBadRequest, "", nil},
+		{"not found", "/games/1942/library", "platform_id=6", &fakeIGDB{gameErr: igdb.ErrGameNotFound}, http.StatusNotFound, "", nil},
+		{"igdb error", "/games/1942/library", "platform_id=6", &fakeIGDB{gameErr: errors.New("IGDB failure")}, http.StatusInternalServerError, "", nil},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
 			server.igdbClient = tt.fake
-			w := postForm(t, server, "/library", tt.body)
+			w := postForm(t, server, tt.path, tt.body)
 
 			if w.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
@@ -88,12 +88,87 @@ func TestHandleAddToLibrary(t *testing.T) {
 	}
 }
 
+func TestHandleAddToLibraryDLC(t *testing.T) {
+	server := newTestServer(t)
+	fake := addTestGameWithDLCs(t, server)
+
+	w := getTestGamePage(t, server)
+	assertBodyContains(t, w, `action="`+testAddDLCPath+`"`)
+
+	w = postAddTestDLC(t, server, fake)
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	assertLocation(t, w, "/games/12503")
+
+	callsBefore := fake.dlcsCalls
+	w = getGamePage(t, server, 12503)
+	assertBodyContains(t, w, `DLC of <a href="/games/1942">`)
+	assertBodyContains(t, w, "Not owned on any platform.")
+	assertBodyContains(t, w, `Ownership of this DLC is managed on the page of <a href="/games/1942">`)
+	if fake.dlcsCalls != callsBefore {
+		t.Errorf("dlcsCalls = %d, want %d", fake.dlcsCalls, callsBefore)
+	}
+
+	w = getTestGamePage(t, server)
+	assertBodyContains(t, w, `<a href="/games/12503">`)
+	assertBodyContains(t, w, "</a> – In library · backlog")
+	assertBodyNotContains(t, w, `action="`+testAddDLCPath+`"`)
+}
+
+// postAddDLCVariant adds Hearts of Stone to a library that has The Witcher 3 and its DLCs, with IGDB serving dlc and
+// the form body given, and returns the response.
+func postAddDLCVariant(t *testing.T, dlc igdb.Game, body string) *httptest.ResponseRecorder {
+	t.Helper()
+	server := newTestServer(t)
+	fake := addTestGameWithDLCs(t, server)
+	fake.game = dlc
+	return postForm(t, server, "/games/"+strconv.Itoa(dlc.ID)+"/library", body)
+}
+
+func TestHandleAddToLibraryDLCWithPlatform(t *testing.T) {
+	w := postAddDLCVariant(t, testDLCGame(t), "platform_id=6")
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+}
+
+func TestHandleAddToLibraryDLCWithoutParent(t *testing.T) {
+	dlc := testDLCGame(t)
+	dlc.ParentGameID = 0
+
+	w := postAddDLCVariant(t, dlc, "")
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+}
+
+func TestHandleAddToLibraryDLCNotOfBase(t *testing.T) {
+	dlc := testDLCGame(t)
+	dlc.ID = 999999
+
+	w := postAddDLCVariant(t, dlc, "")
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+	}
+}
+
+func TestHandleAddToLibraryDLCBaseNotInLibrary(t *testing.T) {
+	server := newTestServer(t)
+	server.igdbClient = &fakeIGDB{game: testDLCGame(t)}
+
+	w := postForm(t, server, testAddDLCPath, "")
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusNotFound)
+	}
+}
+
 func TestHandleAddToLibraryTwice(t *testing.T) {
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
 
 	for i := range 2 {
-		if w := postForm(t, server, "/library", "igdb_id=1942&platform_id=6"); w.Code != http.StatusSeeOther {
+		if w := postForm(t, server, "/games/1942/library", "platform_id=6"); w.Code != http.StatusSeeOther {
 			t.Errorf("call %d status = %d, want %d", i+1, w.Code, http.StatusSeeOther)
 		}
 	}
@@ -117,7 +192,7 @@ func TestHandleAddToLibraryDatabaseFailure(t *testing.T) {
 	// Simulate a database failure by closing the database connection.
 	_ = server.store.Close()
 
-	w := postForm(t, server, "/library", "igdb_id=1942&platform_id=6")
+	w := postForm(t, server, "/games/1942/library", "platform_id=6")
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
@@ -129,13 +204,13 @@ func TestHandleHomeRendersLibraryAndWishlist(t *testing.T) {
 	searchResponse := loadIGDBGames(t, "games_search.json")
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: searchResponse[0]}
-	w := postForm(t, server, "/wishlist", "igdb_id=194662")
+	w := postForm(t, server, "/games/194662/wishlist", "")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("wishlist status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
 	server.igdbClient = &fakeIGDB{game: searchResponse[1]}
-	w = postForm(t, server, "/library", "igdb_id=1942&platform_id=6")
+	w = postForm(t, server, "/games/1942/library", "platform_id=6")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -148,12 +223,12 @@ func TestHandleHomeRendersLibraryAndWishlist(t *testing.T) {
 func TestHandleHomeShowsPlayingGames(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
-	if w := postForm(t, server, "/games/1942", "status=playing"); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, "/games/1942/details", "status=playing"); w.Code != http.StatusSeeOther {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "games_search.json")[0]}
-	if w := postForm(t, server, "/library", "igdb_id=194662&platform_id=6"); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, "/games/194662/library", "platform_id=6"); w.Code != http.StatusSeeOther {
 		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
@@ -188,8 +263,8 @@ func TestHandleHomeLinks(t *testing.T) {
 
 func TestHandleHomeRendersUnownedDLC(t *testing.T) {
 	server := newTestServer(t)
-	addTestGameWithDLCs(t, server)
-	if w := postForm(t, server, testAddDLCPath, ""); w.Code != http.StatusSeeOther {
+	fake := addTestGameWithDLCs(t, server)
+	if w := postAddTestDLC(t, server, fake); w.Code != http.StatusSeeOther {
 		t.Fatalf("add dlc to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
@@ -203,12 +278,12 @@ func TestHandleHomeRendersUnownedDLC(t *testing.T) {
 func addBacklogAndCompletedGames(t *testing.T, server *Server) {
 	t.Helper()
 	addTestGame(t, server)
-	if w := postForm(t, server, "/games/1942", "status=completed"); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, "/games/1942/details", "status=completed"); w.Code != http.StatusSeeOther {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "games_search.json")[0]}
-	if w := postForm(t, server, "/library", "igdb_id=194662&platform_id=6"); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, "/games/194662/library", "platform_id=6"); w.Code != http.StatusSeeOther {
 		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 }
@@ -280,11 +355,11 @@ func TestHandleLibrarySelectedOptions(t *testing.T) {
 	}
 }
 
-func TestHandleRemoveUserGame(t *testing.T) {
+func TestHandleRemoveFromLibrary(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
 
-	w := postForm(t, server, "/games/1942/delete", "")
+	w := postForm(t, server, "/games/1942/library/remove", "")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -294,22 +369,22 @@ func TestHandleRemoveUserGame(t *testing.T) {
 	assertBodyContains(t, w, "Add to library")
 }
 
-func TestHandleRemoveUserGameTwice(t *testing.T) {
+func TestHandleRemoveFromLibraryTwice(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
 
 	for i := range 2 {
-		w := postForm(t, server, "/games/1942/delete", "")
+		w := postForm(t, server, "/games/1942/library/remove", "")
 		if w.Code != http.StatusSeeOther {
 			t.Errorf("call %d status = %d, want %d", i+1, w.Code, http.StatusSeeOther)
 		}
 	}
 }
 
-func TestHandleRemoveUserGameNonNumericID(t *testing.T) {
+func TestHandleRemoveFromLibraryNonNumericID(t *testing.T) {
 	server := newTestServer(t)
 
-	w := postForm(t, server, "/games/abc/delete", "")
+	w := postForm(t, server, "/games/abc/library/remove", "")
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
@@ -325,8 +400,8 @@ func TestGamePageRemoveLabel(t *testing.T) {
 	}{
 		{"library game", func(t *testing.T, server *Server) { addTestGame(t, server) }, 1942, "Remove from library"},
 		{"library dlc", func(t *testing.T, server *Server) {
-			addTestGameWithDLCs(t, server)
-			if w := postForm(t, server, testAddDLCPath, ""); w.Code != http.StatusSeeOther {
+			fake := addTestGameWithDLCs(t, server)
+			if w := postAddTestDLC(t, server, fake); w.Code != http.StatusSeeOther {
 				t.Fatalf("add dlc to library status = %d, want %d", w.Code, http.StatusSeeOther)
 			}
 		}, 12503, "Remove from library"},

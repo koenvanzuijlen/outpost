@@ -331,15 +331,16 @@ func (s *Store) UpdateGameDetails(ctx context.Context, userID, igdbID int64, det
 	return nil
 }
 
-// RemoveUserGame removes a game from the user's library or wishlist. What else goes with it depends on the entry:
+// RemoveUserGame removes a game from the user's library (wishlisted false) or wishlist (wishlisted true). What else
+// goes with it depends on the entry:
 //   - A library game: its copies, the DLC ownership on those copies, its playthroughs, and the library entries of its
 //     DLC (in the same transaction, since no foreign key links them).
 //   - A library DLC: its status, rating and playthroughs. Ownership of the DLC on the base game's copies is kept.
 //   - A wishlisted game: only the wishlist entry.
 //
 // Catalog data (games, platforms, cached DLC lists) is never deleted, so adding the game again needs no IGDB call for
-// its DLC. Returns ErrUserGameNotFound if the game is in neither the library nor the wishlist.
-func (s *Store) RemoveUserGame(ctx context.Context, userID, igdbID int64) error {
+// its DLC. Returns ErrUserGameNotFound if the game isn't in the given list; nothing is removed then.
+func (s *Store) RemoveUserGame(ctx context.Context, userID, igdbID int64, wishlisted bool) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
@@ -356,6 +357,10 @@ func (s *Store) RemoveUserGame(ctx context.Context, userID, igdbID int64) error 
 			return ErrUserGameNotFound
 		}
 		return fmt.Errorf("get user game by igdb id: %w", err)
+	}
+
+	if entry.UserGame.Wishlisted != wishlisted {
+		return ErrUserGameNotFound
 	}
 
 	if !igdb.GameType(entry.Game.GameType).DLC() {

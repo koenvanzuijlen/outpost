@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
@@ -32,16 +31,16 @@ func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleAddToWishlist adds a game to the wishlist. It reads form value igdb_id and redirects to the home page. A game
+// handleAddToWishlist adds a game to the wishlist. It reads path value igdbID and redirects to the home page. A game
 // that is already in the library or on the wishlist counts as success.
 func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request) {
-	igdbID, err := strconv.Atoi(r.PostFormValue("igdb_id"))
-	if err != nil || igdbID <= 0 {
+	igdbID, ok := pathID(r, "igdbID")
+	if !ok {
 		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
 		return
 	}
 
-	game, err := server.igdbClient.GameByID(r.Context(), igdbID)
+	game, err := server.igdbClient.GameByID(r.Context(), int(igdbID))
 	if err != nil {
 		if errors.Is(err, igdb.ErrGameNotFound) {
 			http.Error(w, "Game not found", http.StatusNotFound)

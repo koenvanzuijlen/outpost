@@ -77,6 +77,29 @@ func TestHandleStartPlaythroughNotInLibrary(t *testing.T) {
 	}
 }
 
+func TestHandleStartPlaythroughDLC(t *testing.T) {
+	server := newTestServer(t)
+	fake := addTestGameWithDLCs(t, server)
+
+	if w := postForm(t, server, testDLCPath, "owned=true"); w.Code != http.StatusSeeOther {
+		t.Fatalf("own status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	if w := postAddTestDLC(t, server, fake); w.Code != http.StatusSeeOther {
+		t.Fatalf("add dlc to library status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	w := postForm(t, server, "/games/12503/playthroughs", "platform=6")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	assertLocation(t, w, "/games/12503")
+
+	w = getGamePage(t, server, 12503)
+	assertBodyContains(t, w, "Platform: PC (Microsoft Windows)")
+	assertBodyContains(t, w, `Ownership of this DLC is managed on the page of <a href="/games/1942">`)
+	assertBodyNotContains(t, w, "Not owned on any platform.")
+}
+
 func TestHandleStartPlaythroughWishlisted(t *testing.T) {
 	server := newTestServer(t)
 	wishlistTestGame(t, server)

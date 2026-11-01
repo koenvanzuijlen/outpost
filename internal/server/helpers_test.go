@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -97,7 +98,7 @@ func addTestGame(t *testing.T, server *Server) *fakeIGDB {
 	t.Helper()
 	fake := &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
 	server.igdbClient = fake
-	w := postForm(t, server, "/library", "igdb_id=1942&platform_id=6")
+	w := postForm(t, server, "/games/1942/library", "platform_id=6")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -109,7 +110,7 @@ func wishlistTestGame(t *testing.T, server *Server) *fakeIGDB {
 	t.Helper()
 	fake := &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
 	server.igdbClient = fake
-	w := postForm(t, server, "/wishlist", "igdb_id=1942")
+	w := postForm(t, server, "/games/1942/wishlist", "")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("wishlist status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -210,7 +211,27 @@ func derefOrNil[T any](p *T) any {
 }
 
 // testAddDLCPath adds Hearts of Stone (12503), a DLC of The Witcher 3, to the library separately.
-const testAddDLCPath = "/games/1942/dlcs/12503/library"
+const testAddDLCPath = "/games/12503/library"
+
+// testDLCGame returns Hearts of Stone (12503) as IGDB serves it.
+func testDLCGame(t *testing.T) igdb.Game {
+	t.Helper()
+	dlcs := loadIGDBGames(t, "dlcs.json")
+	i := slices.IndexFunc(dlcs, func(g igdb.Game) bool { return g.ID == 12503 })
+	if i == -1 {
+		t.Fatal("dlcs.json has no game 12503")
+	}
+	return dlcs[i]
+}
+
+// postAddTestDLC posts testAddDLCPath while fake serves Hearts of Stone from IGDB, then restores the previous game.
+func postAddTestDLC(t *testing.T, server *Server, fake *fakeIGDB) *httptest.ResponseRecorder {
+	t.Helper()
+	previous := fake.game
+	fake.game = testDLCGame(t)
+	defer func() { fake.game = previous }()
+	return postForm(t, server, testAddDLCPath, "")
+}
 
 // addTestGameWithDLCs adds The Witcher 3 on PC and views its page so its DLCs are fetched and stored.
 func addTestGameWithDLCs(t *testing.T, server *Server) *fakeIGDB {
