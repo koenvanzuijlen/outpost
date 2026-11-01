@@ -6,7 +6,7 @@ import (
 )
 
 // testDLCPath is the ownership toggle for Hearts of Stone (12503) on The Witcher 3's PC copy (6).
-const testDLCPath = "/games/1942/platforms/6/dlcs/12503"
+const testDLCPath = "/games/1942/copies/6/dlcs/12503"
 
 func TestHandleSetDLCOwnedStatus(t *testing.T) {
 	server := newTestServer(t)
@@ -31,10 +31,10 @@ func TestHandleSetDLCOwnedValidation(t *testing.T) {
 		want int
 	}{
 		{"invalid owned", testDLCPath, "owned=maybe", http.StatusBadRequest},
-		{"non-numeric game id", "/games/abc/platforms/6/dlcs/12503", "owned=true", http.StatusBadRequest},
-		{"non-numeric platform id", "/games/1942/platforms/abc/dlcs/12503", "owned=true", http.StatusBadRequest},
-		{"non-numeric dlc id", "/games/1942/platforms/6/dlcs/abc", "owned=true", http.StatusBadRequest},
-		{"unknown dlc", "/games/1942/platforms/6/dlcs/999999", "owned=true", http.StatusNotFound},
+		{"non-numeric game id", "/games/abc/copies/6/dlcs/12503", "owned=true", http.StatusBadRequest},
+		{"non-numeric platform id", "/games/1942/copies/abc/dlcs/12503", "owned=true", http.StatusBadRequest},
+		{"non-numeric dlc id", "/games/1942/copies/6/dlcs/abc", "owned=true", http.StatusBadRequest},
+		{"unknown dlc", "/games/1942/copies/6/dlcs/999999", "owned=true", http.StatusNotFound},
 	}
 
 	for _, tt := range tests {

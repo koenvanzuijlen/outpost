@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	testRemovePCPath  = "/games/1942/platforms/6/delete"
-	testRemovePS4Path = "/games/1942/platforms/48/delete"
+	testRemovePCPath  = "/games/1942/copies/6/remove"
+	testRemovePS4Path = "/games/1942/copies/48/remove"
 )
 
 // addTestGamePS4 adds The Witcher 3 on PC and PS4 (48).
@@ -71,9 +71,9 @@ func TestHandleRemoveOwnedCopyValidation(t *testing.T) {
 		path string
 		want int
 	}{
-		{"non-numeric game id", "/games/abc/platforms/6/delete", http.StatusBadRequest},
-		{"non-numeric platform id", "/games/1942/platforms/abc/delete", http.StatusBadRequest},
-		{"game not in library", "/games/1020/platforms/6/delete", http.StatusNotFound},
+		{"non-numeric game id", "/games/abc/copies/6/remove", http.StatusBadRequest},
+		{"non-numeric platform id", "/games/1942/copies/abc/remove", http.StatusBadRequest},
+		{"game not in library", "/games/1020/copies/6/remove", http.StatusNotFound},
 	}
 
 	for _, tt := range tests {
