@@ -149,7 +149,7 @@ func TestHandleHomeRendersLibraryAndWishlist(t *testing.T) {
 func TestHandleHomeShowsPlayingGames(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
-	if w := postForm(t, server, "/games/1942", "status=playing"); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, "/games/1942/details", "status=playing"); w.Code != http.StatusSeeOther {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
@@ -204,7 +204,7 @@ func TestHandleHomeRendersUnownedDLC(t *testing.T) {
 func addBacklogAndCompletedGames(t *testing.T, server *Server) {
 	t.Helper()
 	addTestGame(t, server)
-	if w := postForm(t, server, "/games/1942", "status=completed"); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, "/games/1942/details", "status=completed"); w.Code != http.StatusSeeOther {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
