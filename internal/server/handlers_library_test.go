@@ -45,9 +45,9 @@ func TestHandleAddToLibrary(t *testing.T) {
 		wantLocation  string
 		wantPlatforms []int64
 	}{
-		{"owned", "/games/1942/library", "platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", []int64{6}},
-		{"not owned", "/games/1942/library", "platform_id=", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", nil},
-		{"no platform field", "/games/1942/library", "", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", nil},
+		{"owned", "/games/1942/library", "platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/games/1942", []int64{6}},
+		{"not owned", "/games/1942/library", "platform_id=", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/games/1942", nil},
+		{"no platform field", "/games/1942/library", "", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/games/1942", nil},
 		{"game not on platform", "/games/1942/library", "platform_id=999", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusBadRequest, "", nil},
 		{"not found", "/games/1942/library", "platform_id=6", &fakeIGDB{gameErr: igdb.ErrGameNotFound}, http.StatusNotFound, "", nil},
 		{"igdb error", "/games/1942/library", "platform_id=6", &fakeIGDB{gameErr: errors.New("IGDB failure")}, http.StatusInternalServerError, "", nil},
