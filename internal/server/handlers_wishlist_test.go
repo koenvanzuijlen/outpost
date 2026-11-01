@@ -52,6 +52,33 @@ func TestHandleWishlistEmpty(t *testing.T) {
 	assertBodyContains(t, w, "Your wishlist is empty.")
 }
 
+func TestHandleRemoveFromWishlist(t *testing.T) {
+	server := newTestServer(t)
+	wishlistTestGame(t, server)
+
+	w := postForm(t, server, "/games/1942/wishlist/remove", "")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	assertLocation(t, w, "/")
+
+	w = getPage(t, server, "/wishlist")
+	assertBodyNotContains(t, w, `<a href="/games/1942">`)
+}
+
+func TestHandleRemoveFromWishlistKeepsLibraryGame(t *testing.T) {
+	server := newTestServer(t)
+	addTestGame(t, server)
+
+	w := postForm(t, server, "/games/1942/wishlist/remove", "")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+
+	w = getPage(t, server, "/library")
+	assertBodyContains(t, w, `<a href="/games/1942">`)
+}
+
 func TestHandleAddToWishlistDLC(t *testing.T) {
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}

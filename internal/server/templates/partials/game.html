@@ -248,15 +248,16 @@
 {{define "gameRemove"}}
   <details>
     <summary>{{if $.Details.UserGame.Wishlisted}}Remove from wishlist{{else}}Remove from library{{end}}</summary>
-    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/delete">
-      {{if not $.Details.UserGame.Wishlisted}}
-        {{if $.Details.Parent}}
-          <p>Removes its status, rating and playthroughs. Ownership, managed on the base game's page, is kept.</p>
-        {{else}}
-          <p>Removes its copies, DLC ownership, playthroughs, and its DLC in the library.</p>
-        {{end}}
+<form method="post"
+      action="/games/{{$.Details.Game.IgdbID}}/{{if $.Details.UserGame.Wishlisted}}wishlist{{else}}library{{end}}/remove">
+    {{if not $.Details.UserGame.Wishlisted}}
+      {{if $.Details.Parent}}
+        <p>Removes its status, rating and playthroughs. Ownership, managed on the base game's page, is kept.</p>
+      {{else}}
+        <p>Removes its copies, DLC ownership, playthroughs, and its DLC in the library.</p>
       {{end}}
-      <button type="submit">Really remove</button>
-    </form>
+    {{end}}
+    <button type="submit">Really remove</button>
+  </form>
   </details>
 {{end}}

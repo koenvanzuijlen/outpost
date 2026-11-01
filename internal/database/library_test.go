@@ -338,7 +338,7 @@ func TestRemoveUserGame(t *testing.T) {
 	store := newTestStore(t)
 	setupRemoveUserGame(t, store)
 
-	if err := store.RemoveUserGame(ctx, 1, 100); err != nil {
+	if err := store.RemoveUserGame(ctx, 1, 100, false); err != nil {
 		t.Fatalf("RemoveUserGame() failed: %v", err)
 	}
 
@@ -362,7 +362,7 @@ func TestRemoveUserGameReAdd(t *testing.T) {
 	store := newTestStore(t)
 	setupRemoveUserGame(t, store)
 
-	if err := store.RemoveUserGame(ctx, 1, 100); err != nil {
+	if err := store.RemoveUserGame(ctx, 1, 100, false); err != nil {
 		t.Fatalf("RemoveUserGame() failed: %v", err)
 	}
 	if err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(6, "PC")), 1, time.Now().UTC()); err != nil {
@@ -390,7 +390,7 @@ func TestRemoveUserGameLibraryDLC(t *testing.T) {
 	store := newTestStore(t)
 	setupRemoveUserGame(t, store)
 
-	if err := store.RemoveUserGame(ctx, 1, 201); err != nil {
+	if err := store.RemoveUserGame(ctx, 1, 201, false); err != nil {
 		t.Fatalf("RemoveUserGame() failed: %v", err)
 	}
 
@@ -407,7 +407,7 @@ func TestRemoveUserGameWishlisted(t *testing.T) {
 		t.Fatalf("AddToWishlist() failed: %v", err)
 	}
 
-	if err := store.RemoveUserGame(ctx, 1, 500); err != nil {
+	if err := store.RemoveUserGame(ctx, 1, 500, true); err != nil {
 		t.Fatalf("RemoveUserGame() failed: %v", err)
 	}
 
@@ -431,7 +431,7 @@ func TestRemoveUserGameKeepsStandaloneExpansion(t *testing.T) {
 		t.Fatalf("AddToLibrary() failed: %v", err)
 	}
 
-	if err := store.RemoveUserGame(ctx, 1, 100); err != nil {
+	if err := store.RemoveUserGame(ctx, 1, 100, false); err != nil {
 		t.Fatalf("RemoveUserGame() failed: %v", err)
 	}
 
@@ -441,10 +441,26 @@ func TestRemoveUserGameKeepsStandaloneExpansion(t *testing.T) {
 func TestRemoveUserGameNotFound(t *testing.T) {
 	store := newTestStore(t)
 
-	err := store.RemoveUserGame(t.Context(), 1, 999)
+	err := store.RemoveUserGame(t.Context(), 1, 999, false)
 	if !errors.Is(err, ErrUserGameNotFound) {
 		t.Fatalf("RemoveUserGame() error = %v, want %v", err, ErrUserGameNotFound)
 	}
+}
+
+func TestRemoveUserGameLibraryGameAsWishlisted(t *testing.T) {
+	store := newTestStore(t)
+	addOwnedGame(t, store, 100)
+
+	err := store.RemoveUserGame(t.Context(), 1, 100, true)
+	if !errors.Is(err, ErrUserGameNotFound) {
+		t.Fatalf("RemoveUserGame() error = %v, want %v", err, ErrUserGameNotFound)
+	}
+
+	details := getGame(t, store, 100)
+	if details.UserGame == nil {
+		t.Fatal("UserGame = nil, want an entry")
+	}
+	assertPlatformIDs(t, details.OwnedPlatforms, 11)
 }
 
 func TestUpdateGameDetailsNotInLibrary(t *testing.T) {

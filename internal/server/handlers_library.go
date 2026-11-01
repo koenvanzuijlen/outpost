@@ -163,16 +163,36 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// handleRemoveUserGame removes a game from the library or wishlist, see database.Store.RemoveUserGame for what goes
-// with it. It reads path value igdbID and redirects to the home page. A game that is already gone counts as success.
-func (server *Server) handleRemoveUserGame(w http.ResponseWriter, r *http.Request) {
+// handleRemoveFromWishlist removes a game from the wishlist. It reads path value igdbID and redirects to the home page.
+// A game that isn't on the wishlist counts as success and is left as it is.
+func (server *Server) handleRemoveFromWishlist(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
 		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
 		return
 	}
 
-	err := server.store.RemoveUserGame(r.Context(), defaultUserID, igdbID)
+	err := server.store.RemoveUserGame(r.Context(), defaultUserID, igdbID, true)
+	if err != nil && !errors.Is(err, database.ErrUserGameNotFound) {
+		server.logger.Error("failed to remove from wishlist", "error", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// handleRemoveFromLibrary removes a game from the library, see database.Store.RemoveUserGame for what goes with it. It
+// reads path value igdbID and redirects to the home page. A game that isn't in the library counts as success and is
+// left as it is.
+func (server *Server) handleRemoveFromLibrary(w http.ResponseWriter, r *http.Request) {
+	igdbID, ok := pathID(r, "igdbID")
+	if !ok {
+		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		return
+	}
+
+	err := server.store.RemoveUserGame(r.Context(), defaultUserID, igdbID, false)
 	if err != nil && !errors.Is(err, database.ErrUserGameNotFound) {
 		server.logger.Error("failed to remove from library", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

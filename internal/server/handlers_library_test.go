@@ -281,11 +281,11 @@ func TestHandleLibrarySelectedOptions(t *testing.T) {
 	}
 }
 
-func TestHandleRemoveUserGame(t *testing.T) {
+func TestHandleRemoveFromLibrary(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
 
-	w := postForm(t, server, "/games/1942/delete", "")
+	w := postForm(t, server, "/games/1942/library/remove", "")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -295,22 +295,22 @@ func TestHandleRemoveUserGame(t *testing.T) {
 	assertBodyContains(t, w, "Add to library")
 }
 
-func TestHandleRemoveUserGameTwice(t *testing.T) {
+func TestHandleRemoveFromLibraryTwice(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)
 
 	for i := range 2 {
-		w := postForm(t, server, "/games/1942/delete", "")
+		w := postForm(t, server, "/games/1942/library/remove", "")
 		if w.Code != http.StatusSeeOther {
 			t.Errorf("call %d status = %d, want %d", i+1, w.Code, http.StatusSeeOther)
 		}
 	}
 }
 
-func TestHandleRemoveUserGameNonNumericID(t *testing.T) {
+func TestHandleRemoveFromLibraryNonNumericID(t *testing.T) {
 	server := newTestServer(t)
 
-	w := postForm(t, server, "/games/abc/delete", "")
+	w := postForm(t, server, "/games/abc/library/remove", "")
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
