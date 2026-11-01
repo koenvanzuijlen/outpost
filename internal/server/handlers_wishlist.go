@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
@@ -31,7 +32,7 @@ func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleAddToWishlist adds a game to the wishlist. It reads path value igdbID and redirects to the home page. A game
+// handleAddToWishlist adds a game to the wishlist. It reads path value igdbID and redirects to the game's page. A game
 // that is already in the library or on the wishlist counts as success.
 func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
@@ -63,5 +64,5 @@ func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
 }

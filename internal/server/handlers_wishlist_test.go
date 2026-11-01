@@ -34,7 +34,7 @@ func TestHandleAddToWishlist(t *testing.T) {
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	assertLocation(t, w, "/")
+	assertLocation(t, w, "/games/1942")
 }
 
 func TestHandleWishlistsGames(t *testing.T) {

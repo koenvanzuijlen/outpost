@@ -114,8 +114,7 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 // handleAddToLibrary adds a game or a DLC to the library. It reads path value igdbID and, for a game, form value
 // platform_id (optional; without it the game is added as not owned). A DLC is added separately from its base game, see
 // database.Store.AddDLCToLibrary; it takes no platform_id. Other game types, such as bundles, get 400. It redirects to
-// the home page after adding a game, and to the DLC's page after adding a DLC. A copy that is already owned counts as
-// success.
+// the game's page. A copy that is already owned counts as success.
 func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -165,7 +164,6 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		http.Redirect(w, r, "/", http.StatusSeeOther)
 	} else {
 		if game.ParentGameID == 0 {
 			http.Error(w, "DLC has no base game", http.StatusBadRequest)
@@ -188,8 +186,9 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 			}
 			return
 		}
-		http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
 	}
+	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
+
 }
 
 // handleRemoveFromWishlist removes a game from the wishlist. It reads path value igdbID and redirects to the home page.
