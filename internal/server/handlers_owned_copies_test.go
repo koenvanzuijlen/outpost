@@ -14,7 +14,7 @@ const (
 func addTestGamePS4(t *testing.T, server *Server) {
 	t.Helper()
 	addTestGame(t, server)
-	if w := postForm(t, server, "/library", "igdb_id=1942&platform_id=48"); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, "/games/1942/library", "platform_id=48"); w.Code != http.StatusSeeOther {
 		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 }

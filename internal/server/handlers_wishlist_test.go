@@ -8,17 +8,16 @@ import (
 func TestHandleAddToWishlistValidation(t *testing.T) {
 	tests := []struct {
 		name string
-		body string
+		path string
 	}{
-		{"missing body", ""},
-		{"invalid id", "igdb_id=abc"},
-		{"negative id", "igdb_id=-1"},
+		{"invalid id", "/games/abc/wishlist"},
+		{"negative id", "/games/-1/wishlist"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
-			w := postForm(t, server, "/wishlist", tt.body)
+			w := postForm(t, server, tt.path, "")
 
 			if w.Code != http.StatusBadRequest {
 				t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
@@ -30,7 +29,7 @@ func TestHandleAddToWishlistValidation(t *testing.T) {
 func TestHandleAddToWishlist(t *testing.T) {
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
-	w := postForm(t, server, "/wishlist", "igdb_id=1942")
+	w := postForm(t, server, "/games/1942/wishlist", "")
 
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
@@ -56,7 +55,7 @@ func TestHandleWishlistEmpty(t *testing.T) {
 func TestHandleAddToWishlistDLC(t *testing.T) {
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}
-	w := postForm(t, server, "/wishlist", "igdb_id=13166")
+	w := postForm(t, server, "/games/13166/wishlist", "")
 
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)

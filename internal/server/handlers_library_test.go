@@ -13,19 +13,19 @@ import (
 func TestHandleAddToLibraryValidation(t *testing.T) {
 	tests := []struct {
 		name string
+		path string
 		body string
 	}{
-		{"missing body", ""},
-		{"invalid id", "igdb_id=abc&platform_id=6"},
-		{"negative id", "igdb_id=-1&platform_id=6"},
-		{"invalid platform", "igdb_id=1942&platform_id=abc"},
-		{"negative platform", "igdb_id=1942&platform_id=-1"},
+		{"invalid id", "/games/abc/library", "platform_id=6"},
+		{"negative id", "/games/-1/library", "platform_id=6"},
+		{"invalid platform", "/games/1942/library", "platform_id=abc"},
+		{"negative platform", "/games/1942/library", "platform_id=-1"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
-			w := postForm(t, server, "/library", tt.body)
+			w := postForm(t, server, tt.path, tt.body)
 
 			if w.Code != http.StatusBadRequest {
 				t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
@@ -37,27 +37,28 @@ func TestHandleAddToLibraryValidation(t *testing.T) {
 func TestHandleAddToLibrary(t *testing.T) {
 	tests := []struct {
 		name          string
+		path          string
 		body          string
 		fake          *fakeIGDB
 		wantStatus    int
 		wantLocation  string
 		wantPlatforms []int64
 	}{
-		{"owned", "igdb_id=1942&platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", []int64{6}},
-		{"not owned", "igdb_id=1942&platform_id=", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", nil},
-		{"no platform field", "igdb_id=1942", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", nil},
-		{"dlc game type", "igdb_id=13166&platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}, http.StatusBadRequest, "", nil},
-		{"dlc game type not owned", "igdb_id=13166", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}, http.StatusBadRequest, "", nil},
-		{"game not on platform", "igdb_id=1942&platform_id=999", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusBadRequest, "", nil},
-		{"not found", "igdb_id=1942&platform_id=6", &fakeIGDB{gameErr: igdb.ErrGameNotFound}, http.StatusNotFound, "", nil},
-		{"igdb error", "igdb_id=1942&platform_id=6", &fakeIGDB{gameErr: errors.New("IGDB failure")}, http.StatusInternalServerError, "", nil},
+		{"owned", "/games/1942/library", "platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", []int64{6}},
+		{"not owned", "/games/1942/library", "platform_id=", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", nil},
+		{"no platform field", "/games/1942/library", "", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusSeeOther, "/", nil},
+		{"dlc game type", "/games/13166/library", "platform_id=6", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}, http.StatusBadRequest, "", nil},
+		{"dlc game type not owned", "/games/13166/library", "", &fakeIGDB{game: loadIGDBGames(t, "game_by_id_dlc.json")[0]}, http.StatusBadRequest, "", nil},
+		{"game not on platform", "/games/1942/library", "platform_id=999", &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}, http.StatusBadRequest, "", nil},
+		{"not found", "/games/1942/library", "platform_id=6", &fakeIGDB{gameErr: igdb.ErrGameNotFound}, http.StatusNotFound, "", nil},
+		{"igdb error", "/games/1942/library", "platform_id=6", &fakeIGDB{gameErr: errors.New("IGDB failure")}, http.StatusInternalServerError, "", nil},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
 			server.igdbClient = tt.fake
-			w := postForm(t, server, "/library", tt.body)
+			w := postForm(t, server, tt.path, tt.body)
 
 			if w.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
@@ -93,7 +94,7 @@ func TestHandleAddToLibraryTwice(t *testing.T) {
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "game_by_id.json")[0]}
 
 	for i := range 2 {
-		if w := postForm(t, server, "/library", "igdb_id=1942&platform_id=6"); w.Code != http.StatusSeeOther {
+		if w := postForm(t, server, "/games/1942/library", "platform_id=6"); w.Code != http.StatusSeeOther {
 			t.Errorf("call %d status = %d, want %d", i+1, w.Code, http.StatusSeeOther)
 		}
 	}
@@ -117,7 +118,7 @@ func TestHandleAddToLibraryDatabaseFailure(t *testing.T) {
 	// Simulate a database failure by closing the database connection.
 	_ = server.store.Close()
 
-	w := postForm(t, server, "/library", "igdb_id=1942&platform_id=6")
+	w := postForm(t, server, "/games/1942/library", "platform_id=6")
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
@@ -129,13 +130,13 @@ func TestHandleHomeRendersLibraryAndWishlist(t *testing.T) {
 	searchResponse := loadIGDBGames(t, "games_search.json")
 	server := newTestServer(t)
 	server.igdbClient = &fakeIGDB{game: searchResponse[0]}
-	w := postForm(t, server, "/wishlist", "igdb_id=194662")
+	w := postForm(t, server, "/games/194662/wishlist", "")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("wishlist status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
 	server.igdbClient = &fakeIGDB{game: searchResponse[1]}
-	w = postForm(t, server, "/library", "igdb_id=1942&platform_id=6")
+	w = postForm(t, server, "/games/1942/library", "platform_id=6")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -153,7 +154,7 @@ func TestHandleHomeShowsPlayingGames(t *testing.T) {
 	}
 
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "games_search.json")[0]}
-	if w := postForm(t, server, "/library", "igdb_id=194662&platform_id=6"); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, "/games/194662/library", "platform_id=6"); w.Code != http.StatusSeeOther {
 		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 
@@ -208,7 +209,7 @@ func addBacklogAndCompletedGames(t *testing.T, server *Server) {
 	}
 
 	server.igdbClient = &fakeIGDB{game: loadIGDBGames(t, "games_search.json")[0]}
-	if w := postForm(t, server, "/library", "igdb_id=194662&platform_id=6"); w.Code != http.StatusSeeOther {
+	if w := postForm(t, server, "/games/194662/library", "platform_id=6"); w.Code != http.StatusSeeOther {
 		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
 }

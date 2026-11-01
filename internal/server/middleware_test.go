@@ -55,15 +55,15 @@ func TestCSRFProtection(t *testing.T) {
 		secFetchSite  string
 		wantForbidden bool
 	}{
-		{"cross-site POST", http.MethodPost, "/wishlist", "cross-site", true},
-		{"same-origin POST", http.MethodPost, "/wishlist", "same-origin", false},
+		{"cross-site POST", http.MethodPost, "/games/abc/wishlist", "cross-site", true},
+		{"same-origin POST", http.MethodPost, "/games/abc/wishlist", "same-origin", false},
 		{"cross-site GET", http.MethodGet, "/", "cross-site", false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
-			req := httptest.NewRequest(tt.method, tt.path, strings.NewReader("igdb_id=abc"))
+			req := httptest.NewRequest(tt.method, tt.path, strings.NewReader(""))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			req.Header.Set("Sec-Fetch-Site", tt.secFetchSite)
 			w := httptest.NewRecorder()

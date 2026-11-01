@@ -18,8 +18,7 @@
             <img src="{{.CoverURL}}" alt="{{.Name}}" />
           {{end}}
           <p><a href="/games/{{.ID}}">{{.Name}}</a>{{if .ReleaseYear}} ({{.ReleaseYear}}){{end}}</p>
-          <form method="post" action="/library">
-            <input type="hidden" name="igdb_id" value="{{.ID}}" />
+          <form method="post" action="/games/{{.ID}}/library">
             <label>
               Owned on:
               <select name="platform_id">
@@ -31,8 +30,7 @@
             </label>
             <button type="submit">Add to library</button>
           </form>
-          <form method="post" action="/wishlist">
-            <input type="hidden" name="igdb_id" value="{{.ID}}" />
+          <form method="post" action="/games/{{.ID}}/wishlist">
             <button type="submit">Add to wishlist</button>
           </form>
         </div>

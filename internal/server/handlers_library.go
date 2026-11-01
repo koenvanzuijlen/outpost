@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"slices"
-	"strconv"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
@@ -111,11 +110,12 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleAddToLibrary adds a game to the library. It reads form values igdb_id and platform_id (optional; without it the
-// game is added as not owned), and redirects to the home page. A copy that is already owned counts as success.
+// handleAddToLibrary adds a game to the library. It reads path value igdbID and form value platform_id (optional;
+// without it the game is added as not owned), and redirects to the home page. A copy that is already owned counts as
+// success.
 func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request) {
-	igdbID, err := strconv.Atoi(r.PostFormValue("igdb_id"))
-	if err != nil || igdbID <= 0 {
+	igdbID, ok := pathID(r, "igdbID")
+	if !ok {
 		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
 		return
 	}
@@ -126,7 +126,7 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	game, err := server.igdbClient.GameByID(r.Context(), igdbID)
+	game, err := server.igdbClient.GameByID(r.Context(), int(igdbID))
 	if err != nil {
 		if errors.Is(err, igdb.ErrGameNotFound) {
 			http.Error(w, "Game not found", http.StatusNotFound)

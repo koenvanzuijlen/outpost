@@ -30,8 +30,7 @@
 {{end}}
 {{define "gameLibraryState"}}
   {{if $.CanAddGame}}
-    <form method="post" action="/library">
-      <input type="hidden" name="igdb_id" value="{{$.Details.Game.IgdbID}}">
+    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/library">
       <label>
         Owned on
         <select name="platform_id">
@@ -43,8 +42,7 @@
       </label>
       <button type="submit">Add to library</button>
     </form>
-    <form method="post" action="/wishlist">
-      <input type="hidden" name="igdb_id" value="{{$.Details.Game.IgdbID}}">
+    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/wishlist">
       <button type="submit">Add to wishlist</button>
     </form>
   {{else if $.CanAddDLC}}
