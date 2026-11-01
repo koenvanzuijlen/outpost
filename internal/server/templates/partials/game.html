@@ -46,7 +46,7 @@
       <button type="submit">Add to wishlist</button>
     </form>
   {{else if $.CanAddDLC}}
-    <form method="post" action="/games/{{$.Details.Parent.IgdbID}}/dlcs/{{$.Details.Game.IgdbID}}/library">
+    <form method="post" action="/games/{{$.Details.Game.IgdbID}}/library">
       <button type="submit">Add to library</button>
     </form>
   {{end}}
@@ -107,7 +107,7 @@
               <a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}</a> – In library · {{.Status}}
             {{else}}
               {{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}
-              <form method="post" action="/games/{{$.Details.Game.IgdbID}}/dlcs/{{.Game.IgdbID}}/library">
+              <form method="post" action="/games/{{.Game.IgdbID}}/library">
                 <button type="submit"
                         title="Gives this DLC its own status, rating and playthroughs">Add to library separately</button>
               </form>

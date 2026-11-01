@@ -74,7 +74,7 @@ func TestHandleGameDLCParentInLibrary(t *testing.T) {
 	fake.game = loadIGDBGame(t, "game_by_id_dlc.json")
 
 	w := getGamePage(t, server, 13166)
-	assertBodyContains(t, w, `action="/games/1942/dlcs/13166/library"`)
+	assertBodyContains(t, w, `action="/games/13166/library"`)
 	assertBodyContains(t, w, "Add to library")
 }
 
@@ -87,7 +87,7 @@ func TestHandleGameDLCParentNotInLibrary(t *testing.T) {
 
 	w := getGamePage(t, server, 13166)
 	assertBodyContains(t, w, "The Witcher 3: Wild Hunt - Blood and Wine")
-	assertBodyNotContains(t, w, `action="/games/1942/dlcs/13166/library"`)
+	assertBodyNotContains(t, w, `action="/games/13166/library"`)
 	assertBodyNotContains(t, w, "Add to library")
 }
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
@@ -110,8 +111,10 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleAddToLibrary adds a game to the library. It reads path value igdbID and form value platform_id (optional;
-// without it the game is added as not owned), and redirects to the home page. A copy that is already owned counts as
+// handleAddToLibrary adds a game or a DLC to the library. It reads path value igdbID and, for a game, form value
+// platform_id (optional; without it the game is added as not owned). A DLC is added separately from its base game, see
+// database.Store.AddDLCToLibrary; it takes no platform_id. Other game types, such as bundles, get 400. It redirects to
+// the home page after adding a game, and to the DLC's page after adding a DLC. A copy that is already owned counts as
 // success.
 func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
@@ -137,30 +140,56 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if !game.GameType.Standalone() {
+	isStandalone := game.GameType.Standalone()
+	isDLC := game.GameType.DLC()
+	if !isStandalone && !isDLC {
 		http.Error(w, "This game type can't be added to the library", http.StatusBadRequest)
 		return
 	}
 
 	now := time.Now().UTC()
-	var platform *dbgen.UpsertPlatformParams
-	if platformIGDBID != nil {
-		i := slices.IndexFunc(game.Platforms, func(p igdb.Platform) bool { return int64(p.ID) == *platformIGDBID })
-		if i == -1 {
-			http.Error(w, "Game not available for this platform", http.StatusBadRequest)
+	if isStandalone {
+		var platform *dbgen.UpsertPlatformParams
+		if platformIGDBID != nil {
+			i := slices.IndexFunc(game.Platforms, func(p igdb.Platform) bool { return int64(p.ID) == *platformIGDBID })
+			if i == -1 {
+				http.Error(w, "Game not available for this platform", http.StatusBadRequest)
+				return
+			}
+			platform = new(upsertPlatformParamsFromIGDB(game.Platforms[i], now))
+		}
+
+		err = server.store.AddToLibrary(r.Context(), upsertGameParamsFromIGDB(game, now), platform, defaultUserID, now)
+		if err != nil && !errors.Is(err, database.ErrAlreadyOwnedOnPlatform) {
+			server.logger.Error("failed to add to library", "error", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		platform = new(upsertPlatformParamsFromIGDB(game.Platforms[i], now))
-	}
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	} else {
+		if game.ParentGameID == 0 {
+			http.Error(w, "DLC has no base game", http.StatusBadRequest)
+			return
+		}
+		if platformIGDBID != nil {
+			http.Error(w, "Invalid platform", http.StatusBadRequest)
+			return
+		}
 
-	err = server.store.AddToLibrary(r.Context(), upsertGameParamsFromIGDB(game, now), platform, defaultUserID, now)
-	if err != nil && !errors.Is(err, database.ErrAlreadyOwnedOnPlatform) {
-		server.logger.Error("failed to add to library", "error", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+		err := server.store.AddDLCToLibrary(r.Context(), defaultUserID, int64(game.ParentGameID), int64(game.ID), now)
+		if err != nil {
+			if errors.Is(err, database.ErrUserGameNotFound) {
+				http.Error(w, "Base game not in library", http.StatusNotFound)
+			} else if errors.Is(err, database.ErrDLCNotFound) {
+				http.Error(w, "DLC not found", http.StatusNotFound)
+			} else {
+				server.logger.Error("failed to add DLC to library", "error", err)
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+			return
+		}
+		http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
 	}
-
-	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // handleRemoveFromWishlist removes a game from the wishlist. It reads path value igdbID and redirects to the home page.

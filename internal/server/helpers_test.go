@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -210,7 +211,27 @@ func derefOrNil[T any](p *T) any {
 }
 
 // testAddDLCPath adds Hearts of Stone (12503), a DLC of The Witcher 3, to the library separately.
-const testAddDLCPath = "/games/1942/dlcs/12503/library"
+const testAddDLCPath = "/games/12503/library"
+
+// testDLCGame returns Hearts of Stone (12503) as IGDB serves it.
+func testDLCGame(t *testing.T) igdb.Game {
+	t.Helper()
+	dlcs := loadIGDBGames(t, "dlcs.json")
+	i := slices.IndexFunc(dlcs, func(g igdb.Game) bool { return g.ID == 12503 })
+	if i == -1 {
+		t.Fatal("dlcs.json has no game 12503")
+	}
+	return dlcs[i]
+}
+
+// postAddTestDLC posts testAddDLCPath while fake serves Hearts of Stone from IGDB, then restores the previous game.
+func postAddTestDLC(t *testing.T, server *Server, fake *fakeIGDB) *httptest.ResponseRecorder {
+	t.Helper()
+	previous := fake.game
+	fake.game = testDLCGame(t)
+	defer func() { fake.game = previous }()
+	return postForm(t, server, testAddDLCPath, "")
+}
 
 // addTestGameWithDLCs adds The Witcher 3 on PC and views its page so its DLCs are fetched and stored.
 func addTestGameWithDLCs(t *testing.T, server *Server) *fakeIGDB {
