@@ -14,7 +14,6 @@ import (
 	"github.com/pressly/goose/v3"
 	// Import the SQLite driver for its side-effects.
 	"modernc.org/sqlite"
-	_ "modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
 

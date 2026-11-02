@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -56,16 +57,17 @@ func outcomeOptions() []outcomeOption {
 
 // gamePage represents the data needed to render the game detail page.
 type gamePage struct {
-	Details          database.GameOverview
-	Statuses         []database.GameStatus
-	CurrentStatus    database.GameStatus
-	RatingOptions    []ratingOption
-	CurrentRating    int64
-	OutcomeOptions   []outcomeOption
-	MaxNotesLength   int64
-	CanAddToLibrary  bool // the game is a standalone game outside the library: not added yet, or on the wishlist
-	CanAddToWishlist bool // the game is a standalone game outside the library and wishlist
-	CanAddDLC        bool // the game is a DLC outside the library, and its base game is in the library
+	Details             database.GameOverview
+	CopyPlatformOptions []dbgen.Platform
+	Statuses            []database.GameStatus
+	CurrentStatus       database.GameStatus
+	RatingOptions       []ratingOption
+	CurrentRating       int64
+	OutcomeOptions      []outcomeOption
+	MaxNotesLength      int64
+	CanAddToLibrary     bool // the game is a standalone game outside the library: not added yet, or on the wishlist
+	CanAddToWishlist    bool // the game is a standalone game outside the library and wishlist
+	CanAddDLC           bool // the game is a DLC outside the library, and its base game is in the library
 }
 
 // fetchGame fetches a game from IGDB and caches it in the catalog with its platforms. Only the IGDB call is limited to 3
@@ -147,12 +149,22 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var copyPlatformOptions []dbgen.Platform
+	for _, platform := range details.Platforms {
+		if !slices.ContainsFunc(details.OwnedPlatforms, func(p dbgen.Platform) bool {
+			return p.IgdbID == platform.IgdbID
+		}) {
+			copyPlatformOptions = append(copyPlatformOptions, platform)
+		}
+	}
+
 	pageData := gamePage{
-		Details:        details,
-		Statuses:       database.GameStatuses,
-		RatingOptions:  ratingOptions(),
-		OutcomeOptions: outcomeOptions(),
-		MaxNotesLength: maxNotesLength,
+		Details:             details,
+		CopyPlatformOptions: copyPlatformOptions,
+		Statuses:            database.GameStatuses,
+		RatingOptions:       ratingOptions(),
+		OutcomeOptions:      outcomeOptions(),
+		MaxNotesLength:      maxNotesLength,
 		CanAddToLibrary: igdb.GameType(details.Game.GameType).Standalone() &&
 			(details.UserGame == nil || details.UserGame.Wishlisted),
 		CanAddToWishlist: igdb.GameType(details.Game.GameType).Standalone() &&
