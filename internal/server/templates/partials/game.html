@@ -65,11 +65,14 @@
             <ul>
               {{range .}}
                 <li>
+                  <a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}</a> - {{if .Owned}}owned{{else}}not owned{{end}}
                   <form method="post"
                         action="/games/{{$.Details.Game.IgdbID}}/copies/{{$platformIGDBID}}/dlcs/{{.Game.IgdbID}}">
-                    {{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}} - {{if .Owned}}owned{{else}}not owned{{end}}
                     <button type="submit" name="owned" value="{{not .Owned}}" aria-pressed="{{.Owned}}">Owned</button>
                   </form>
+                  {{if .InLibrary}}
+                    <p>In library: {{.Status}}</p>
+                  {{end}}
                 </li>
               {{end}}
             </ul>
@@ -96,31 +99,25 @@
     </p>
   {{end}}
 {{end}}
-{{define "gameDLC"}}
-  <div>
-    <h2>DLC</h2>
-    {{if $.Details.Game.DlcsFetchedAt}}
-      <ul>
-        {{range $.Details.DLCs}}
-          <li>
-            {{if .InLibrary}}
-              <a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}</a> – In library · {{.Status}}
-            {{else}}
-              {{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}
-              <form method="post" action="/games/{{.Game.IgdbID}}/library">
-                <button type="submit"
-                        title="Gives this DLC its own status, rating and playthroughs">Add to library separately</button>
-              </form>
-            {{end}}
-          </li>
-        {{else}}
-          <li>No DLC.</li>
-        {{end}}
-      </ul>
-    {{else}}
-      <p>DLC couldn't be loaded.</p>
+{{define "gameOtherDLC"}}
+  {{if $.Details.Game.DlcsFetchedAt}}
+    {{with $.Details.OtherDLCs}}
+      <div>
+        <p>Other DLC:</p>
+        <ul>
+          {{range .}}
+            <li>
+              <a href="/games/{{.Game.IgdbID}}">{{.Game.Title}}{{with .Game.ReleasedAt}} ({{.Format "2 January 2006"}}){{end}}</a>
+            </li>
+          {{end}}
+        </ul>
+      </div>
     {{end}}
-  </div>
+  {{else}}
+    <div>
+      <p>DLC couldn't be loaded.</p>
+    </div>
+  {{end}}
 {{end}}
 {{define "gameDetails"}}
   <div>
