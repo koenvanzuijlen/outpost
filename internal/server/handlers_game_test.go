@@ -128,6 +128,39 @@ func TestHandleGameInLibraryWishlisted(t *testing.T) {
 	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
 	assertBodyNotContains(t, w, `name="status"`)
 	assertBodyNotContains(t, w, "/playthroughs")
+	assertBodyContains(t, w, `action="/games/1942/library"`)
+	assertBodyNotContains(t, w, `action="/games/1942/wishlist"`)
+}
+
+func TestHandleGameNotInLibraryForms(t *testing.T) {
+	server := newTestServer(t)
+	server.igdbClient = &fakeIGDB{game: loadIGDBGame(t, "game_by_id.json")}
+
+	w := getTestGamePage(t, server)
+	assertBodyContains(t, w, `action="/games/1942/library"`)
+	assertBodyContains(t, w, `action="/games/1942/wishlist"`)
+}
+
+func TestHandleAddWishlistedGameToLibrary(t *testing.T) {
+	server := newTestServer(t)
+	wishlistTestGame(t, server)
+
+	w := postForm(t, server, "/games/1942/library", "platform_id=6")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("add to library status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	assertLocation(t, w, "/games/1942")
+
+	userGame := getTestGame(t, server).UserGame
+	if userGame.Wishlisted {
+		t.Error("Wishlisted = true, want false")
+	}
+	if userGame.Status == nil {
+		t.Fatal("Status = nil, want backlog")
+	}
+	if *userGame.Status != "backlog" {
+		t.Errorf("Status = %q, want %q", *userGame.Status, "backlog")
+	}
 }
 
 func TestHandleGameActivePlaythrough(t *testing.T) {
