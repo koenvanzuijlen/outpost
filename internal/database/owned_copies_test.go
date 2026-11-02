@@ -4,7 +4,69 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
+
+// setupGameOnPCAndPS4 puts game 100 in user 1's library owned on PC, released on PC (6) and PS4 (48) only.
+func setupGameOnPCAndPS4(t *testing.T, store *Store) {
+	t.Helper()
+	pc := newPlatformParams(6, "PC")
+	if err := store.AddToLibrary(t.Context(), newGameParams(100, "Test Game"), &pc, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
+	}
+	platforms := []dbgen.UpsertPlatformParams{pc, newPlatformParams(48, "PS4")}
+	if err := store.SaveGame(t.Context(), newGameParams(100, "Test Game"), platforms); err != nil {
+		t.Fatalf("SaveGame() failed: %v", err)
+	}
+}
+
+func TestAddOwnedCopy(t *testing.T) {
+	store := newTestStore(t)
+	setupGameOnPCAndPS4(t, store)
+
+	if err := store.AddOwnedCopy(t.Context(), 1, 100, 48); err != nil {
+		t.Fatalf("AddOwnedCopy() failed: %v", err)
+	}
+
+	details := getGame(t, store, 100)
+	assertPlatformIDs(t, details.OwnedPlatforms, 6, 48)
+}
+
+func TestAddOwnedCopyAlreadyOwned(t *testing.T) {
+	store := newTestStore(t)
+	setupGameOnPCAndPS4(t, store)
+
+	err := store.AddOwnedCopy(t.Context(), 1, 100, 6)
+	if !errors.Is(err, ErrAlreadyOwnedOnPlatform) {
+		t.Errorf("AddOwnedCopy() error = %v, want %v", err, ErrAlreadyOwnedOnPlatform)
+	}
+}
+
+func TestAddOwnedCopyWishlisted(t *testing.T) {
+	store := newTestStore(t)
+	if err := store.AddToWishlist(t.Context(), newGameParams(500, "Wishlisted Game"), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToWishlist() failed: %v", err)
+	}
+
+	err := store.AddOwnedCopy(t.Context(), 1, 500, 6)
+	if !errors.Is(err, ErrUserGameNotFound) {
+		t.Errorf("AddOwnedCopy() error = %v, want %v", err, ErrUserGameNotFound)
+	}
+}
+
+func TestAddOwnedCopyPlatformNotForGame(t *testing.T) {
+	store := newTestStore(t)
+	setupGameOnPCAndPS4(t, store)
+	if err := store.SaveGame(t.Context(), newGameParams(300, "Other"), []dbgen.UpsertPlatformParams{newPlatformParams(130, "Switch")}); err != nil {
+		t.Fatalf("SaveGame() failed: %v", err)
+	}
+
+	err := store.AddOwnedCopy(t.Context(), 1, 100, 130)
+	if !errors.Is(err, ErrPlatformNotForGame) {
+		t.Errorf("AddOwnedCopy() error = %v, want %v", err, ErrPlatformNotForGame)
+	}
+}
 
 func TestRemoveOwnedCopy(t *testing.T) {
 	ctx := t.Context()

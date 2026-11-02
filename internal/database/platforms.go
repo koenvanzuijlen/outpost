@@ -12,6 +12,9 @@ import (
 // ErrPlatformNotFound is returned when a platform isn't in the catalog.
 var ErrPlatformNotFound = errors.New("platform not found")
 
+// ErrPlatformNotForGame is returned when adding a copy on a platform the game isn't released on.
+var ErrPlatformNotForGame = errors.New("game not available on this platform")
+
 // platformIDFor returns the internal ID of the platform with the given IGDB ID, or nil if platformIGDBID is nil.
 // Returns ErrPlatformNotFound if the platform isn't in the catalog.
 func platformIDFor(ctx context.Context, q *dbgen.Queries, platformIGDBID *int64) (*int64, error) {

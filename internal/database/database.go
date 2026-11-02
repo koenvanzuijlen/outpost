@@ -13,7 +13,9 @@ import (
 
 	"github.com/pressly/goose/v3"
 	// Import the SQLite driver for its side-effects.
+	"modernc.org/sqlite"
 	_ "modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 //go:embed migrations/*.sql
@@ -111,4 +113,10 @@ func backup(ctx context.Context, db *sql.DB, logger *slog.Logger, path string, v
 // dsn constructs the Data Source Name for the SQLite database at the specified path.
 func dsn(path string) string {
 	return fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_txlock=immediate", path)
+}
+
+// isUniqueViolation reports whether err is a SQLite UNIQUE constraint violation.
+func isUniqueViolation(err error) bool {
+	var sqliteErr *sqlite.Error
+	return errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE
 }
