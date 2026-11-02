@@ -33,10 +33,13 @@ type DLC struct {
 	Platforms []dbgen.UpsertPlatformParams
 }
 
-// CopyDLC is a DLC that is available on one owned copy, with whether it is owned on that copy.
+// CopyDLC is a DLC that is available on one owned copy: whether it is owned on that copy, and whether it is in the
+// library with its status. Status is empty if the DLC isn't in the library.
 type CopyDLC struct {
-	Game  dbgen.Game
-	Owned bool
+	Game      dbgen.Game
+	Owned     bool
+	InLibrary bool
+	Status    GameStatus
 }
 
 // SaveDLCs caches the DLC of a game: it upserts each DLC with its platforms and marks the parent's DLC list as fetched,

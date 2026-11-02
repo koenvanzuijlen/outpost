@@ -155,6 +155,118 @@ func TestGetGameCatalogOnly(t *testing.T) {
 	}
 }
 
+func TestGetGameCopyDLCLibraryStatus(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	setupDLCOwnership(t, store)
+	if err := store.AddDLCToLibrary(ctx, 1, 100, 201, time.Now().UTC()); err != nil {
+		t.Fatalf("AddDLCToLibrary() failed: %v", err)
+	}
+
+	copyDLCs := getGame(t, store, 100).CopyDLCs[6]
+	i := slices.IndexFunc(copyDLCs, func(d CopyDLC) bool { return d.Game.IgdbID == 201 })
+	if i == -1 {
+		t.Fatalf("DLC 201 not found under PC")
+	}
+	if !copyDLCs[i].InLibrary {
+		t.Errorf("DLC 201 InLibrary = false, want true")
+	}
+	if copyDLCs[i].Status != GameStatusBacklog {
+		t.Errorf("DLC 201 Status = %q, want %q", copyDLCs[i].Status, GameStatusBacklog)
+	}
+
+	j := slices.IndexFunc(copyDLCs, func(d CopyDLC) bool { return d.Game.IgdbID == 202 })
+	if j == -1 {
+		t.Fatalf("DLC 202 not found under PC")
+	}
+	if copyDLCs[j].InLibrary {
+		t.Errorf("DLC 202 InLibrary = true, want false")
+	}
+}
+
+func TestGetGameOtherDLCsPlatformNotOwned(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	pc := newPlatformParams(6, "PC")
+	if err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), &pc, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
+	}
+	releasedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	dlcs := []DLC{
+		newDLC(201, 100, "DLC A", releasedAt, newPlatformParams(6, "PC")),
+		newDLC(203, 100, "DLC PS4", releasedAt, newPlatformParams(48, "PS4")),
+	}
+	if err := store.SaveDLCs(ctx, 100, dlcs, time.Now().UTC()); err != nil {
+		t.Fatalf("SaveDLCs() failed: %v", err)
+	}
+
+	got := otherDLCIDs(getGame(t, store, 100))
+	if !slices.Equal(got, []int64{203}) {
+		t.Errorf("OtherDLCs = %v, want [203]", got)
+	}
+}
+
+func TestGetGameOtherDLCsWithoutCopy(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	if err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), nil, 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
+	}
+	releasedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	dlcs := []DLC{
+		newDLC(201, 100, "DLC A", releasedAt, newPlatformParams(6, "PC")),
+		newDLC(202, 100, "DLC B", releasedAt, newPlatformParams(48, "PS4")),
+	}
+	if err := store.SaveDLCs(ctx, 100, dlcs, time.Now().UTC()); err != nil {
+		t.Fatalf("SaveDLCs() failed: %v", err)
+	}
+
+	got := otherDLCIDs(getGame(t, store, 100))
+	slices.Sort(got)
+	if !slices.Equal(got, []int64{201, 202}) {
+		t.Errorf("OtherDLCs = %v, want [201 202]", got)
+	}
+}
+
+func TestGetGameOtherDLCsCatalogOnly(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+	if _, err := store.queries.UpsertGame(ctx, newGameParams(100, "Test Game")); err != nil {
+		t.Fatalf("UpsertGame() failed: %v", err)
+	}
+	releasedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	dlcs := []DLC{
+		newDLC(201, 100, "DLC A", releasedAt, newPlatformParams(6, "PC")),
+		newDLC(202, 100, "DLC B", releasedAt, newPlatformParams(48, "PS4")),
+	}
+	if err := store.SaveDLCs(ctx, 100, dlcs, time.Now().UTC()); err != nil {
+		t.Fatalf("SaveDLCs() failed: %v", err)
+	}
+
+	details := getGame(t, store, 100)
+	if details.UserGame != nil {
+		t.Fatalf("UserGame = %+v, want nil", *details.UserGame)
+	}
+	if len(details.CopyDLCs) != 0 {
+		t.Errorf("len(CopyDLCs) = %d, want 0", len(details.CopyDLCs))
+	}
+	got := otherDLCIDs(details)
+	slices.Sort(got)
+	if !slices.Equal(got, []int64{201, 202}) {
+		t.Errorf("OtherDLCs = %v, want [201 202]", got)
+	}
+}
+
+func TestGetGameOtherDLCsExcludesCopyDLC(t *testing.T) {
+	store := newTestStore(t)
+	setupDLCOwnership(t, store)
+
+	got := otherDLCIDs(getGame(t, store, 100))
+	if len(got) != 0 {
+		t.Errorf("OtherDLCs = %v, want none", got)
+	}
+}
+
 func TestGetGameOwnedDLCNotInLibrary(t *testing.T) {
 	store := newTestStore(t)
 	setupDLCOwnership(t, store)
