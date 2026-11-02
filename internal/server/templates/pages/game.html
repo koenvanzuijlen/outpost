@@ -5,7 +5,7 @@
     {{template "gameCopies" .}}
   {{end}}
   {{if not .Details.Parent}}
-    {{template "gameDLC" .}}
+    {{template "gameOtherDLC" .}}
   {{end}}
   {{with .Details.UserGame}}
     {{if not .Wishlisted}}

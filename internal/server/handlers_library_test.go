@@ -92,7 +92,10 @@ func TestHandleAddToLibraryDLC(t *testing.T) {
 	server := newTestServer(t)
 	fake := addTestGameWithDLCs(t, server)
 
-	w := getTestGamePage(t, server)
+	previous := fake.game
+	fake.game = testDLCGame(t)
+	w := getGamePage(t, server, 12503)
+	fake.game = previous
 	assertBodyContains(t, w, `action="`+testAddDLCPath+`"`)
 
 	w = postAddTestDLC(t, server, fake)
@@ -112,7 +115,7 @@ func TestHandleAddToLibraryDLC(t *testing.T) {
 
 	w = getTestGamePage(t, server)
 	assertBodyContains(t, w, `<a href="/games/12503">`)
-	assertBodyContains(t, w, "</a> – In library · backlog")
+	assertBodyContains(t, w, "<p>In library: backlog</p>")
 	assertBodyNotContains(t, w, `action="`+testAddDLCPath+`"`)
 }
 
