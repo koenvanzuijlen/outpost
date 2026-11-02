@@ -11,8 +11,6 @@ import (
 
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
-	"modernc.org/sqlite"
-	sqlite3 "modernc.org/sqlite/lib"
 )
 
 // ErrUserGameNotFound is returned when a game is not in the user's library or wishlist, or when an action needs a
@@ -308,8 +306,7 @@ func (s *Store) AddToLibrary(
 			PlatformID: storedPlatform.ID,
 		})
 		if err != nil {
-			var sqliteErr *sqlite.Error
-			if errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+			if isUniqueViolation(err) {
 				return ErrAlreadyOwnedOnPlatform
 			}
 			return fmt.Errorf("create owned copy: %w", err)

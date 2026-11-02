@@ -100,6 +100,22 @@
       Ownership of this DLC is managed on the page of <a href="/games/{{.IgdbID}}">{{.Title}}</a>.
     </p>
   {{end}}
+  {{if and (not $.Details.Parent) (not $.Details.UserGame.Wishlisted) $.CopyPlatformOptions}}
+    <div>
+      <p>Add another copy</p>
+      <form method="post" action="/games/{{$.Details.Game.IgdbID}}/copies">
+        <label>
+          Owned on
+          <select name="platform_id">
+            {{range $.CopyPlatformOptions}}
+              <option value="{{.IgdbID}}">{{.Name}}</option>
+            {{end}}
+          </select>
+        </label>
+        <button type="submit">Add copy</button>
+      </form>
+    </div>
+  {{end}}
 {{end}}
 {{define "gameOtherDLC"}}
   {{if $.Details.Game.DlcsFetchedAt}}

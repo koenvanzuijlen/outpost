@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -82,6 +83,78 @@ func TestHandleRemoveOwnedCopyValidation(t *testing.T) {
 			addTestGame(t, server)
 
 			w := postForm(t, server, tt.path, "")
+			if w.Code != tt.want {
+				t.Errorf("status = %d, want %d", w.Code, tt.want)
+			}
+		})
+	}
+}
+
+func TestHandleAddOwnedCopyForm(t *testing.T) {
+	server := newTestServer(t)
+	addTestGame(t, server)
+
+	w := getTestGamePage(t, server)
+	assertBodyContains(t, w, `action="/games/1942/copies"`)
+	assertBodyContains(t, w, `<option value="48">`)
+
+	_, form, ok := strings.Cut(w.Body.String(), `action="/games/1942/copies"`)
+	if !ok {
+		t.Fatal("copies form not found")
+	}
+	form, _, _ = strings.Cut(form, "</form>")
+	if strings.Contains(form, `value="6"`) {
+		t.Errorf("copies form offers PC, which is already owned:\n%s", form)
+	}
+}
+
+func TestHandleAddOwnedCopy(t *testing.T) {
+	server := newTestServer(t)
+	addTestGame(t, server)
+	getTestGamePage(t, server)
+
+	w := postForm(t, server, "/games/1942/copies", "platform_id=48")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	assertLocation(t, w, "/games/1942")
+
+	w = getTestGamePage(t, server)
+	assertBodyContains(t, w, `action="`+testRemovePCPath+`"`)
+	assertBodyContains(t, w, `action="`+testRemovePS4Path+`"`)
+}
+
+func TestHandleAddOwnedCopyAlreadyOwned(t *testing.T) {
+	server := newTestServer(t)
+	addTestGame(t, server)
+	getTestGamePage(t, server)
+
+	w := postForm(t, server, "/games/1942/copies", "platform_id=6")
+	if w.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	assertLocation(t, w, "/games/1942")
+}
+
+func TestHandleAddOwnedCopyValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		body string
+		want int
+	}{
+		{"missing platform", "/games/1942/copies", "", http.StatusBadRequest},
+		{"game not in library", "/games/1020/copies", "platform_id=48", http.StatusNotFound},
+		{"platform not released for game", "/games/1942/copies", "platform_id=9", http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			addTestGame(t, server)
+			getTestGamePage(t, server)
+
+			w := postForm(t, server, tt.path, tt.body)
 			if w.Code != tt.want {
 				t.Errorf("status = %d, want %d", w.Code, tt.want)
 			}
