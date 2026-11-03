@@ -1,10 +1,14 @@
 package igdb
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestAccessTokenOK(t *testing.T) {
@@ -111,5 +115,87 @@ func TestAccessTokenConcurrency(t *testing.T) {
 
 	if hits != 1 {
 		t.Errorf("token endpoint hits = %d, want 1", hits)
+	}
+}
+
+// countingHandler counts calls and answers each call with respond(callNumber).
+func countingHandler(calls *atomic.Int32, respond func(n int32, w http.ResponseWriter)) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		respond(calls.Add(1), w)
+	}
+}
+
+func TestQueryRetrySucceeds(t *testing.T) {
+	var calls atomic.Int32
+	client := newTestClient(t, countingHandler(&calls, func(n int32, w http.ResponseWriter) {
+		if n == 1 {
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	client.retryDelay = time.Millisecond
+
+	if _, err := client.SearchGames(t.Context(), "zelda"); err != nil {
+		t.Fatalf("SearchGames() error = %v, want nil", err)
+	}
+	if got := calls.Load(); got != 2 {
+		t.Errorf("calls = %d, want 2", got)
+	}
+}
+
+func TestQueryRetriesExhausted(t *testing.T) {
+	var calls atomic.Int32
+	client := newTestClient(t, countingHandler(&calls, func(_ int32, w http.ResponseWriter) {
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	client.retryDelay = time.Millisecond
+
+	_, err := client.SearchGames(t.Context(), "zelda")
+	if err == nil {
+		t.Fatal("SearchGames() error = nil, want an error")
+	}
+	if !errors.Is(err, errRateLimited) {
+		t.Errorf("SearchGames() error = %v, want errRateLimited", err)
+	}
+	if got := calls.Load(); got != maxAttempts {
+		t.Errorf("calls = %d, want %d", got, maxAttempts)
+	}
+}
+
+func TestQueryNoRetryForOtherErrors(t *testing.T) {
+	var calls atomic.Int32
+	client := newTestClient(t, countingHandler(&calls, func(_ int32, w http.ResponseWriter) {
+		w.WriteHeader(http.StatusBadRequest)
+	}))
+	client.retryDelay = time.Millisecond
+
+	if _, err := client.SearchGames(t.Context(), "zelda"); err == nil {
+		t.Fatal("SearchGames() error = nil, want an error")
+	}
+	if got := calls.Load(); got != 1 {
+		t.Errorf("calls = %d, want 1", got)
+	}
+}
+
+func TestQueryContextEndsDuringWait(t *testing.T) {
+	var calls atomic.Int32
+	client := newTestClient(t, countingHandler(&calls, func(_ int32, w http.ResponseWriter) {
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	client.retryDelay = time.Second
+
+	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+	defer cancel()
+
+	start := time.Now()
+	_, err := client.SearchGames(ctx, "zelda")
+	elapsed := time.Since(start)
+
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("SearchGames() error = %v, want context.DeadlineExceeded", err)
+	}
+	if elapsed > 500*time.Millisecond {
+		t.Errorf("call took %v, want well under 1s", elapsed)
 	}
 }

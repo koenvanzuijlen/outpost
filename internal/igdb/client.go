@@ -14,6 +14,13 @@ import (
 	"time"
 )
 
+// maxAttempts is the number of times query sends a request that IGDB rejects with 429 Too Many Requests.
+const maxAttempts = 3
+
+// errRateLimited is returned by queryOnce when IGDB responds with 429 Too Many Requests (more than 4 requests per
+// second).
+var errRateLimited = errors.New("rate limited")
+
 // Client represents an IGDB API client authenticated via Twitch.
 type Client struct {
 	baseURL      string
@@ -24,6 +31,7 @@ type Client struct {
 	tokenMu      sync.Mutex
 	token        string
 	tokenExpiry  time.Time
+	retryDelay   time.Duration // wait after the first 429; it doubles after each next one
 }
 
 // New creates a new IGDB API client with the provided Twitch client ID and client secret.
@@ -36,6 +44,7 @@ func New(clientID, clientSecret string) *Client {
 		clientSecret: clientSecret,
 		baseURL:      "https://api.igdb.com/v4",
 		tokenURL:     "https://id.twitch.tv/oauth2/token",
+		retryDelay:   250 * time.Millisecond,
 	}
 }
 
@@ -92,7 +101,8 @@ func (c *Client) accessToken(ctx context.Context) (string, error) {
 }
 
 // query dispatches a request to the specified IGDB API endpoint with the given request body and decodes the response
-// into the provided output parameter.
+// into the provided output parameter. A request that IGDB rejects with 429 is sent again, up to maxAttempts times in
+// total, after a wait of retryDelay that doubles each time. The wait stops when ctx ends; ctx.Err() is returned then.
 func (c *Client) query(ctx context.Context, endpoint, body string, out any) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -102,7 +112,24 @@ func (c *Client) query(ctx context.Context, endpoint, body string, out any) erro
 		return fmt.Errorf("get access token: %w", err)
 	}
 
-	return c.queryOnce(ctx, endpoint, body, token, out)
+	for attempt := range maxAttempts {
+		lastAttempt := attempt == maxAttempts-1
+		err = c.queryOnce(ctx, endpoint, body, token, out)
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, errRateLimited) {
+			return err
+		}
+		if !lastAttempt {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(c.retryDelay << attempt):
+			}
+		}
+	}
+	return fmt.Errorf("rate limited after %d attempts: %w", maxAttempts, err)
 }
 
 // queryOnce sends one request to the given IGDB API endpoint with token and body, and decodes the response into out.
@@ -123,11 +150,15 @@ func (c *Client) queryOnce(ctx context.Context, endpoint, body, token string, ou
 	defer func() {
 		_ = resp.Body.Close()
 	}()
-
+	if resp.StatusCode == http.StatusTooManyRequests {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		return errRateLimited
+	}
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024))
 		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(respBody))
 	}
+
 	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
 		return fmt.Errorf("decode response: %w", err)
 	}
