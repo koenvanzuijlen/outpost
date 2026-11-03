@@ -50,33 +50,81 @@ func TestGameReleaseYear(t *testing.T) {
 	}
 }
 
-func TestSearchGames(t *testing.T) {
-	searchResponseFixture, err := os.ReadFile("testdata/games_search.json")
+// popularSortClause is the part of a request body that tells the popular query apart from the text search query.
+const popularSortClause = "sort total_rating_count"
+
+// searchTestServer serves the popular fixture for queries that contain popularSortClause and the search fixture for
+// other queries. It records the bodies of both requests.
+type searchTestServer struct {
+	popularBody, searchBody string
+}
+
+// handler returns a handler that answers the popular query with popular and the text search query with search.
+func (s *searchTestServer) handler(t *testing.T, popular, search []byte) http.HandlerFunc {
+	t.Helper()
+	return func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		body := string(b)
+		if strings.Contains(body, popularSortClause) {
+			s.popularBody = body
+			_, _ = w.Write(popular)
+			return
+		}
+		s.searchBody = body
+		_, _ = w.Write(search)
+	}
+}
+
+// readSearchFixtures returns the popular and the text search fixtures for "witcher".
+func readSearchFixtures(t *testing.T) (popular, search []byte) {
+	t.Helper()
+	popular, err := os.ReadFile("testdata/games_query_popular.json")
 	if err != nil {
 		t.Fatalf("os.ReadFile() failed: %v", err)
 	}
-	var gotBody string
-	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		b, _ := io.ReadAll(r.Body)
-		gotBody = string(b)
-		_, _ = w.Write(searchResponseFixture)
-	})
+	search, err = os.ReadFile("testdata/games_search.json")
+	if err != nil {
+		t.Fatalf("os.ReadFile() failed: %v", err)
+	}
+	return popular, search
+}
+
+// gameIDs returns the IGDB IDs of games, in order.
+func gameIDs(games []Game) []int {
+	ids := make([]int, len(games))
+	for i, g := range games {
+		ids[i] = g.ID
+	}
+	return ids
+}
+
+func TestSearchGames(t *testing.T) {
+	popular, search := readSearchFixtures(t)
+	srv := &searchTestServer{}
+	client := newTestClient(t, srv.handler(t, popular, search))
+
 	games, err := client.SearchGames(t.Context(), "witcher")
 	if err != nil {
 		t.Fatalf("SearchGames() failed: %v", err)
 	}
-	if !strings.Contains(gotBody, "witcher") {
-		t.Errorf("SearchGames() request body = %v, want it to contain %q", gotBody, "witcher")
+
+	for name, body := range map[string]string{"popular": srv.popularBody, "search": srv.searchBody} {
+		if body == "" {
+			t.Fatalf("SearchGames() sent no %s request", name)
+		}
+		for _, want := range []string{"witcher", "platforms != null", "game_type = (0,4,8,9,10,11,12)"} {
+			if !strings.Contains(body, want) {
+				t.Errorf("SearchGames() %s request body = %v, want it to contain %q", name, body, want)
+			}
+		}
 	}
-	if !strings.Contains(gotBody, "platforms != null") {
-		t.Errorf("SearchGames() request body = %v, want it to contain %q", gotBody, "platform != null")
+
+	// Popular games come first. Search games follow, without the games already in the popular list.
+	wantIDs := []int{1942, 478, 80, 20275, 20740, 194662, 198179, 220277, 187249, 128295}
+	if got := gameIDs(games); !slices.Equal(got, wantIDs) {
+		t.Errorf("SearchGames() IDs = %v, want %v", got, wantIDs)
 	}
-	if !strings.Contains(gotBody, "game_type = (0,4,8,9,10,11,12)") {
-		t.Errorf("SearchGames() request body = %v, want it to contain %q", gotBody, "game_type = (0,4,8,9,10,11,12)")
-	}
-	if len(games) == 0 {
-		t.Fatalf("SearchGames() returned no games, want at least one")
-	}
+
 	const wantName = "The Witcher 3: Wild Hunt"
 	i := slices.IndexFunc(games, func(g Game) bool { return g.Name == wantName })
 	if i == -1 {
@@ -85,7 +133,54 @@ func TestSearchGames(t *testing.T) {
 	if games[i].Cover.URL == "" {
 		t.Errorf("SearchGames() %q cover URL = %v, want it to be non-empty", wantName, games[i].Cover.URL)
 	}
+}
 
+func TestSearchGamesEscapesQuotes(t *testing.T) {
+	popular, search := readSearchFixtures(t)
+	srv := &searchTestServer{}
+	client := newTestClient(t, srv.handler(t, popular, search))
+
+	if _, err := client.SearchGames(t.Context(), `say "hi"`); err != nil {
+		t.Fatalf("SearchGames() failed: %v", err)
+	}
+
+	const want = `say \"hi\"`
+	for name, body := range map[string]string{"popular": srv.popularBody, "search": srv.searchBody} {
+		if !strings.Contains(body, want) {
+			t.Errorf("SearchGames() %s request body = %v, want it to contain %q", name, body, want)
+		}
+	}
+}
+
+func TestSearchGamesQueryError(t *testing.T) {
+	popular, search := readSearchFixtures(t)
+	tests := []struct {
+		name        string
+		failPopular bool
+	}{
+		{"popular query fails", true},
+		{"search query fails", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				b, _ := io.ReadAll(r.Body)
+				isPopular := strings.Contains(string(b), popularSortClause)
+				if isPopular == tt.failPopular {
+					http.Error(w, "boom", http.StatusInternalServerError)
+					return
+				}
+				if isPopular {
+					_, _ = w.Write(popular)
+					return
+				}
+				_, _ = w.Write(search)
+			})
+			if _, err := client.SearchGames(t.Context(), "witcher"); err == nil {
+				t.Error("SearchGames() error = nil, want an error")
+			}
+		})
+	}
 }
 
 func TestGameByID(t *testing.T) {

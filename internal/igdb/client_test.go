@@ -139,8 +139,9 @@ func TestQueryRetrySucceeds(t *testing.T) {
 	if _, err := client.SearchGames(t.Context(), "zelda"); err != nil {
 		t.Fatalf("SearchGames() error = %v, want nil", err)
 	}
-	if got := calls.Load(); got != 2 {
-		t.Errorf("calls = %d, want 2", got)
+	// SearchGames sends two queries. The first query takes two calls because of the retry.
+	if got := calls.Load(); got != 3 {
+		t.Errorf("calls = %d, want 3", got)
 	}
 }
 
