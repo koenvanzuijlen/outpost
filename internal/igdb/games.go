@@ -11,6 +11,8 @@ import (
 // ErrGameNotFound is returned when a game cannot be found in the IGDB API.
 var ErrGameNotFound = errors.New("game not found")
 
+const searchLimit = 10
+
 // gameFields defines the default set of fields to request when querying games from the IGDB API.
 const gameFields = "parent_game,name,game_type,cover.url,first_release_date,summary,platforms.name"
 
@@ -48,14 +50,47 @@ func (g Game) ReleaseYear() int {
 	return time.Unix(int64(g.FirstReleaseDate), 0).UTC().Year()
 }
 
-// SearchGames searches IGDB for standalone games with a platform that match query. It returns at most 10 games.
+// SearchGames searches IGDB for standalone games with a platform that match query. It returns at most 10 games: first
+// the 5 games with the most ratings whose name contains query, then the IGDB text search results that aren't in that
+// list yet. The text search also finds games whose words aren't next to each other in the name, and unrated games.
 func (c *Client) SearchGames(ctx context.Context, query string) ([]Game, error) {
 	escaped := strings.ReplaceAll(query, `"`, `\"`)
-	body := fmt.Sprintf(`search "%s"; where platforms != null & game_type = (%s); fields %s; limit 10;`, escaped, gameTypeFilter(StandaloneGameTypes), gameFields)
 
+	popularBody := fmt.Sprintf(
+		`where name ~*"%s"* & platforms != null & game_type = (%s); fields %s; sort total_rating_count desc; limit 5;`,
+		escaped,
+		gameTypeFilter(StandaloneGameTypes),
+		gameFields,
+	)
 	var games []Game
-	if err := c.query(ctx, "/games", body, &games); err != nil {
-		return nil, fmt.Errorf("query games: %w", err)
+	if err := c.query(ctx, "/games", popularBody, &games); err != nil {
+		return nil, fmt.Errorf("query popular games: %w", err)
+	}
+
+	gameIDInPopular := make(map[int]bool, len(games))
+	for _, g := range games {
+		gameIDInPopular[g.ID] = true
+	}
+
+	searchBody := fmt.Sprintf(
+		`search "%s"; where platforms != null & game_type = (%s); fields %s; limit %d;`,
+		escaped,
+		gameTypeFilter(StandaloneGameTypes),
+		gameFields,
+		searchLimit,
+	)
+	var searchGames []Game
+	if err := c.query(ctx, "/games", searchBody, &searchGames); err != nil {
+		return nil, fmt.Errorf("search games: %w", err)
+	}
+
+	for _, g := range searchGames {
+		if len(games) >= searchLimit {
+			break
+		}
+		if !gameIDInPopular[g.ID] {
+			games = append(games, g)
+		}
 	}
 
 	return games, nil

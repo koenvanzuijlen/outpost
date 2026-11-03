@@ -1,0 +1,145 @@
+[
+  {
+    "id": 1942,
+    "cover": {
+      "id": 480513,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/coaarl.jpg"
+    },
+    "first_release_date": 1431993600,
+    "name": "The Witcher 3: Wild Hunt",
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S"
+      },
+      {
+        "id": 48,
+        "name": "PlayStation 4"
+      },
+      {
+        "id": 508,
+        "name": "Nintendo Switch 2"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 167,
+        "name": "PlayStation 5"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One"
+      },
+      {
+        "id": 130,
+        "name": "Nintendo Switch"
+      }
+    ],
+    "summary": "The Witcher 3: Wild Hunt is an open-world action role-playing game developed by CD Projekt Red.\n\nSet in a dark fantasy world, the game follows Geralt of Rivia, a monster hunter searching for his adopted daughter, Ciri, while navigating political conflicts and supernatural threats. Gameplay features exploration, combat, character progression, and branching narratives shaped by player choices. Widely acclaimed for its writing, world-building, and depth, it is considered one of the most influential RPGs of its generation.",
+    "game_type": 0
+  },
+  {
+    "id": 478,
+    "cover": {
+      "id": 89356,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co1wy4.jpg"
+    },
+    "first_release_date": 1305590400,
+    "name": "The Witcher 2: Assassins of Kings",
+    "platforms": [
+      {
+        "id": 3,
+        "name": "Linux"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 14,
+        "name": "Mac"
+      },
+      {
+        "id": 12,
+        "name": "Xbox 360"
+      }
+    ],
+    "summary": "This third-person dark fantasy Western RPG and sequel to The Witcher (2007), featuring multiple endings and branching narrative paths, follows the travels of Geralt of Rivia, witcher, who, after being falsely accused of regicide, sets out to clear his name and find the real killer, in a time of political turmoil and the brink of war between the imperialistic Nilfgaardian Empire and the Four Kingdoms.",
+    "game_type": 0
+  },
+  {
+    "id": 80,
+    "cover": {
+      "id": 90429,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co1xrx.jpg"
+    },
+    "first_release_date": 1193356800,
+    "name": "The Witcher",
+    "platforms": [
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 14,
+        "name": "Mac"
+      }
+    ],
+    "summary": "Based on the novel series by Andrzej Sapkowski, The Witcher follows Geralt of Rivia, an amnesiac witcher (problem solver and slayer of monsters) whose home, the Kaer Morhen citadel, is besieged by an organization called the Salamandra, who steal their valuable potions and get away. Throughout the game, Geralt must resolve people's moral dilemmas, connect the dots of his past and track down the Salamandra.",
+    "game_type": 0
+  },
+  {
+    "id": 20275,
+    "cover": {
+      "id": 356198,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co7mue.jpg"
+    },
+    "first_release_date": 1221523200,
+    "name": "The Witcher: Enhanced Edition",
+    "parent_game": 80,
+    "platforms": [
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 14,
+        "name": "Mac"
+      }
+    ],
+    "summary": "Based on the novels by a popular Polish writer Andrzej Sapkowski, The Witcher is an action-oriented, epic fantasy RPG that takes players on a journey through a world which in many ways mirrors our own. Take on the role of Geralt of Rivia, a professional monster hunter, as he embarks on a quest of self-discovery and revenge.\n\nThe game's time-delayed decision-consequence system ensures that the consequences of your choices will become apparent only in the following chapters of Geralt's story, discouraging returns to a previous save point.\n\nThe Enhanced Edition includes technical and gameplay improvements that bring shorter loading times, more natural animations, and improved inventory, among others. Two new adventures titled The Price of Neutrality and Side Effects will extend players' enjoyment of the game. Finally, the \"D'jinni Adventure Editor\" enables players to create their adventures and shared them with others.",
+    "game_type": 10
+  },
+  {
+    "id": 20740,
+    "cover": {
+      "id": 91452,
+      "url": "//images.igdb.com/igdb/image/upload/t_thumb/co1ykc.jpg"
+    },
+    "first_release_date": 1334534400,
+    "name": "The Witcher 2: Assassins of Kings - Enhanced Edition",
+    "parent_game": 478,
+    "platforms": [
+      {
+        "id": 3,
+        "name": "Linux"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)"
+      },
+      {
+        "id": 14,
+        "name": "Mac"
+      },
+      {
+        "id": 12,
+        "name": "Xbox 360"
+      }
+    ],
+    "summary": "All existing owners of The Witcher 2 received free upgrades to the Enhanced Edition, and could pre-load the update starting 11 April 2012. All new copies on PC and Xbox 360 shipped with the additional content on board. The Witcher 2: Assassins of Kings - Enhanced Edition added over 10GB of new content, including four hours of gameplay, arena mode, new tutorial, 36 minutes of cinematics including a new intro created by Platige Image and an outro, as well as a host of fixes to gameplay and the interface.",
+    "game_type": 10
+  }
+]
