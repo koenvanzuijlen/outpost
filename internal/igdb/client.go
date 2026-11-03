@@ -102,6 +102,12 @@ func (c *Client) query(ctx context.Context, endpoint, body string, out any) erro
 		return fmt.Errorf("get access token: %w", err)
 	}
 
+	return c.queryOnce(ctx, endpoint, body, token, out)
+}
+
+// queryOnce sends one request to the given IGDB API endpoint with token and body, and decodes the response into out.
+// query adds the timeout and the token around it.
+func (c *Client) queryOnce(ctx context.Context, endpoint, body, token string, out any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+endpoint, strings.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
@@ -125,6 +131,5 @@ func (c *Client) query(ctx context.Context, endpoint, body string, out any) erro
 	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
 		return fmt.Errorf("decode response: %w", err)
 	}
-
 	return nil
 }
