@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.4](https://github.com/koenvanzuijlen/outpost/compare/v0.0.3...v0.0.4) (2026-11-04)
+
+
+### Features
+
+* **search:** show popular games first in search results ([#18](https://github.com/koenvanzuijlen/outpost/issues/18)) ([e7a1228](https://github.com/koenvanzuijlen/outpost/commit/e7a12287155f12a1f781f28790a72f5866c93cd3))
+
+
+### Bug Fixes
+
+* retry IGDB requests that hit the rate limit ([#16](https://github.com/koenvanzuijlen/outpost/issues/16)) ([2fb53e0](https://github.com/koenvanzuijlen/outpost/commit/2fb53e06d4c7271d526159de342c3990c6c0232b))
+
 ## [0.0.3](https://github.com/koenvanzuijlen/outpost/compare/v0.0.2...v0.0.3) (2026-11-02)
 
 
