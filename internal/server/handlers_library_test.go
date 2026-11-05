@@ -258,7 +258,6 @@ func TestHandleHomeLinks(t *testing.T) {
 	server := newTestServer(t)
 	w := getPage(t, server, "/")
 
-	// html/template only escapes action output, so the literal & in the template stays unescaped.
 	assertBodyContains(t, w, `href="/library?status=playing&sort=started"`)
 	assertBodyContains(t, w, `href="/library?status=backlog"`)
 	assertBodyContains(t, w, `href="/wishlist"`)

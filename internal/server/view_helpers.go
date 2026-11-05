@@ -2,20 +2,9 @@ package server
 
 import (
 	"fmt"
-	"html/template"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
 )
-
-// templateFuncs returns a map of template functions for use in HTML templates.
-func templateFuncs() template.FuncMap {
-	return template.FuncMap{
-		"derefInt64":   derefOrZero[int64],
-		"ratingText":   ratingText,
-		"ratingLabel":  ratingLabel,
-		"outcomeLabel": outcomeLabel,
-	}
-}
 
 // gameURL returns the path of the game page for the game with the given IGDB ID.
 func gameURL(igdbID int64) string {

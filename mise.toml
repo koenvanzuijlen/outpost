@@ -1,6 +1,5 @@
 [tools]
 go = "1.27.3"
-"pipx:djlint" = "1.47.1"
 
 [env]
 _.file = ".env"
@@ -26,7 +25,6 @@ description = "Build local dev tool binaries into .tools/"
 run = [
 	"go build -o .tools/golangci-lint-v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
 	"go build -o .tools/templ github.com/a-h/templ/cmd/templ",
-	'ln -sf "$(mise which djlint)" .tools/djlint',
 ]
 
 [tasks.lint]
@@ -40,14 +38,6 @@ run = "go tool templ generate"
 [tasks.templ-fmt]
 description = "Format templ code"
 run = "go tool templ fmt ."
-
-[tasks.tmpl-fmt]
-description = "Format templates"
-run = "djlint --reformat internal/server/templates"
-
-[tasks.tmpl-check]
-description = "Check template formatting"
-run = "djlint internal/server/templates --check"
 
 [tasks.vulncheck]
 description = "Run vulnerability checks"

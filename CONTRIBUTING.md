@@ -4,7 +4,7 @@ This guide is for developers. To run Outpost, see the [README](README.md).
 
 ## Setup
 
-Outpost needs [mise](https://mise.jdx.dev/). mise installs Go and djLint in the versions that the project uses.
+Outpost needs [mise](https://mise.jdx.dev/). mise installs Go in the version that the project uses.
 
 ```sh
 mise install
@@ -29,11 +29,11 @@ docker build -t outpost .
 | `mise run lint`        | Runs golangci-lint.                                |
 | `mise run vulncheck`   | Checks for known vulnerabilities with govulncheck. |
 | `mise run gen-sql`     | Generates the query code in `dbgen` with sqlc.     |
-| `mise run tmpl-fmt`    | Formats the HTML templates with djLint.            |
-| `mise run tmpl-check`  | Checks the template formatting.                    |
+| `mise run gen-templ`   | Generates the Go code of the templ components.     |
+| `mise run templ-fmt`   | Formats the templ files.                           |
 | `mise run migrate-new` | Creates a new migration.                           |
 
-CI runs the tests, lint, the template check and `sqlc diff` on every pull request. Run them before you push.
+CI runs the tests, lint, `templ generate`, `templ fmt` and `sqlc diff` on every pull request. Run them before you push.
 
 ## Pull requests
 

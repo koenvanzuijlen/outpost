@@ -1,15 +1,8 @@
 {
-  "[html]": {
-    "editor.defaultFormatter": "monosans.djlint",
-    "editor.formatOnSave": true
-  },
   "[templ]": {
     "editor.defaultFormatter": "a-h.templ",
     "editor.formatOnSave": true
   },
-  "djlint.executablePath": ".tools/djlint",
-  "djlint.useEditorIndentation": false,
-  "djlint.useVenv": false,
   "go.lintTool": "golangci-lint-v2",
   "go.lintOnSave": "package",
   "go.lintFlags": ["--path-mode=abs"],

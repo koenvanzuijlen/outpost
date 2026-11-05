@@ -24,9 +24,6 @@ jobs:
           test -z "$(git status --porcelain)"
       - name: templ formatting
         run: go tool templ fmt -fail .
-      - name: Template formatting
-        # Version should match mise.toml
-        run: pipx run djlint==1.47.1 --check internal/server/templates
       - name: Lint
         run: go tool golangci-lint run
       - name: Tests

@@ -86,11 +86,7 @@ func newTestServer(t *testing.T) *Server {
 		_ = store.Close()
 	})
 
-	server, err := New(logger, store, nil)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
-	return server
+	return New(logger, store, nil)
 }
 
 // addTestGame adds The Witcher 3 (1942) to the library, owned on PC (6), and returns the fake IGDB client.
