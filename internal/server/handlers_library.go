@@ -53,13 +53,13 @@ func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	wishlistCount := len(wishlistedGames)
 	wishlistedGames = randomSample(wishlistedGames, homeSampleSize)
 
-	server.render(w, "home.html", homePage{
+	server.renderComponent(w, r, homeView(homePage{
 		PlayingGames:  playing,
 		BacklogGames:  backlog,
 		BacklogCount:  backlogCount,
 		WishlistGames: wishlistedGames,
 		WishlistCount: wishlistCount,
-	})
+	}))
 }
 
 // libraryPage represents the data needed to render the library page: the filtered and sorted entries, and the current
@@ -102,13 +102,13 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	games = filterLibrary(games, status)
 	games = sortLibrary(games, sort)
 
-	server.render(w, "library.html", libraryPage{
+	server.renderComponent(w, r, libraryView(libraryPage{
 		Games:         games,
 		Status:        status,
 		StatusOptions: database.GameStatuses,
 		Sort:          sort,
 		SortOptions:   librarySortOptions(),
-	})
+	}))
 }
 
 // handleAddToLibrary adds a game or a DLC to the library. It reads path value igdbID and, for a game, form value

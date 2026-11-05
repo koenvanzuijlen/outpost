@@ -17,6 +17,11 @@ func templateFuncs() template.FuncMap {
 	}
 }
 
+// gameURL returns the path of the game page for the game with the given IGDB ID.
+func gameURL(igdbID int64) string {
+	return fmt.Sprintf("/games/%d", igdbID)
+}
+
 // ratingText converts a numeric rating into a textual star representation.
 func ratingText(rating int64) string {
 	starCount := float64(rating) / 2

@@ -27,17 +27,18 @@ templ searchView(page searchPage) {
 			case searchStateResults:
 				<div>
 					for _, game := range page.Results {
+						{{ url := gameURL(int64(game.ID)) }}
 						<div>
 							if game.CoverURL() != "" {
 								<img src={ game.CoverURL() } alt={ game.Name }/>
 							}
 							<p>
-								<a href={ "/games/" + strconv.Itoa(game.ID) }>{ game.Name }</a>
+								<a href={ url }>{ game.Name }</a>
 								if game.ReleaseYear() != 0 {
 									({ game.ReleaseYear() })
 								}
 							</p>
-							<form method="post" action={ "/games/" + strconv.Itoa(game.ID) + "/library" }>
+							<form method="post" action={ url + "/library" }>
 								<label>
 									Owned on:
 									<select name="platform_id">
@@ -49,7 +50,7 @@ templ searchView(page searchPage) {
 								</label>
 								<button type="submit">Add to library</button>
 							</form>
-							<form method="post" action={ "/games/" + strconv.Itoa(game.ID) + "/wishlist" }>
+							<form method="post" action={ url + "/wishlist" }>
 								<button type="submit">Add to wishlist</button>
 							</form>
 						</div>

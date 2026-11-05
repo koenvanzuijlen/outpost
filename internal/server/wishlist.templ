@@ -1,0 +1,18 @@
+package server
+
+// wishlistView renders the wishlist page: all wishlisted games.
+templ wishlistView(page wishlistPage) {
+	@layout() {
+		<h1>Wishlist</h1>
+		<a href="/">Back to home</a>
+		<ul>
+			if len(page.Games) > 0 {
+				for _, entry := range page.Games {
+					@wishlistEntry(entry)
+				}
+			} else {
+				<li>Your wishlist is empty.</li>
+			}
+		</ul>
+	}
+}
