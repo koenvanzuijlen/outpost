@@ -428,3 +428,66 @@ func TestHandleUpdateGameWishlisted(t *testing.T) {
 		t.Fatalf("update game status = %d, want %d", w.Code, http.StatusNotFound)
 	}
 }
+
+func TestHandleGamePlaythroughEditFormSelectedPlatform(t *testing.T) {
+	server := newTestServer(t)
+	addTestGamePS4(t, server)
+	if w := postForm(t, server, "/games/1942/playthroughs", "platform=48"); w.Code != http.StatusSeeOther {
+		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	playthroughID := onlyPlaythrough(t, getTestGame(t, server)).Playthrough.ID
+
+	form := formByAction(t, getTestGamePage(t, server), fmt.Sprintf("/games/1942/playthroughs/%d", playthroughID))
+
+	if got := strings.Count(form, "selected"); got != 1 {
+		t.Errorf("selected options = %d, want 1 in %q", got, form)
+	}
+	if !strings.Contains(form, `<option value="48" selected>`) {
+		t.Errorf("PS4 option is not selected in %q", form)
+	}
+	if strings.Contains(form, `<option value="6" selected>`) || strings.Contains(form, `<option value="" selected>`) {
+		t.Errorf("a different option is selected in %q", form)
+	}
+}
+
+func TestHandleGamePlaythroughEditFormNoPlatform(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "", "")
+
+	form := formByAction(t, getTestGamePage(t, server), fmt.Sprintf("/games/1942/playthroughs/%d", playthroughID))
+
+	if got := strings.Count(form, "selected"); got != 1 {
+		t.Errorf("selected options = %d, want 1 in %q", got, form)
+	}
+	if !strings.Contains(form, `<option value="" selected>No platform</option>`) {
+		t.Errorf("No platform option is not selected in %q", form)
+	}
+}
+
+func TestHandleGamePlaythroughOutcomeAriaPressed(t *testing.T) {
+	server := newTestServer(t)
+	playthroughID := startTestPlaythrough(t, server, "", "")
+	action := fmt.Sprintf("/games/1942/playthroughs/%d/outcome", playthroughID)
+
+	form := formByAction(t, getTestGamePage(t, server), action)
+	if got := strings.Count(form, `aria-pressed="true"`); got != 1 {
+		t.Errorf("pressed buttons = %d, want 1 in %q", got, form)
+	}
+	if !strings.Contains(form, `aria-pressed="true">in progress</button>`) {
+		t.Errorf("in progress is not pressed in %q", form)
+	}
+
+	if w := postForm(t, server, action, "outcome=abandoned"); w.Code != http.StatusSeeOther {
+		t.Fatalf("set outcome status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	form = formByAction(t, getTestGamePage(t, server), action)
+	if got := strings.Count(form, `aria-pressed="true"`); got != 1 {
+		t.Errorf("pressed buttons = %d, want 1 in %q", got, form)
+	}
+	if !strings.Contains(form, `aria-pressed="true">abandoned</button>`) {
+		t.Errorf("abandoned is not pressed in %q", form)
+	}
+	if !strings.Contains(form, `aria-pressed="false">in progress</button>`) {
+		t.Errorf("in progress is still pressed in %q", form)
+	}
+}

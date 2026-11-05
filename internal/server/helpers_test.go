@@ -257,3 +257,19 @@ func startTestPlaythrough(t *testing.T, server *Server, name, platformIGDBID str
 	details := getTestGame(t, server)
 	return onlyPlaythrough(t, details).Playthrough.ID
 }
+
+// formByAction returns the form of the response body whose action attribute equals action, with whitespace collapsed.
+func formByAction(t *testing.T, w *httptest.ResponseRecorder, action string) string {
+	t.Helper()
+	body := collapseSpace(w.Body.String())
+	marker := `action="` + action + `"`
+	start := strings.Index(body, marker)
+	if start < 0 {
+		t.Fatalf("body has no form with %s", marker)
+	}
+	end := strings.Index(body[start:], "</form>")
+	if end < 0 {
+		t.Fatalf("form with %s is not closed", marker)
+	}
+	return body[start : start+end]
+}

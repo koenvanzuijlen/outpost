@@ -1,0 +1,372 @@
+package server
+
+import "strconv"
+import "github.com/koenvanzuijlen/outpost/internal/database"
+
+// gameView renders the game page: the game, the library state, the copies, and the other DLC. For a library game that
+// is not wishlisted, it also renders the details form and the playthroughs. For any game in the library or on the
+// wishlist, it renders the remove form.
+templ gameView(page gamePage) {
+	@layout() {
+		@gameInfo(page)
+		@gameLibraryState(page)
+		if page.Details.UserGame != nil || page.Details.Parent != nil {
+			@gameCopies(page)
+		}
+		if page.Details.Parent == nil {
+			@gameOtherDLC(page)
+		}
+		if page.Details.UserGame != nil {
+			if !page.Details.UserGame.Wishlisted {
+				@gameDetails(page)
+				@gamePlaythroughs(page)
+			}
+			@gameRemove(page)
+		}
+		<a href="/">Back to home</a>
+	}
+}
+
+// gameInfo shows the title, the parent game of a DLC, the cover, the wishlist flag, the status, the rating, the release
+// date, and the summary.
+templ gameInfo(page gamePage) {
+	<h1>{ page.Details.Game.Title }</h1>
+	if page.Details.Parent != nil {
+		<p>DLC of <a href={ gameURL(page.Details.Parent.IgdbID) }>{ page.Details.Parent.Title }</a></p>
+	}
+	<div>
+		if page.Details.Game.CoverUrl != nil {
+			<img src={ *page.Details.Game.CoverUrl } alt={ page.Details.Game.Title }/>
+		}
+		if page.Details.UserGame != nil {
+			if page.Details.UserGame.Wishlisted {
+				<p>On your wishlist</p>
+			}
+			if page.Details.UserGame.Status != nil {
+				<p>Status: { *page.Details.UserGame.Status }</p>
+			}
+			if page.Details.UserGame.Rating != nil {
+				<span title={ ratingLabel(*page.Details.UserGame.Rating) } aria-label={ ratingLabel(*page.Details.UserGame.Rating) } role="img">{ ratingText(*page.Details.UserGame.Rating) }</span>
+			}
+		}
+	</div>
+	if page.Details.Game.ReleasedAt != nil {
+		<p>Released: { page.Details.Game.ReleasedAt.Format("2 January 2006") }</p>
+	}
+	if page.Details.Game.Summary != nil {
+		<p>
+			Summary:
+			<br/>
+			{ *page.Details.Game.Summary }
+		</p>
+	}
+}
+
+// gameLibraryState shows the forms that add the game to the library or the wishlist. It shows nothing if the game is
+// already in the library or on the wishlist.
+templ gameLibraryState(page gamePage) {
+	{{ url := gameURL(page.Details.Game.IgdbID) }}
+	if page.CanAddToLibrary {
+		<form method="post" action={ url + "/library" }>
+			<label>
+				Owned on
+				<select name="platform_id">
+					for _, platform := range page.Details.Platforms {
+						<option value={ strconv.Itoa(int(platform.IgdbID)) }>{ platform.Name }</option>
+					}
+					<option value="">Not owned</option>
+				</select>
+			</label>
+			<button type="submit">Add to library</button>
+		</form>
+		if page.CanAddToWishlist {
+			<form method="post" action={ url + "/wishlist" }>
+				<button type="submit">Add to wishlist</button>
+			</form>
+		}
+	} else if page.CanAddDLC {
+		<form method="post" action={ url + "/library" }>
+			<button type="submit">Add to library</button>
+		</form>
+	}
+}
+
+// gameCopies lists the platforms the game is owned on, with the DLC owned on each copy and a form to remove the copy.
+// For a base game, it also shows a form to add another copy. For a DLC, it points to the page of the base game, where
+// ownership is managed.
+templ gameCopies(page gamePage) {
+	{{ url := gameURL(page.Details.Game.IgdbID) }}
+	if len(page.Details.OwnedPlatforms) > 0 {
+		<p>Owned on:</p>
+		<ul>
+			for _, platform := range page.Details.OwnedPlatforms {
+				<li>
+					{ platform.Name }
+					if len(page.Details.CopyDLCs[platform.IgdbID]) > 0 {
+						<br/>
+						DLC:
+						<ul>
+							for _, dlc := range page.Details.CopyDLCs[platform.IgdbID] {
+								<li>
+									<a href={ gameURL(dlc.Game.IgdbID) }>
+										{ dlc.Game.Title }
+										if dlc.Game.ReleasedAt != nil {
+											({ dlc.Game.ReleasedAt.Format("2 January 2006") })
+										}
+									</a> - 
+									if dlc.Owned {
+										owned
+									} else {
+										not owned
+									}
+									<form
+										method="post"
+										action={ gameURL(page.Details.Game.IgdbID) + "/copies/" + strconv.Itoa(int(platform.IgdbID)) + "/dlcs/" + strconv.Itoa(int(dlc.Game.IgdbID)) }
+									>
+										<button type="submit" name="owned" value={ !dlc.Owned } aria-pressed={ dlc.Owned }>Owned</button>
+									</form>
+									if dlc.InLibrary {
+										<p>In library: { dlc.Status }</p>
+									}
+								</li>
+							}
+						</ul>
+					}
+					if page.Details.Parent == nil {
+						<details>
+							<summary>Remove copy</summary>
+							<form method="post" action={ url + "/copies/" + strconv.Itoa(int(platform.IgdbID)) + "/remove" }>
+								<p>This also removes the DLC you marked as owned on this copy.</p>
+								<button type="submit">Really remove</button>
+							</form>
+						</details>
+					}
+				</li>
+			}
+		</ul>
+	} else if page.Details.Parent == nil {
+		<p>Not owned on any platform.</p>
+	}
+	if page.Details.Parent != nil {
+		<p>
+			if len(page.Details.OwnedPlatforms) == 0 {
+				Not owned on any platform.
+			}
+			Ownership of this DLC is managed on the page of <a href={ gameURL(page.Details.Parent.IgdbID) }>{ page.Details.Parent.Title }</a>.
+		</p>
+	}
+	if page.Details.Parent == nil && !page.Details.UserGame.Wishlisted && len(page.CopyPlatformOptions) > 0 {
+		<div>
+			<p>Add another copy</p>
+			<form method="post" action={ url + "/copies" }>
+				<label>
+					Owned on
+					<select name="platform_id">
+						for _, platform := range page.CopyPlatformOptions {
+							<option value={ strconv.Itoa(int(platform.IgdbID)) }>{ platform.Name }</option>
+						}
+					</select>
+				</label>
+				<button type="submit">Add copy</button>
+			</form>
+		</div>
+	}
+}
+
+// gameOtherDLC lists the other DLC of the game. If the DLC was never fetched, it shows a message instead.
+templ gameOtherDLC(page gamePage) {
+	if page.Details.Game.DlcsFetchedAt != nil {
+		if len(page.Details.OtherDLCs) > 0 {
+			<div>
+				<p>Other DLC:</p>
+				<ul>
+					for _, dlc := range page.Details.OtherDLCs {
+						<li>
+							<a href={ gameURL(dlc.Game.IgdbID) }>
+								{ dlc.Game.Title }
+								if dlc.Game.ReleasedAt != nil {
+									({ dlc.Game.ReleasedAt.Format("2 January 2006") })
+								}
+							</a>
+						</li>
+					}
+				</ul>
+			</div>
+		}
+	} else {
+		<div>
+			<p>DLC couldn't be loaded.</p>
+		</div>
+	}
+}
+
+// gameDetails is the form to change the status, the rating, and the notes of a library game. The form is prefilled with
+// the current values.
+templ gameDetails(page gamePage) {
+	<div>
+		<form method="post" action={ gameURL(page.Details.Game.IgdbID) + "/details" }>
+			<h2>Status, rating and notes</h2>
+			<label>
+				Status
+				<select name="status">
+					for _, status := range page.Statuses {
+						<option value={ status } selected?={ status == page.CurrentStatus }>{ status }</option>
+					}
+				</select>
+			</label>
+			<label>
+				Rating
+				<select name="rating">
+					<option value="" selected?={ page.CurrentRating == 0 }>Unrated</option>
+					for _, rating := range page.RatingOptions {
+						<option value={ rating.Value } selected?={ page.CurrentRating == rating.Value }>{ rating.Label }</option>
+					}
+				</select>
+			</label>
+			<label>
+				Notes
+				<textarea name="notes" maxlength={ page.MaxNotesLength }>{ derefOrZero(page.Details.UserGame.Notes) }</textarea>
+			</label>
+			<button type="submit">Save</button>
+		</form>
+	</div>
+}
+
+// gamePlaythroughs lists the playthroughs of the game. Each playthrough has outcome buttons, a form to edit it, and a
+// form to delete it. A last form starts a new playthrough.
+templ gamePlaythroughs(page gamePage) {
+	{{ url := gameURL(page.Details.Game.IgdbID) }}
+	<div>
+		<h2>Playthroughs</h2>
+		<ul>
+			if len(page.Details.Playthroughs) > 0 {
+				for _, entry := range page.Details.Playthroughs {
+					<li>
+						if entry.Playthrough.Name != nil {
+							<p>{ *entry.Playthrough.Name }</p>
+						}
+						if entry.PlatformName != nil {
+							<p>Platform: { *entry.PlatformName }</p>
+						}
+						<p>Outcome: { outcomeLabel(entry.Playthrough.Outcome) }</p>
+						if entry.Playthrough.StartedAt != nil {
+							<p>Started: { (*entry.Playthrough.StartedAt).Format("2 January 2006") }</p>
+						}
+						if entry.Playthrough.FinishedAt != nil {
+							<p>Finished: { (*entry.Playthrough.FinishedAt).Format("2 January 2006") }</p>
+						}
+						<form method="post" action={ url + "/playthroughs/" + strconv.Itoa(int(entry.Playthrough.ID)) + "/outcome" }>
+							for _, option := range page.OutcomeOptions {
+								{{
+									pressed := "false"
+									if option.Value == entry.Playthrough.Outcome {
+										pressed = "true"
+									}
+								}}
+								<button
+									type="submit"
+									name="outcome"
+									value={ option.Value }
+									aria-pressed={ pressed }
+								>{ option.Label }</button>
+							}
+						</form>
+						<details>
+							<summary>Edit</summary>
+							<form method="post" action={ url + "/playthroughs/" + strconv.Itoa(int(entry.Playthrough.ID)) }>
+								<label>
+									Playthrough name
+									<input type="text" name="name" value={ derefOrZero(entry.Playthrough.Name) }/>
+								</label>
+								<label>
+									Platform
+									<select name="platform">
+										<option value="" selected?={ derefOrZero(entry.Playthrough.PlatformID) == 0 }>No platform</option>
+										for _, platform := range page.Details.OwnedPlatforms {
+											<option value={ strconv.Itoa(int(platform.IgdbID)) } selected?={ platform.ID == derefOrZero(entry.Playthrough.PlatformID) }>{ platform.Name }</option>
+										}
+									</select>
+								</label>
+								<label>
+									Started at
+									<input
+										type="date"
+										name="started_at"
+										value={ derefOrZero(entry.Playthrough.StartedAt).Format("2006-01-02") }
+									/>
+								</label>
+								if entry.Playthrough.Outcome != string(database.PlaythroughOutcomePlaying) {
+									<label>
+										Finished at
+										<input
+											type="date"
+											name="finished_at"
+											value={ derefOrZero(entry.Playthrough.FinishedAt).Format("2006-01-02") }
+										/>
+									</label>
+								}
+								<button type="submit">Update playthrough</button>
+							</form>
+						</details>
+						<details>
+							<summary>Delete</summary>
+							<form method="post" action={ url + "/playthroughs/" + strconv.Itoa(int(entry.Playthrough.ID)) + "/delete" }>
+								<button type="submit">Really delete</button>
+							</form>
+						</details>
+					</li>
+				}
+			} else {
+				<li>No playthroughs yet.</li>
+			}
+		</ul>
+	</div>
+	<div>
+		<form method="post" action={ url + "/playthroughs" }>
+			<h3>Start a new playthrough</h3>
+			<label>
+				Playthrough name
+				<input type="text" name="name"/>
+			</label>
+			<label>
+				Platform
+				<select name="platform">
+					<option value="">No platform</option>
+					for _, platform := range page.Details.OwnedPlatforms {
+						<option value={ strconv.Itoa(int(platform.IgdbID)) }>{ platform.Name }</option>
+					}
+				</select>
+			</label>
+			<button type="submit">Start</button>
+		</form>
+	</div>
+}
+
+// gameRemove is the form to remove the game from the library, or from the wishlist if the game is wishlisted. It
+// states what the removal deletes.
+templ gameRemove(page gamePage) {
+	{{
+		removeFrom := "library"
+		if page.Details.UserGame.Wishlisted {
+			removeFrom = "wishlist"
+		}
+	}}
+	<details>
+		<summary>
+			Remove from { removeFrom }
+		</summary>
+		<form
+			method="post"
+			action={ gameURL(page.Details.Game.IgdbID) + "/" + removeFrom + "/remove" }
+		>
+			if !page.Details.UserGame.Wishlisted {
+				if page.Details.Parent != nil {
+					<p>Removes its status, rating and playthroughs. Ownership, managed on the base game's page, is kept.</p>
+				} else {
+					<p>Removes its copies, DLC ownership, playthroughs, and its DLC in the library.</p>
+				}
+			}
+			<button type="submit">Really remove</button>
+		</form>
+	</details>
+}
