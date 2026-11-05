@@ -8,6 +8,7 @@ func (server *Server) routes() {
 	server.mux.HandleFunc("GET /library", server.handleLibrary)
 	server.mux.HandleFunc("GET /wishlist", server.handleWishlist)
 	server.mux.HandleFunc("GET /games/{igdbID}", server.handleGame)
+	server.mux.Handle("GET /static/", server.staticHandler())
 	server.mux.HandleFunc("GET /health", server.handleHealth)
 
 	server.mux.HandleFunc("POST /games/{igdbID}/wishlist", server.handleAddToWishlist)
