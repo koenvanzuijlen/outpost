@@ -11,3 +11,6 @@
 
 # Locally built dev tools
 /.tools/
+
+# Personal AI instructions
+/AGENTS.local.md
