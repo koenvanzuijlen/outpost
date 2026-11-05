@@ -11,6 +11,7 @@ tool (
 )
 
 require (
+	github.com/a-h/templ v0.3.1100
 	github.com/pressly/goose/v3 v3.29.0
 	modernc.org/sqlite v1.61.0
 )
@@ -46,7 +47,6 @@ require (
 	github.com/MirrexOne/unqueryvet v1.5.4 // indirect
 	github.com/OpenPeeDeeP/depguard/v2 v2.2.1 // indirect
 	github.com/a-h/parse v0.0.0-20250122154542-74294addb73e // indirect
-	github.com/a-h/templ v0.3.1100 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/alecthomas/go-check-sumtype v0.5.1-0.20260828200218-ae6904d28606 // indirect
 	github.com/alexkohler/nakedret/v2 v2.0.6 // indirect

@@ -1,0 +1,14 @@
+package server
+
+// layout is the HTML document around every page. The page content goes in children.
+templ layout() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<title>Outpost</title>
+		</head>
+		<body>
+			{ children... }
+		</body>
+	</html>
+}
