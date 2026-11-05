@@ -1,0 +1,65 @@
+package server
+
+import "strconv"
+
+// searchForm is the game search box, prefilled with query.
+templ searchForm(query string) {
+	<form action="/search">
+		<input type="text" name="q" value={ query } placeholder="Search for games..."/>
+		<button type="submit">Search</button>
+	</form>
+}
+
+// searchView renders the search page: the search box, and a hint, the results with their add forms, "no results", or an
+// error, depending on page.State.
+templ searchView(page searchPage) {
+	@layout() {
+		@searchForm(page.Query)
+		switch page.State {
+			case searchStateInitial:
+				<div>
+					<p>Enter a search query to find games.</p>
+				</div>
+			case searchStateNoResults:
+				<div>
+					<p>No results found.</p>
+				</div>
+			case searchStateResults:
+				<div>
+					for _, game := range page.Results {
+						{{ url := gameURL(int64(game.ID)) }}
+						<div>
+							if game.CoverURL() != "" {
+								<img src={ game.CoverURL() } alt={ game.Name }/>
+							}
+							<p>
+								<a href={ url }>{ game.Name }</a>
+								if game.ReleaseYear() != 0 {
+									({ game.ReleaseYear() })
+								}
+							</p>
+							<form method="post" action={ url + "/library" }>
+								<label>
+									Owned on:
+									<select name="platform_id">
+										for _, platform := range game.Platforms {
+											<option value={ strconv.Itoa(platform.ID) }>{ platform.Name }</option>
+										}
+										<option value="">Not owned</option>
+									</select>
+								</label>
+								<button type="submit">Add to library</button>
+							</form>
+							<form method="post" action={ url + "/wishlist" }>
+								<button type="submit">Add to wishlist</button>
+							</form>
+						</div>
+					}
+				</div>
+			case searchStateError:
+				<div>
+					<p>{ page.Error }</p>
+				</div>
+		}
+	}
+}

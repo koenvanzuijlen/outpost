@@ -41,10 +41,10 @@ func (server *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 			state = searchStateNoResults
 		}
 	}
-	server.render(w, "search.html", searchPage{
+	server.renderComponent(w, r, searchView(searchPage{
 		State:   state,
 		Query:   query,
 		Results: games,
 		Error:   errorMessage,
-	})
+	}))
 }

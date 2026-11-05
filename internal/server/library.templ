@@ -1,0 +1,38 @@
+package server
+
+// libraryView renders the library page: the status filter and sort form, and the matching games.
+templ libraryView(page libraryPage) {
+	@layout() {
+		<h1>Library</h1>
+		<a href="/">Back to home</a>
+		<form method="get" action="/library">
+			<label>
+				Status:
+				<select name="status">
+					<option value="" selected?={ page.Status == "" }>All</option>
+					for _, status := range page.StatusOptions {
+						<option value={ string(status) } selected?={ status == page.Status }>{ status }</option>
+					}
+				</select>
+			</label>
+			<label>
+				Sort by:
+				<select name="sort">
+					for _, sortOption := range page.SortOptions {
+						<option value={ string(sortOption.Value) } selected?={ sortOption.Value == page.Sort }>{ sortOption.Label }</option>
+					}
+				</select>
+			</label>
+			<button type="submit">Apply</button>
+		</form>
+		<ul>
+			if len(page.Games) > 0 {
+				for _, entry := range page.Games {
+					@libraryEntry(entry)
+				}
+			} else {
+				<li>No results.</li>
+			}
+		</ul>
+	}
+}

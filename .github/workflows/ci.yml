@@ -16,15 +16,18 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - name: Tests
-        run: go test -race ./...
+      - name: sqlc generated
+        run: go tool sqlc diff
+      - name: templ generated
+        run: |
+          go tool templ generate
+          test -z "$(git status --porcelain)"
+      - name: templ formatting
+        run: go tool templ fmt -fail .
       - name: Lint
         run: go tool golangci-lint run
-      - name: Template formatting
-        # Version should match mise.toml
-        run: pipx run djlint==1.47.1 --check internal/server/templates
-      - name: sqlc Diff
-        run: go tool sqlc diff
+      - name: Tests
+        run: go test -race ./...
 
   migrations:
     if: github.event_name == 'pull_request'

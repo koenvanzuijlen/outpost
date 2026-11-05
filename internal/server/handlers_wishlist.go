@@ -27,9 +27,9 @@ func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	server.render(w, "wishlist.html", wishlistPage{
+	server.renderComponent(w, r, wishlistView(wishlistPage{
 		Games: wishlistedGames,
-	})
+	}))
 }
 
 // handleAddToWishlist adds a game to the wishlist. It reads path value igdbID and redirects to the game's page. A game

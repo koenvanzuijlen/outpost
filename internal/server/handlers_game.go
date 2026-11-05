@@ -179,7 +179,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		pageData.CurrentRating = derefOrZero(details.UserGame.Rating)
 	}
 
-	server.render(w, "game.html", pageData)
+	server.renderComponent(w, r, gameView(pageData))
 }
 
 // handleUpdateGameDetails updates the status, rating and notes of a library game. It reads path value igdbID and form

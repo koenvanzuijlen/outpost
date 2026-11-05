@@ -1,0 +1,36 @@
+package server
+
+import (
+	"github.com/koenvanzuijlen/outpost/internal/database"
+	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
+	"strings"
+)
+
+// libraryEntry is one list row of a library game: title, release year, the platforms it is owned on (or "not owned"),
+// and its status.
+templ libraryEntry(entry database.LibraryEntry) {
+	<li>
+		<a href={ gameURL(entry.Game.IgdbID) }>{ entry.Game.Title }</a>
+		if entry.Game.ReleasedAt != nil {
+			({ entry.Game.ReleasedAt.Year() })
+		}
+		if len(entry.Platforms) > 0 {
+			- { strings.Join(entry.Platforms, ", ") }
+		} else {
+			not owned
+		}
+		if entry.UserGame.Status != nil {
+			- { *entry.UserGame.Status }
+		}
+	</li>
+}
+
+// wishlistEntry is one list row of a wishlisted game: title and release year.
+templ wishlistEntry(entry dbgen.ListWishlistedUserGamesRow) {
+	<li>
+		<a href={ gameURL(entry.Game.IgdbID) }>{ entry.Game.Title }</a>
+		if entry.Game.ReleasedAt != nil {
+			({ entry.Game.ReleasedAt.Year() })
+		}
+	</li>
+}

@@ -54,11 +54,7 @@ func run(logger *slog.Logger) error {
 	}
 	client := igdb.New(clientID, clientSecret)
 
-	app, err := server.New(logger, store, client)
-	if err != nil {
-		return fmt.Errorf("create server: %w", err)
-	}
-
+	app := server.New(logger, store, client)
 	port := envOrDefault("PORT", "8080")
 	srv := &http.Server{
 		Addr:              ":" + port,

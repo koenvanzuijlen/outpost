@@ -3,8 +3,6 @@ package server
 
 import (
 	"context"
-	"fmt"
-	"html/template"
 	"log/slog"
 	"net/http"
 
@@ -27,22 +25,15 @@ type Server struct {
 	mux        *http.ServeMux
 	handler    http.Handler
 	logger     *slog.Logger
-	templates  map[string]*template.Template
 	store      *database.Store
 	igdbClient IGDBClient
 }
 
-// New creates a Server with the given logger, store and IGDB client. It parses the templates and registers the routes.
-func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient) (*Server, error) {
-	templates, err := parseTemplates()
-	if err != nil {
-		return nil, fmt.Errorf("parse templates: %w", err)
-	}
-
+// New creates a Server with the given logger, store and IGDB client. It registers the routes and the middleware.
+func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient) *Server {
 	server := &Server{
 		mux:        http.NewServeMux(),
 		logger:     logger,
-		templates:  templates,
 		store:      store,
 		igdbClient: igdbClient,
 	}
@@ -55,7 +46,7 @@ func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient) (*Se
 		server.recoverPanic,
 		server.requestLogging,
 	)
-	return server, nil
+	return server
 }
 
 // ServeHTTP passes the request through the middleware to the routes.
