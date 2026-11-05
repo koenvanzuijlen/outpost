@@ -1,0 +1,19 @@
+package server
+
+// menuBar is the navigation bar shown at the top of every page: the logo, the search box, and links to the library
+// and the wishlist.
+templ menuBar() {
+	<nav class="menu-bar">
+		<ul>
+			<li>
+				<a href="/" class="menu-bar__brand">
+					<span class="menu-bar__logo" aria-hidden="true"></span>
+					<span>Outpost</span>
+				</a>
+			</li>
+			@searchForm("")
+			<li><a href="/library">Library</a></li>
+			<li><a href="/wishlist">Wishlist</a></li>
+		</ul>
+	</nav>
+}
