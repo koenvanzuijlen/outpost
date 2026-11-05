@@ -18,6 +18,7 @@
   },
   "go.toolsManagement.checkForUpdates": "off",
   "gopls": {
+    "ui.diagnostic.analyses": { "ST1003": false },
     "ui.diagnostic.staticcheck": true
   },
   "templ.executablePath": ".tools/templ"
