@@ -7,7 +7,7 @@ import "github.com/koenvanzuijlen/outpost/internal/database"
 // is not wishlisted, it also renders the details form and the playthroughs. For any game in the library or on the
 // wishlist, it renders the remove form.
 templ gameView(page gamePage) {
-	@layout() {
+	@layout("") {
 		@gameInfo(page)
 		@gameLibraryState(page)
 		if page.Details.UserGame != nil || page.Details.Parent != nil {

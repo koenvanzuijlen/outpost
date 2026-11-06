@@ -2,7 +2,7 @@ package server
 
 // libraryView renders the library page: the status filter and sort form, and the matching games.
 templ libraryView(page libraryPage) {
-	@layout() {
+	@layout("") {
 		<h1>Library</h1>
 		<a href="/">Back to home</a>
 		<form method="get" action="/library">

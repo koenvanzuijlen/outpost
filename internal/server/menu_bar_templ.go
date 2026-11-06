@@ -9,9 +9,9 @@ package server
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// menuBar is the navigation bar shown at the top of every page: the logo, the search box, and links to the library
-// and the wishlist.
-func menuBar() templ.Component {
+// menuBar is the navigation bar shown at the top of every page: the logo, the search box prefilled with query, and
+// links to the library and the wishlist.
+func menuBar(query string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -28,15 +28,15 @@ func menuBar() templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav class=\"menu-bar\"><ul><li><a href=\"/\" class=\"menu-bar__brand\"><span class=\"menu-bar__logo\" aria-hidden=\"true\"></span> <span>Outpost</span></a></li>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav class=\"menu-bar\"><ul><li><a href=\"/\" class=\"menu-bar__brand\"><span class=\"menu-bar__logo\" aria-hidden=\"true\"></span> <span>Outpost</span></a></li><li>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = searchForm("").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = searchForm(query).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<li><a href=\"/library\">Library</a></li><li><a href=\"/wishlist\">Wishlist</a></li></ul></nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</li><li><a href=\"/library\">Library</a></li><li><a href=\"/wishlist\">Wishlist</a></li></ul></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

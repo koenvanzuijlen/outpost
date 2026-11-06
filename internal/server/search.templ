@@ -4,17 +4,16 @@ import "strconv"
 
 // searchForm is the game search box, prefilled with query.
 templ searchForm(query string) {
-	<form action="/search">
-		<input type="text" name="q" value={ query } placeholder="Search for games..."/>
+	<form action="/search" role="search">
+		<input type="search" name="q" value={ query } placeholder="Search for games..." aria-label="Search games"/>
 		<button type="submit">Search</button>
 	</form>
 }
 
-// searchView renders the search page: the search box, and a hint, the results with their add forms, "no results", or an
-// error, depending on page.State.
+// searchView renders the search page: a hint, the results with their add forms, "no results", or an error, depending on
+// page.State. The search box in the menu bar shows page.Query.
 templ searchView(page searchPage) {
-	@layout() {
-		@searchForm(page.Query)
+	@layout(page.Query) {
 		switch page.State {
 			case searchStateInitial:
 				<div>

@@ -1,7 +1,8 @@
 package server
 
-// layout is the HTML document around every page. The page content goes in children.
-templ layout() {
+// layout is the HTML document around every page, with the menu bar. The search box in the menu bar is prefilled with
+// query. The page content goes in children.
+templ layout(query string) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
@@ -14,7 +15,7 @@ templ layout() {
 			<link rel="stylesheet" href="/static/css/outpost.css"/>
 		</head>
 		<body>
-			@menuBar()
+			@menuBar(query)
 			{ children... }
 		</body>
 	</html>
