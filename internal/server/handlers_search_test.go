@@ -12,4 +12,5 @@ func TestHandleSearchResults(t *testing.T) {
 
 	w := getPage(t, server, "/search?q=witcher")
 	assertBodyContains(t, w, fmt.Sprintf(`href="/games/%d"`, first.ID))
+	assertBodyContains(t, w, `value="witcher"`)
 }

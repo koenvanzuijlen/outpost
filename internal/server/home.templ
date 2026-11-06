@@ -1,11 +1,10 @@
 package server
 
-// homeView renders the home page: the search box, the playing games, and samples of the backlog and the wishlist, each
-// with a link to the full list.
+// homeView renders the home page: the playing games, and samples of the backlog and the wishlist, each with a link to
+// the full list.
 templ homeView(page homePage) {
-	@layout() {
+	@layout("") {
 		<h1>Outpost</h1>
-		@searchForm("")
 		<div>
 			<h2>Playing</h2>
 			<ul>
