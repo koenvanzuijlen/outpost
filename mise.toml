@@ -13,11 +13,11 @@ description = "Run the server"
 run = "go run ./cmd/outpost"
 
 [tasks.start-fresh]
-description = "Delete database & run the server"
+description = "Delete the database and run the server"
 run = ['rm -f "${DATABASE_PATH:-outpost.db}"*', "go run ./cmd/outpost"]
 
 [tasks.test]
-description = "Run all tests"
+description = "Run all tests with the race detector"
 run = "go test -race ./..."
 
 [tasks.setup]
@@ -28,33 +28,33 @@ run = [
 ]
 
 [tasks.lint]
-description = "Run linters"
+description = "Run linters with golangci-lint"
 run = "go tool golangci-lint run"
 
 [tasks.gen-templ]
-description = "Generate templ code"
+description = "Generate Go code from templ files with templ"
 run = "go tool templ generate"
 
 [tasks.templ-fmt]
-description = "Format templ code"
+description = "Format templ files with templ"
 run = "go tool templ fmt ."
 
 [tasks.vulncheck]
-description = "Run vulnerability checks"
+description = "Check for known vulnerabilities with govulncheck"
 run = "go tool govulncheck ./..."
 
 [tasks.gen-sql]
-description = "Regenerate sqlc code"
+description = "Generate Go code from SQL queries with sqlc"
 run = "go tool sqlc generate"
 
 [tasks.migrate-status]
-description = "Show migration status"
+description = "Show the migration status with goose"
 run = 'go tool goose -dir internal/database/migrations sqlite3 "${DATABASE_PATH:-outpost.db}" status'
 
 [tasks.migrate-down]
-description = "Roll back the last migration"
+description = "Roll back the last migration with goose"
 run = 'go tool goose -dir internal/database/migrations sqlite3 "${DATABASE_PATH:-outpost.db}" down'
 
 [tasks.migrate-new]
-description = "Create a new migration"
+description = "Create a new migration with goose"
 run = 'go tool goose -dir internal/database/migrations -s create {{arg(name="name")}} sql'
