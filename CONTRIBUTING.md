@@ -4,12 +4,12 @@ This guide is for developers. To run Outpost, see the [README](README.md).
 
 ## Setup
 
-Outpost needs [mise](https://mise.jdx.dev/). mise installs Go in the version that the project uses.
+Outpost needs [mise](https://mise.jdx.dev/). mise installs Go and Node in the versions that the project uses.
 
 ```sh
 mise install
 cp .env.example .env    # add your Twitch credentials
-mise setup              # dev tools in .tools/, for the VS Code extensions
+mise setup              # Prettier in node_modules/, dev tools in .tools/ for the VS Code extensions
 mise start
 ```
 
@@ -23,15 +23,17 @@ docker build -t outpost .
 
 ## Tasks
 
-| Task                   | What it does                                       |
-| ---------------------- | -------------------------------------------------- |
-| `mise run test`        | Runs all tests with the race detector.             |
-| `mise run lint`        | Runs golangci-lint.                                |
-| `mise run vulncheck`   | Checks for known vulnerabilities with govulncheck. |
-| `mise run gen-sql`     | Generates the query code in `dbgen` with sqlc.     |
-| `mise run gen-templ`   | Generates the Go code of the templ components.     |
-| `mise run templ-fmt`   | Formats the templ files.                           |
-| `mise run migrate-new` | Creates a new migration.                           |
+| Task                   | What it does                                        |
+| ---------------------- | --------------------------------------------------- |
+| `mise run test`        | Runs all tests with the race detector.              |
+| `mise run lint`        | Runs golangci-lint.                                 |
+| `mise run vulncheck`   | Checks for known vulnerabilities with govulncheck.  |
+| `mise run gen-sql`     | Generates the query code in `dbgen` with sqlc.      |
+| `mise run gen-templ`   | Generates the Go code of the templ components.      |
+| `mise run templ-fmt`   | Formats the templ files.                            |
+| `mise run fmt`         | Formats CSS, Markdown, YAML and JSON with Prettier. |
+| `mise run fmt-check`   | Checks the formatting of these files with Prettier. |
+| `mise run migrate-new` | Creates a new migration.                            |
 
 CI runs the tests, lint, `templ generate`, `templ fmt` and `sqlc diff` on every pull request. Run them before you push.
 

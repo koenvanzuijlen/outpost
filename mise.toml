@@ -1,8 +1,10 @@
 [tools]
 go = "1.27.3"
+node = "26.13.0"
 
 [env]
 _.file = ".env"
+_.path = ["{{config_root}}/node_modules/.bin"]
 
 [tasks.build]
 description = "Build the binary"
@@ -21,11 +23,20 @@ description = "Run all tests with the race detector"
 run = "go test -race ./..."
 
 [tasks.setup]
-description = "Build local dev tool binaries into .tools/"
+description = "Install Node dependencies and build local dev tool binaries into .tools/"
 run = [
+	"npm ci",
 	"go build -o .tools/golangci-lint-v2 github.com/golangci/golangci-lint/v2/cmd/golangci-lint",
 	"go build -o .tools/templ github.com/a-h/templ/cmd/templ",
 ]
+
+[tasks.fmt]
+description = "Format files with Prettier"
+run = "prettier --write ."
+
+[tasks.fmt-check]
+description = "Check formatting with Prettier"
+run = "prettier --check ."
 
 [tasks.lint]
 description = "Run linters with golangci-lint"
