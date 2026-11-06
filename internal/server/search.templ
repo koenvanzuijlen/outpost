@@ -4,9 +4,11 @@ import "strconv"
 
 // searchForm is the game search box, prefilled with query.
 templ searchForm(query string) {
-	<form action="/search" role="search">
-		<input type="search" name="q" value={ query } placeholder="Search for games..." aria-label="Search games"/>
-		<button type="submit">Search</button>
+	<form action="/search" role="search" class="search-form">
+		<input type="search" name="q" value={ query } placeholder="Find games…" aria-label="Find games" class="search-form__input"/>
+		<button type="submit" aria-label="Search" class="search-form__button">
+			@icon("search")
+		</button>
 	</form>
 }
 

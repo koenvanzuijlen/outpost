@@ -55,6 +55,7 @@
     --color-bg: oklch(0.98 0.004 250);
     --color-surface: oklch(1 0.004 250);
     --color-border: oklch(0.85 0.006 250);
+    --color-border-strong: oklch(0.62 0.01 250);
     --color-text: oklch(0.25 0.012 250);
     --color-text-muted: oklch(0.48 0.012 250);
 
@@ -130,5 +131,71 @@
   .menu-bar__brand span {
     font-size: 1.5rem;
     font-weight: 700;
+  }
+
+  .icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    width: 1em;
+    height: 1em;
+  }
+
+  .icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* The border is on the form, so the input and the button look like one control. */
+  .search-form {
+    display: flex;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    overflow: hidden;
+  }
+
+  .search-form:has(.search-form__input:focus-visible) {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .search-form__input {
+    width: 16rem;
+    min-width: 0;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    background: transparent;
+    appearance: none;
+  }
+
+  .search-form__input:focus-visible {
+    outline: none;
+  }
+
+  .search-form__input::placeholder {
+    color: var(--color-text-muted);
+    opacity: 1;
+  }
+
+  .search-form__button {
+    display: flex;
+    align-items: center;
+    padding: 0 0.75rem;
+    border: 0;
+    border-left: 1px solid var(--color-border-strong);
+    background: transparent;
+    color: var(--color-accent);
+    font-size: 1.25rem;
+    cursor: pointer;
+  }
+
+  .search-form__button:hover {
+    background: var(--color-bg);
+    color: var(--color-accent-hover);
+  }
+
+  /* The form clips outlines, so the button's focus ring goes inside the button. */
+  .search-form__button:focus-visible {
+    outline-offset: -3px;
   }
 }
