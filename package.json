@@ -2,6 +2,7 @@
   "name": "outpost",
   "private": true,
   "devDependencies": {
+    "lucide-static": "1.70.0",
     "prettier": "3.9.10"
   }
 }

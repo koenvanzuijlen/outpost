@@ -58,6 +58,17 @@ run = "go tool govulncheck ./..."
 description = "Generate Go code from SQL queries with sqlc"
 run = "go tool sqlc generate"
 
+[tasks.gen-icons]
+description = "Copy the Lucide icons in internal/server/icons/icons.txt from lucide-static"
+dir = "{{config_root}}/internal/server/icons"
+run = '''
+rm -f *.svg
+while read -r name || [ -n "$name" ]; do
+	cp "{{config_root}}/node_modules/lucide-static/icons/$name.svg" .
+done < icons.txt
+cp "{{config_root}}/node_modules/lucide-static/LICENSE" LICENSE.txt
+'''
+
 [tasks.migrate-status]
 description = "Show the migration status with goose"
 run = 'go tool goose -dir internal/database/migrations sqlite3 "${DATABASE_PATH:-outpost.db}" status'
