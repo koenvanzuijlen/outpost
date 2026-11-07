@@ -42,7 +42,7 @@ func TestHandleWishlistsGames(t *testing.T) {
 	wishlistTestGame(t, server)
 	w := getPage(t, server, "/wishlist")
 
-	assertBodyContains(t, w, `<a href="/games/1942">`)
+	assertBodyContains(t, w, `href="/games/1942"`)
 }
 
 func TestHandleWishlistEmpty(t *testing.T) {
@@ -63,7 +63,7 @@ func TestHandleRemoveFromWishlist(t *testing.T) {
 	assertLocation(t, w, "/")
 
 	w = getPage(t, server, "/wishlist")
-	assertBodyNotContains(t, w, `<a href="/games/1942">`)
+	assertBodyNotContains(t, w, `href="/games/1942"`)
 }
 
 func TestHandleRemoveFromWishlistKeepsLibraryGame(t *testing.T) {
@@ -76,7 +76,7 @@ func TestHandleRemoveFromWishlistKeepsLibraryGame(t *testing.T) {
 	}
 
 	w = getPage(t, server, "/library")
-	assertBodyContains(t, w, `<a href="/games/1942">`)
+	assertBodyContains(t, w, `href="/games/1942"`)
 }
 
 func TestHandleAddToWishlistDLC(t *testing.T) {

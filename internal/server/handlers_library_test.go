@@ -219,8 +219,8 @@ func TestHandleHomeRendersLibraryAndWishlist(t *testing.T) {
 	}
 
 	w = getPage(t, server, "/")
-	assertBodyContains(t, w, `<a href="/games/194662">`)
-	assertBodyContains(t, w, `<a href="/games/1942">`)
+	assertBodyContains(t, w, `href="/games/194662"`)
+	assertBodyContains(t, w, `href="/games/1942"`)
 }
 
 func TestHandleHomeShowsPlayingGames(t *testing.T) {
@@ -246,10 +246,10 @@ func TestHandleHomeShowsPlayingGames(t *testing.T) {
 		t.Fatalf("body missing backlog section:\n%s", body)
 	}
 
-	if !strings.Contains(playing, `<a href="/games/1942">`) {
+	if !strings.Contains(playing, `href="/games/1942"`) {
 		t.Errorf("playing section missing playing game 1942:\n%s", playing)
 	}
-	if strings.Contains(playing, `<a href="/games/194662">`) {
+	if strings.Contains(playing, `href="/games/194662"`) {
 		t.Errorf("playing section contains backlog game 194662:\n%s", playing)
 	}
 }
@@ -258,9 +258,9 @@ func TestHandleHomeLinks(t *testing.T) {
 	server := newTestServer(t)
 	w := getPage(t, server, "/")
 
-	assertBodyContains(t, w, `href="/library?status=playing&sort=started"`)
+	assertBodyNotContains(t, w, `href="/library?status=playing&sort=started"`)
 	assertBodyContains(t, w, `href="/library?status=backlog"`)
-	assertBodyContains(t, w, `href="/wishlist"`)
+	assertBodyContains(t, w, `wishlist games</span>`)
 }
 
 func TestHandleHomeRendersUnownedDLC(t *testing.T) {
@@ -271,8 +271,7 @@ func TestHandleHomeRendersUnownedDLC(t *testing.T) {
 	}
 
 	w := getPage(t, server, "/")
-	assertBodyContains(t, w, `<a href="/games/12503">`)
-	assertBodyContains(t, w, "not owned")
+	assertBodyContains(t, w, `href="/games/12503"`)
 }
 
 // addBacklogAndCompletedGames adds The Witcher IV (194662) with status backlog and The Witcher 3 (1942) with status
@@ -295,8 +294,8 @@ func TestHandleLibraryFiltersByStatus(t *testing.T) {
 	addBacklogAndCompletedGames(t, server)
 
 	w := getPage(t, server, "/library?status=backlog")
-	assertBodyContains(t, w, `<a href="/games/194662">`)
-	assertBodyNotContains(t, w, `<a href="/games/1942">`)
+	assertBodyContains(t, w, `href="/games/194662"`)
+	assertBodyNotContains(t, w, `href="/games/1942"`)
 }
 
 func TestHandleLibraryInvalidQuery(t *testing.T) {

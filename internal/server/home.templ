@@ -1,48 +1,53 @@
 package server
 
-// homeView renders the home page: the playing games, and samples of the backlog and the wishlist, each with a link to
-// the full list.
+// homeView renders the home page: all playing games, and samples of the backlog and the wishlist. The backlog and the
+// wishlist each have a link to the full list with the total number of games.
 templ homeView(page homePage) {
 	@layout("") {
 		<h1>Outpost</h1>
-		<div>
+		<section class="home-section">
 			<h2>Playing</h2>
-			<ul>
-				if len(page.PlayingGames) > 0 {
+			if len(page.PlayingGames) > 0 {
+				<ul class="game-grid">
 					for _, entry := range page.PlayingGames {
-						@libraryEntry(entry)
+						<li>
+							@libraryCard(entry)
+						</li>
 					}
-				} else {
-					<li>You are not currently playing any games.</li>
-				}
-			</ul>
-			<a href="/library?status=playing&sort=started">Show all</a>
-		</div>
-		<div>
-			<h2>Backlog ({ page.BacklogCount })</h2>
-			<ul>
-				if len(page.BacklogGames) > 0 {
+				</ul>
+			} else {
+				<p>You are not currently playing any games.</p>
+			}
+		</section>
+		<section class="home-section">
+			<h2>Backlog</h2>
+			if len(page.BacklogGames) > 0 {
+				<ul class="game-grid">
 					for _, entry := range page.BacklogGames {
-						@libraryEntry(entry)
+						<li>
+							@libraryCard(entry)
+						</li>
 					}
-				} else {
-					<li>Your backlog is empty.</li>
-				}
-			</ul>
-			<a href="/library?status=backlog">Show all</a>
-		</div>
-		<div>
-			<h2>Wishlist ({ page.WishlistCount })</h2>
-			<ul>
-				if len(page.WishlistGames) > 0 {
+				</ul>
+			} else {
+				<p>Your backlog is empty.</p>
+			}
+			<a href="/library?status=backlog" class="home-section__more">View all <span class="visually-hidden">backlog games</span> ({ page.BacklogCount })</a>
+		</section>
+		<section class="home-section">
+			<h2>Wishlist</h2>
+			if len(page.WishlistGames) > 0 {
+				<ul class="game-grid">
 					for _, entry := range page.WishlistGames {
-						@wishlistEntry(entry)
+						<li>
+							@gameCard(entry.Game, "", 0)
+						</li>
 					}
-				} else {
-					<li>Your wishlist is empty.</li>
-				}
-			</ul>
-			<a href="/wishlist">Show all</a>
-		</div>
+				</ul>
+			} else {
+				<p>Your wishlist is empty.</p>
+			}
+			<a href="/wishlist" class="home-section__more">View all <span class="visually-hidden">wishlist games</span> ({ page.WishlistCount })</a>
+		</section>
 	}
 }

@@ -1,0 +1,42 @@
+package server
+
+import (
+	"github.com/koenvanzuijlen/outpost/internal/database"
+	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
+)
+
+// gameCard is a link to the game page with the cover, the title and the release year. A game without a cover shows a
+// placeholder icon. A non-empty status shows as a compact badge and a rating above zero shows as stars. Both show over
+// the cover on hover and keyboard focus, and are part of the link text.
+templ gameCard(game dbgen.Game, status database.GameStatus, rating int64) {
+	<a href={ gameURL(game.IgdbID) } class="game-card">
+		<span class="game-card__cover">
+			if game.CoverUrl != nil {
+				<img src={ *game.CoverUrl } alt="" width="264" height="374" loading="lazy"/>
+			} else {
+				@icon("image-off")
+			}
+		</span>
+		<span class="game-card__title">{ game.Title }</span>
+		if game.ReleasedAt != nil {
+			<span class="game-card__year">{ game.ReleasedAt.Year() }</span>
+		}
+		if status != "" {
+			<span class="game-card__status">
+				@gameStatusBadge(status, true)
+			</span>
+		}
+		if rating > 0 {
+			<span class="game-card__rating" role="img" aria-label={ ratingLabel(rating) } title={ ratingLabel(rating) }>{ ratingText(rating) }</span>
+		}
+	</a>
+}
+
+// libraryCard is the game card of a library entry, with its status and rating.
+templ libraryCard(entry database.LibraryEntry) {
+	@gameCard(
+		entry.Game,
+		database.GameStatus(derefOrZero(entry.UserGame.Status)),
+		derefOrZero(entry.UserGame.Rating),
+	)
+}

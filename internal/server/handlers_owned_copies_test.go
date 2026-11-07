@@ -47,8 +47,7 @@ func TestHandleRemoveOnlyCopy(t *testing.T) {
 	}
 
 	w := getPage(t, server, "/")
-	assertBodyContains(t, w, `<a href="/games/1942">`)
-	assertBodyContains(t, w, "not owned")
+	assertBodyContains(t, w, `href="/games/1942"`)
 
 	w = getTestGamePage(t, server)
 	assertBodyContains(t, w, "Not owned on any platform.")
