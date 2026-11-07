@@ -1,0 +1,27 @@
+package server
+
+import "github.com/koenvanzuijlen/outpost/internal/database"
+
+// gameStatusBadge shows status as a badge in the color of the status. The full variant shows the icon and the status
+// text. The compact variant shows only the icon, with the status text as its accessible label and tooltip.
+templ gameStatusBadge(status database.GameStatus, compact bool) {
+	{{
+		statusIcon := gameStatusIcon(status)
+		statusLabel := gameStatusLabel(status)
+	}}
+	<span
+		class={ "badge", "badge--" + string(status) }
+		if compact {
+			role="img"
+			aria-label={ statusLabel }
+			title={ statusLabel }
+		}
+	>
+		if statusIcon != "" {
+			@icon(statusIcon)
+		}
+		if !compact {
+			{ statusLabel }
+		}
+	</span>
+}

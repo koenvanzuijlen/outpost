@@ -11,7 +11,7 @@ templ libraryView(page libraryPage) {
 				<select name="status">
 					<option value="" selected?={ page.Status == "" }>All</option>
 					for _, status := range page.StatusOptions {
-						<option value={ string(status) } selected?={ status == page.Status }>{ status }</option>
+						<option value={ string(status) } selected?={ status == page.Status }>{ gameStatusLabel(status) }</option>
 					}
 				</select>
 			</label>

@@ -198,4 +198,54 @@
   .search-form__button:focus-visible {
     outline-offset: -3px;
   }
+
+  /* Each status class sets a hue and a chroma. All badge colors derive from these two values. */
+  .badge {
+    --badge-hue: 250;
+    --badge-chroma: 0.02;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid oklch(0.8 var(--badge-chroma) var(--badge-hue));
+    border-radius: 999px;
+    background: oklch(0.95 calc(var(--badge-chroma) * 0.3) var(--badge-hue));
+    color: oklch(0.42 var(--badge-chroma) var(--badge-hue));
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .badge--backlog {
+    --badge-hue: 250;
+    --badge-chroma: 0.02;
+  }
+
+  .badge--playing {
+    --badge-hue: 300;
+    --badge-chroma: 0.14;
+  }
+
+  .badge--completed {
+    --badge-hue: 150;
+    --badge-chroma: 0.12;
+  }
+
+  .badge--shelved {
+    --badge-hue: 60;
+    --badge-chroma: 0.12;
+  }
+
+  .badge--abandoned {
+    --badge-hue: 25;
+    --badge-chroma: 0.15;
+  }
+
+  .badge--retired {
+    --badge-hue: 255;
+    --badge-chroma: 0.13;
+  }
 }

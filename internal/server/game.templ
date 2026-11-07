@@ -43,7 +43,7 @@ templ gameInfo(page gamePage) {
 				<p>On your wishlist</p>
 			}
 			if page.Details.UserGame.Status != nil {
-				<p>Status: { *page.Details.UserGame.Status }</p>
+				@gameStatusBadge(database.GameStatus(*page.Details.UserGame.Status), false)
 			}
 			if page.Details.UserGame.Rating != nil {
 				<span title={ ratingLabel(*page.Details.UserGame.Rating) } aria-label={ ratingLabel(*page.Details.UserGame.Rating) } role="img">{ ratingText(*page.Details.UserGame.Rating) }</span>
@@ -126,7 +126,7 @@ templ gameCopies(page gamePage) {
 										<button type="submit" name="owned" value={ !dlc.Owned } aria-pressed={ dlc.Owned }>Owned</button>
 									</form>
 									if dlc.InLibrary {
-										<p>In library: { dlc.Status }</p>
+										<p>In library: @gameStatusBadge(dlc.Status, false)</p>
 									}
 								</li>
 							}

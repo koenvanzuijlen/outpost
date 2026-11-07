@@ -20,7 +20,7 @@ templ libraryEntry(entry database.LibraryEntry) {
 			not owned
 		}
 		if entry.UserGame.Status != nil {
-			- { *entry.UserGame.Status }
+			@gameStatusBadge(database.GameStatus(*entry.UserGame.Status), true)
 		}
 	</li>
 }
