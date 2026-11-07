@@ -16,7 +16,9 @@ templ layout(query string) {
 		</head>
 		<body>
 			@menuBar(query)
-			{ children... }
+			<main class="page">
+				{ children... }
+			</main>
 		</body>
 	</html>
 }

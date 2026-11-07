@@ -5,14 +5,16 @@ templ wishlistView(page wishlistPage) {
 	@layout("") {
 		<h1>Wishlist</h1>
 		<a href="/">Back to home</a>
-		<ul>
-			if len(page.Games) > 0 {
+		if len(page.Games) > 0 {
+			<ul class="game-grid">
 				for _, entry := range page.Games {
-					@wishlistEntry(entry)
+					<li>
+						@gameCard(entry.Game, "", 0)
+					</li>
 				}
-			} else {
-				<li>Your wishlist is empty.</li>
-			}
-		</ul>
+			</ul>
+		} else {
+			<p>Your wishlist is empty.</p>
+		}
 	}
 }

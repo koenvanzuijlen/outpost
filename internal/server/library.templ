@@ -25,14 +25,16 @@ templ libraryView(page libraryPage) {
 			</label>
 			<button type="submit">Apply</button>
 		</form>
-		<ul>
-			if len(page.Games) > 0 {
+		if len(page.Games) > 0 {
+			<ul class="game-grid">
 				for _, entry := range page.Games {
-					@libraryEntry(entry)
+					<li>
+						@libraryCard(entry)
+					</li>
 				}
-			} else {
-				<li>No results.</li>
-			}
-		</ul>
+			</ul>
+		} else {
+			<p>No results.</p>
+		}
 	}
 }

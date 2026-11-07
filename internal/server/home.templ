@@ -5,44 +5,50 @@ package server
 templ homeView(page homePage) {
 	@layout("") {
 		<h1>Outpost</h1>
-		<div>
+		<section class="home-section">
 			<h2>Playing</h2>
-			<ul>
-				if len(page.PlayingGames) > 0 {
+			if len(page.PlayingGames) > 0 {
+				<ul class="game-grid">
 					for _, entry := range page.PlayingGames {
-						@libraryEntry(entry)
+						<li>
+							@libraryCard(entry)
+						</li>
 					}
-				} else {
-					<li>You are not currently playing any games.</li>
-				}
-			</ul>
+				</ul>
+			} else {
+				<p>You are not currently playing any games.</p>
+			}
 			<a href="/library?status=playing&sort=started">Show all</a>
-		</div>
-		<div>
+		</section>
+		<section class="home-section">
 			<h2>Backlog ({ page.BacklogCount })</h2>
-			<ul>
-				if len(page.BacklogGames) > 0 {
+			if len(page.BacklogGames) > 0 {
+				<ul class="game-grid">
 					for _, entry := range page.BacklogGames {
-						@libraryEntry(entry)
+						<li>
+							@libraryCard(entry)
+						</li>
 					}
-				} else {
-					<li>Your backlog is empty.</li>
-				}
-			</ul>
+				</ul>
+			} else {
+				<p>Your backlog is empty.</p>
+			}
 			<a href="/library?status=backlog">Show all</a>
-		</div>
-		<div>
+		</section>
+		<section class="home-section">
 			<h2>Wishlist ({ page.WishlistCount })</h2>
-			<ul>
-				if len(page.WishlistGames) > 0 {
+			if len(page.WishlistGames) > 0 {
+				<ul class="game-grid">
 					for _, entry := range page.WishlistGames {
-						@wishlistEntry(entry)
+						<li>
+							@gameCard(entry.Game, "", 0)
+						</li>
 					}
-				} else {
-					<li>Your wishlist is empty.</li>
-				}
-			</ul>
+				</ul>
+			} else {
+				<p>Your wishlist is empty.</p>
+			}
 			<a href="/wishlist">Show all</a>
-		</div>
+		</section>
 	}
 }

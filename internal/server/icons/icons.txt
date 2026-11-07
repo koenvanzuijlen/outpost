@@ -1,6 +1,7 @@
 archive
 circle-x
 gamepad-2
+image-off
 list-todo
 pause
 search
