@@ -30,12 +30,12 @@ docker build -t outpost .
 | `mise run vulncheck`   | Checks for known vulnerabilities with govulncheck.  |
 | `mise run gen-sql`     | Generates the query code in `dbgen` with sqlc.      |
 | `mise run gen-templ`   | Generates the Go code of the templ components.      |
-| `mise run templ-fmt`   | Formats the templ files.                            |
+| `mise run templ-fmt`   | Formats the templ files. Requires Prettier.         |
 | `mise run fmt`         | Formats CSS, Markdown, YAML and JSON with Prettier. |
 | `mise run fmt-check`   | Checks the formatting of these files with Prettier. |
 | `mise run migrate-new` | Creates a new migration.                            |
 
-CI runs the tests, lint, `templ generate`, `templ fmt` and `sqlc diff` on every pull request. Run them before you push.
+CI runs the tests, lint, `templ generate`, `templ fmt`, `sqlc diff` and Prettier on every pull request. Run them before you push.
 
 ## Pull requests
 

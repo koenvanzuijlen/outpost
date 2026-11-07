@@ -23,6 +23,8 @@ jobs:
           key: ${{ runner.os }}-go-check-${{ steps.mise.outputs.go }}-${{ hashFiles('go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-check-
+      - name: Install Node dependencies
+        run: npm ci
       - name: sqlc generated
         run: go tool sqlc diff
       - name: templ generated
@@ -30,7 +32,9 @@ jobs:
           go tool templ generate
           test -z "$(git status --porcelain)"
       - name: templ formatting
-        run: go tool templ fmt -fail .
+        run: go tool templ fmt -fail -prettier-required .
+      - name: Prettier formatting
+        run: mise run fmt-check
       - name: Lint
         run: go tool golangci-lint run
       - name: Tests

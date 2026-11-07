@@ -48,7 +48,7 @@ run = "go tool templ generate"
 
 [tasks.templ-fmt]
 description = "Format templ files with templ"
-run = "go tool templ fmt ."
+run = "go tool templ fmt -prettier-required ."
 
 [tasks.vulncheck]
 description = "Check for known vulnerabilities with govulncheck"
