@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/koenvanzuijlen/outpost/compare/v0.0.4...v0.0.5) (2026-11-07)
+
+
+### Features
+
+* add a menu bar and base styles ([#23](https://github.com/koenvanzuijlen/outpost/issues/23)) ([5ced6da](https://github.com/koenvanzuijlen/outpost/commit/5ced6da2945f0ac9ade06a97aed21a7a0e07b416))
+
 ## [0.0.4](https://github.com/koenvanzuijlen/outpost/compare/v0.0.3...v0.0.4) (2026-11-04)
 
 
