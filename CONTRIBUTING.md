@@ -30,6 +30,7 @@ docker build -t outpost .
 | `mise run vulncheck`   | Checks for known vulnerabilities with govulncheck.  |
 | `mise run gen-sql`     | Generates the query code in `dbgen` with sqlc.      |
 | `mise run gen-templ`   | Generates the Go code of the templ components.      |
+| `mise run gen-icons`   | Copies the Lucide icons in `icons.txt`.             |
 | `mise run templ-fmt`   | Formats the templ files. Requires Prettier.         |
 | `mise run fmt`         | Formats CSS, Markdown, YAML and JSON with Prettier. |
 | `mise run fmt-check`   | Checks the formatting of these files with Prettier. |
@@ -47,6 +48,13 @@ CI runs the tests, lint, `templ generate`, `templ fmt`, `sqlc diff` and Prettier
 ## Migrations
 
 Migrations are in `internal/database/migrations`. A migration on `main` never changes: CI fails a pull request that edits, deletes or renames one. Add a new migration with `mise run migrate-new <name>`. Outpost backs up the database before it runs new migrations.
+
+## Icons
+
+The icons come from the npm package [`lucide-static`](https://lucide.dev/guide/packages/lucide-static). `internal/server/icons/icons.txt` lists the icons that the app uses, one name per line. `mise run gen-icons` copies these icons and the Lucide license from `node_modules` into `internal/server/icons/`. A test fails when the SVG files and `icons.txt` do not match.
+
+- To add an icon, add its name to `icons.txt` and run `mise run gen-icons`. Use the icon in a template with `@icon("<name>")`.
+- Dependabot updates `lucide-static`. On that pull request, run `npm ci` and `mise run gen-icons`, then commit the changed icons.
 
 ## Vocabulary
 
