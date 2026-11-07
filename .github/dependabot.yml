@@ -9,6 +9,15 @@ updates:
     groups:
       go-dependencies:
         patterns: ["*"]
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "build"
+    groups:
+      npm-dependencies:
+        patterns: ["*"]
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
