@@ -1,4 +1,4 @@
-name: vulncheck
+name: Vulncheck
 
 on:
   pull_request:
@@ -26,5 +26,5 @@ jobs:
           key: ${{ runner.os }}-go-vulncheck-${{ steps.mise.outputs.go }}-${{ hashFiles('go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-vulncheck-
-      - name: Run vulnerability check
+      - name: Check for known vulnerabilities with govulncheck
         run: go tool govulncheck ./...
