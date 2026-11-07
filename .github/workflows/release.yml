@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release-please:
+  release:
     runs-on: ubuntu-latest
     environment: release
     outputs:
@@ -33,12 +33,12 @@ jobs:
     environment: release
     permissions:
       contents: read
-    needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    needs: release
+    if: needs.release.outputs.release_created == 'true'
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: ${{ needs.release.outputs.tag_name }}
       - uses: docker/login-action@v4
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
@@ -49,8 +49,8 @@ jobs:
         with:
           images: ${{ vars.DOCKERHUB_USERNAME }}/outpost
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.release-please.outputs.tag_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-please.outputs.tag_name }}
+            type=semver,pattern={{version}},value=${{ needs.release.outputs.tag_name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.tag_name }}
             type=raw,value=latest
       - uses: docker/build-push-action@v7
         with:

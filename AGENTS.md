@@ -12,8 +12,9 @@ Run these checks before you finish a change:
 - `go test -race ./...`
 - `go tool golangci-lint run`
 - `go tool templ generate` (the working tree must show no diff)
-- `go tool templ fmt -fail .`
+- `go tool templ fmt -fail -prettier-required .`
 - `go tool sqlc diff`
+- `mise run fmt-check`
 
 Never run a server that keeps running. Never run `git stash` or other commands that change the state of the repository, unless the user asks for it.
 

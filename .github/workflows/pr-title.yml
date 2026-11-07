@@ -1,4 +1,4 @@
-name: PR title validation
+name: PR title
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ jobs:
   pr-title:
     runs-on: ubuntu-latest
     steps:
-      - name: Validate PR title
+      - name: Check that the PR title is a Conventional Commit
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |

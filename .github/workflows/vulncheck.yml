@@ -1,4 +1,4 @@
-name: vulncheck
+name: Vulncheck
 
 on:
   pull_request:
@@ -10,12 +10,21 @@ permissions:
   contents: read
 
 jobs:
-  govulncheck:
+  vulncheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: jdx/mise-action@v5
+        id: mise
         with:
-          go-version-file: go.mod
-      - name: Run vulnerability check
+          install_args: go
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-vulncheck-${{ steps.mise.outputs.go }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-vulncheck-
+      - name: Check for known vulnerabilities with govulncheck
         run: go tool govulncheck ./...
