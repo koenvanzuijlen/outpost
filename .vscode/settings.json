@@ -1,4 +1,8 @@
 {
+  "[css][json][jsonc][markdown][yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
   "[templ]": {
     "editor.defaultFormatter": "a-h.templ",
     "editor.formatOnSave": true
