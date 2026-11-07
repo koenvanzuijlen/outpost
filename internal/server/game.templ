@@ -210,7 +210,7 @@ templ gameDetails(page gamePage) {
 				Status
 				<select name="status">
 					for _, status := range page.Statuses {
-						<option value={ status } selected?={ status == page.CurrentStatus }>{ status }</option>
+						<option value={ status } selected?={ status == page.CurrentStatus }>{ gameStatusLabel(status) }</option>
 					}
 				</select>
 			</label>
