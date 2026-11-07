@@ -258,9 +258,9 @@ func TestHandleHomeLinks(t *testing.T) {
 	server := newTestServer(t)
 	w := getPage(t, server, "/")
 
-	assertBodyContains(t, w, `href="/library?status=playing&sort=started"`)
+	assertBodyNotContains(t, w, `href="/library?status=playing&sort=started"`)
 	assertBodyContains(t, w, `href="/library?status=backlog"`)
-	assertBodyContains(t, w, `href="/wishlist"`)
+	assertBodyContains(t, w, `wishlist games</span>`)
 }
 
 func TestHandleHomeRendersUnownedDLC(t *testing.T) {

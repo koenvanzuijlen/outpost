@@ -1,7 +1,7 @@
 package server
 
-// homeView renders the home page: the playing games, and samples of the backlog and the wishlist, each with a link to
-// the full list.
+// homeView renders the home page: all playing games, and samples of the backlog and the wishlist. The backlog and the
+// wishlist each have a link to the full list with the total number of games.
 templ homeView(page homePage) {
 	@layout("") {
 		<h1>Outpost</h1>
@@ -18,10 +18,9 @@ templ homeView(page homePage) {
 			} else {
 				<p>You are not currently playing any games.</p>
 			}
-			<a href="/library?status=playing&sort=started">Show all</a>
 		</section>
 		<section class="home-section">
-			<h2>Backlog ({ page.BacklogCount })</h2>
+			<h2>Backlog</h2>
 			if len(page.BacklogGames) > 0 {
 				<ul class="game-grid">
 					for _, entry := range page.BacklogGames {
@@ -33,10 +32,10 @@ templ homeView(page homePage) {
 			} else {
 				<p>Your backlog is empty.</p>
 			}
-			<a href="/library?status=backlog">Show all</a>
+			<a href="/library?status=backlog" class="home-section__more">View all <span class="visually-hidden">backlog games</span> ({ page.BacklogCount })</a>
 		</section>
 		<section class="home-section">
-			<h2>Wishlist ({ page.WishlistCount })</h2>
+			<h2>Wishlist</h2>
 			if len(page.WishlistGames) > 0 {
 				<ul class="game-grid">
 					for _, entry := range page.WishlistGames {
@@ -48,7 +47,7 @@ templ homeView(page homePage) {
 			} else {
 				<p>Your wishlist is empty.</p>
 			}
-			<a href="/wishlist">Show all</a>
+			<a href="/wishlist" class="home-section__more">View all <span class="visually-hidden">wishlist games</span> ({ page.WishlistCount })</a>
 		</section>
 	}
 }
