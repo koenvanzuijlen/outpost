@@ -14,8 +14,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: jdx/mise-action@v5
+        id: mise
         with:
-          go-version-file: go.mod
+          install_args: go
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-vulncheck-${{ steps.mise.outputs.go }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-vulncheck-
       - name: Run vulnerability check
         run: go tool govulncheck ./...
