@@ -220,8 +220,8 @@
   }
 
   .badge--backlog {
-    --badge-hue: 250;
-    --badge-chroma: 0.02;
+    --badge-hue: 350;
+    --badge-chroma: 0.12;
   }
 
   .badge--playing {
