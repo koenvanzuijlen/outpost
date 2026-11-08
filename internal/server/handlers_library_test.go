@@ -293,9 +293,31 @@ func TestHandleLibraryFiltersByStatus(t *testing.T) {
 	server := newTestServer(t)
 	addBacklogAndCompletedGames(t, server)
 
-	w := getPage(t, server, "/library?status=backlog")
-	assertBodyContains(t, w, `href="/games/194662"`)
-	assertBodyNotContains(t, w, `href="/games/1942"`)
+	const (
+		backlog   = `href="/games/194662"`
+		completed = `href="/games/1942"`
+	)
+	tests := []struct {
+		path    string
+		want    []string
+		wantNot []string
+	}{
+		{"/library?status=backlog", []string{backlog}, []string{completed}},
+		{"/library?status=backlog&status=completed", []string{backlog, completed}, nil},
+		{"/library?status=", []string{backlog, completed}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			w := getPage(t, server, tt.path)
+			for _, want := range tt.want {
+				assertBodyContains(t, w, want)
+			}
+			for _, unwanted := range tt.wantNot {
+				assertBodyNotContains(t, w, unwanted)
+			}
+		})
+	}
 }
 
 func TestHandleLibraryInvalidQuery(t *testing.T) {
@@ -305,6 +327,7 @@ func TestHandleLibraryInvalidQuery(t *testing.T) {
 	}{
 		{"invalid sort", "/library?sort=bogus"},
 		{"invalid status", "/library?status=bogus"},
+		{"one invalid status", "/library?status=backlog&status=bogus"},
 	}
 
 	for _, tt := range tests {
@@ -330,14 +353,22 @@ func TestHandleLibrarySelectedOptions(t *testing.T) {
 		{
 			"defaults",
 			"/library",
-			[]string{`<option value="title" selected>`},
-			[]string{`<option value="backlog" selected>`, `<option value="added" selected>`},
+			[]string{
+				`<option value="title" selected>`,
+				`href="/library?sort=title&amp;status=backlog" class="status-filter__toggle"`,
+			},
+			[]string{`aria-current="true"`, `name="status"`},
 		},
 		{
 			"status and sort",
 			"/library?status=backlog&sort=added",
-			[]string{`<option value="backlog" selected>`, `<option value="added" selected>`},
-			[]string{`<option value="completed" selected>`, `<option value="title" selected>`},
+			[]string{
+				`<option value="added" selected>`,
+				`href="/library?sort=added" class="status-filter__toggle" aria-current="true"`,
+				`href="/library?sort=added&amp;status=backlog&amp;status=completed" class="status-filter__toggle status-filter__toggle--inactive"`,
+				`<input type="hidden" name="status" value="backlog">`,
+			},
+			[]string{`<option value="title" selected>`},
 		},
 	}
 

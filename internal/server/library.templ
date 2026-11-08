@@ -1,20 +1,29 @@
 package server
 
-// libraryView renders the library page: the status filter and sort form, and the matching games.
+// libraryView renders the library page: a toggle link for each status, the sort form, and the matching games.
 templ libraryView(page libraryPage) {
 	@layout("") {
 		<h1>Library</h1>
 		<a href="/">Back to home</a>
+		<ul class="status-filter">
+			for _, toggle := range page.StatusToggles {
+				<li>
+					<a
+						href={ toggle.Href }
+						class={ "status-filter__toggle",templ.KV("status-filter__toggle--inactive", !toggle.Active && len(page.Statuses) > 0) }
+						if toggle.Active {
+							aria-current="true"
+						}
+					>
+						@gameStatusBadge(toggle.Status, false)
+					</a>
+				</li>
+			}
+		</ul>
 		<form method="get" action="/library">
-			<label>
-				Status:
-				<select name="status">
-					<option value="" selected?={ page.Status == "" }>All</option>
-					for _, status := range page.StatusOptions {
-						<option value={ string(status) } selected?={ status == page.Status }>{ gameStatusLabel(status) }</option>
-					}
-				</select>
-			</label>
+			for _, status := range page.Statuses {
+				<input type="hidden" name="status" value={ string(status) }/>
+			}
 			<label>
 				Sort by:
 				<select name="sort">

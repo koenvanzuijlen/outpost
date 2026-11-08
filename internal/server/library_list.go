@@ -3,6 +3,7 @@ package server
 import (
 	"cmp"
 	"math/rand/v2"
+	"net/url"
 	"slices"
 	"time"
 
@@ -49,15 +50,66 @@ func librarySortOptions() []librarySortOption {
 	}
 }
 
-// filterLibrary returns the entries with the given status, or all entries if status is empty. It modifies entries in
-// place.
-func filterLibrary(entries []database.LibraryEntry, status database.GameStatus) []database.LibraryEntry {
-	if status == "" {
+// libraryQuery holds the query values of the library page: the active statuses and the sort.
+type libraryQuery struct {
+	Statuses []database.GameStatus
+	Sort     librarySort
+}
+
+// URL returns the library page URL for q. The statuses are in the order of database.GameStatuses, each status once.
+func (q libraryQuery) URL() string {
+	values := url.Values{}
+	for _, status := range database.GameStatuses {
+		if slices.Contains(q.Statuses, status) {
+			values.Add("status", string(status))
+		}
+	}
+	values.Set("sort", string(q.Sort))
+	return "/library?" + values.Encode()
+}
+
+// libraryStatusToggle is a status filter link on the library page. Href is the library URL with Status switched on or
+// off.
+type libraryStatusToggle struct {
+	Status database.GameStatus
+	Active bool
+	Href   string
+}
+
+// StatusToggles returns one toggle for each status in database.GameStatuses. An active toggle links to q without its
+// status. An inactive toggle links to q with its status added. q is not changed.
+func (q libraryQuery) StatusToggles() []libraryStatusToggle {
+	toggles := make([]libraryStatusToggle, 0, len(database.GameStatuses))
+	for _, status := range database.GameStatuses {
+		active := slices.Contains(q.Statuses, status)
+
+		next := q
+		if active {
+			next.Statuses = slices.DeleteFunc(slices.Clone(q.Statuses), func(s database.GameStatus) bool {
+				return s == status
+			})
+		} else {
+			next.Statuses = append(slices.Clone(q.Statuses), status)
+		}
+
+		toggles = append(toggles, libraryStatusToggle{
+			Status: status,
+			Active: active,
+			Href:   next.URL(),
+		})
+	}
+	return toggles
+}
+
+// filterLibrary returns the entries with one of the given statuses, or all entries if statuses is empty. It modifies
+// entries in place.
+func filterLibrary(entries []database.LibraryEntry, statuses []database.GameStatus) []database.LibraryEntry {
+	if len(statuses) == 0 {
 		return entries
 	}
 	entries = slices.DeleteFunc(entries, func(e database.LibraryEntry) bool {
 		return e.UserGame.Status == nil ||
-			database.GameStatus(*e.UserGame.Status) != status
+			!slices.Contains(statuses, database.GameStatus(*e.UserGame.Status))
 	})
 	return entries
 }

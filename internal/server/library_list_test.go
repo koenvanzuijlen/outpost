@@ -56,22 +56,103 @@ func TestFilterLibrary(t *testing.T) {
 	}
 
 	tests := []struct {
-		name   string
-		status database.GameStatus
-		want   []string
+		name     string
+		statuses []database.GameStatus
+		want     []string
 	}{
-		{name: "matching status", status: database.GameStatusPlaying, want: []string{"A", "C"}},
-		{name: "empty status returns all", status: "", want: []string{"A", "B", "C", "D"}},
-		{name: "status nobody has", status: database.GameStatusRetired, want: []string{}},
+		{"matching status", []database.GameStatus{database.GameStatusPlaying}, []string{"A", "C"}},
+		{"no statuses returns all", nil, []string{"A", "B", "C", "D"}},
+		{"status nobody has", []database.GameStatus{database.GameStatusRetired}, []string{}},
+		{
+			"several statuses",
+			[]database.GameStatus{database.GameStatusPlaying, database.GameStatusBacklog},
+			[]string{"A", "B", "C"},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := titles(filterLibrary(entries(), tt.status))
+			got := titles(filterLibrary(entries(), tt.statuses))
 			if !slices.Equal(got, tt.want) {
-				t.Errorf("filterLibrary(%q) = %v, want %v", tt.status, got, tt.want)
+				t.Errorf("filterLibrary(%v) = %v, want %v", tt.statuses, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestLibraryQueryStatusToggles(t *testing.T) {
+	tests := []struct {
+		name       string
+		query      libraryQuery
+		status     database.GameStatus
+		wantActive bool
+		wantHref   string
+	}{
+		{
+			name:     "no filter adds the status",
+			query:    libraryQuery{Sort: librarySortTitle},
+			status:   database.GameStatusShelved,
+			wantHref: "/library?sort=title&status=shelved",
+		},
+		{
+			name:     "adds the status in the fixed order",
+			query:    libraryQuery{Statuses: []database.GameStatus{database.GameStatusShelved}, Sort: librarySortAdded},
+			status:   database.GameStatusBacklog,
+			wantHref: "/library?sort=added&status=backlog&status=shelved",
+		},
+		{
+			name: "removes an active status",
+			query: libraryQuery{
+				Statuses: []database.GameStatus{database.GameStatusShelved, database.GameStatusBacklog},
+				Sort:     librarySortTitle,
+			},
+			status:     database.GameStatusShelved,
+			wantActive: true,
+			wantHref:   "/library?sort=title&status=backlog",
+		},
+		{
+			name:       "removing the last status shows all",
+			query:      libraryQuery{Statuses: []database.GameStatus{database.GameStatusPlaying}, Sort: librarySortTitle},
+			status:     database.GameStatusPlaying,
+			wantActive: true,
+			wantHref:   "/library?sort=title",
+		},
+		{
+			name: "duplicate statuses appear once",
+			query: libraryQuery{
+				Statuses: []database.GameStatus{database.GameStatusPlaying, database.GameStatusPlaying},
+				Sort:     librarySortTitle,
+			},
+			status:   database.GameStatusBacklog,
+			wantHref: "/library?sort=title&status=backlog&status=playing",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			toggles := tt.query.StatusToggles()
+			i := slices.IndexFunc(toggles, func(toggle libraryStatusToggle) bool { return toggle.Status == tt.status })
+			if i == -1 {
+				t.Fatalf("StatusToggles() has no toggle for %q", tt.status)
+			}
+			if toggles[i].Active != tt.wantActive {
+				t.Errorf("StatusToggles()[%q].Active = %v, want %v", tt.status, toggles[i].Active, tt.wantActive)
+			}
+			if toggles[i].Href != tt.wantHref {
+				t.Errorf("StatusToggles()[%q].Href = %q, want %q", tt.status, toggles[i].Href, tt.wantHref)
+			}
+		})
+	}
+}
+
+func TestLibraryQueryStatusTogglesKeepsQuery(t *testing.T) {
+	// The query slice has room for one more status, so an append without a copy writes into backing[1].
+	backing := []database.GameStatus{database.GameStatusShelved, database.GameStatusCompleted}
+	libraryQuery{Statuses: backing[:1], Sort: librarySortTitle}.StatusToggles()
+
+	want := []database.GameStatus{database.GameStatusShelved, database.GameStatusCompleted}
+	if !slices.Equal(backing, want) {
+		t.Errorf("statuses after StatusToggles() = %v, want %v", backing, want)
 	}
 }
 

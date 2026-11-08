@@ -249,6 +249,33 @@
     --badge-chroma: 0.13;
   }
 
+  .status-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* The link is the click target and the badge inside it sets the look. Flex removes the gap under the inline badge. */
+  .status-filter__toggle {
+    display: flex;
+    border-radius: 999px;
+    text-decoration: none;
+  }
+
+  .status-filter__toggle:hover .badge {
+    border-color: oklch(0.6 var(--badge-chroma) var(--badge-hue));
+  }
+
+  /* All badge colors derive from the chroma, so a chroma of 0 makes the badge grey. The dashed border and the open
+     background also show the state without color. */
+  .status-filter__toggle--inactive .badge {
+    --badge-chroma: 0;
+
+    border-style: dashed;
+    background: transparent;
+    color: var(--color-text-muted);
+  }
+
   .page {
     display: flex;
     flex-direction: column;

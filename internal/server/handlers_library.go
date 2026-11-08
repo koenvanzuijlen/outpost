@@ -42,11 +42,11 @@ func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	playing := sortLibrary(
-		filterLibrary(slices.Clone(games), database.GameStatusPlaying),
+		filterLibrary(slices.Clone(games), []database.GameStatus{database.GameStatusPlaying}),
 		librarySortStarted,
 	)
 
-	backlog := filterLibrary(slices.Clone(games), database.GameStatusBacklog)
+	backlog := filterLibrary(slices.Clone(games), []database.GameStatus{database.GameStatusBacklog})
 	backlogCount := len(backlog)
 	backlog = randomSample(backlog, homeSampleSize)
 
@@ -62,25 +62,32 @@ func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// libraryPage represents the data needed to render the library page: the filtered and sorted entries, and the current
-// and available values of the status and sort selects.
+// libraryPage represents the data needed to render the library page: the filtered and sorted entries, the active
+// statuses with a toggle link for each status, and the current and available sorts.
 type libraryPage struct {
 	Games         []database.LibraryEntry
-	Status        database.GameStatus
-	StatusOptions []database.GameStatus
+	Statuses      []database.GameStatus
+	StatusToggles []libraryStatusToggle
 	Sort          librarySort
 	SortOptions   []librarySortOption
 }
 
-// handleLibrary renders the library page. It reads query values status (empty for all statuses) and sort (default title),
-// and returns 400 for an unknown value.
+// handleLibrary renders the library page. It reads query values status (repeatable; none means all statuses, empty
+// values are skipped) and sort (default title), and returns 400 for an unknown value.
 func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	status := database.GameStatus(r.URL.Query().Get("status"))
-	if status != "" && !status.Valid() {
-		http.Error(w, "Invalid game status", http.StatusBadRequest)
-		return
+	statusQuery := r.URL.Query()["status"]
+	selectedStatus := make([]database.GameStatus, 0, len(statusQuery))
+	for _, s := range statusQuery {
+		if s == "" {
+			continue
+		}
+		if !database.GameStatus(s).Valid() {
+			http.Error(w, "Invalid game status", http.StatusBadRequest)
+			return
+		}
+		selectedStatus = append(selectedStatus, database.GameStatus(s))
 	}
 
 	sort := librarySort(r.URL.Query().Get("sort"))
@@ -99,13 +106,13 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	games = filterLibrary(games, status)
+	games = filterLibrary(games, selectedStatus)
 	games = sortLibrary(games, sort)
 
 	server.renderComponent(w, r, libraryView(libraryPage{
 		Games:         games,
-		Status:        status,
-		StatusOptions: database.GameStatuses,
+		Statuses:      selectedStatus,
+		StatusToggles: libraryQuery{Statuses: selectedStatus, Sort: sort}.StatusToggles(),
 		Sort:          sort,
 		SortOptions:   librarySortOptions(),
 	}))
