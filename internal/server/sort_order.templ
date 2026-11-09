@@ -1,0 +1,15 @@
+package server
+
+// sortOrderToggle renders a link to href that reverses the sort order. The icon and the hidden text show the current
+// order.
+templ sortOrderToggle(order sortOrder, href string) {
+	<a class="sort-order-toggle" href={ href } title="Reverse sort order">
+		if order == sortOrderAsc {
+			@icon("arrow-down-narrow-wide")
+			<span class="visually-hidden">Ascending</span>
+		} else {
+			@icon("arrow-down-wide-narrow")
+			<span class="visually-hidden">Descending</span>
+		}
+	</a>
+}

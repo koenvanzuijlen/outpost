@@ -1,5 +1,5 @@
 {
-  "[css][json][jsonc][markdown][yaml]": {
+  "[css][javascript][json][jsonc][markdown][yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnSave": true
   },

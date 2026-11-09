@@ -5,35 +5,40 @@ templ libraryView(page libraryPage) {
 	@layout("") {
 		<h1>Library</h1>
 		<a href="/">Back to home</a>
-		<ul class="status-filter">
-			for _, toggle := range page.StatusToggles {
-				<li>
-					<a
-						href={ toggle.Href }
-						class={ "status-filter__toggle",templ.KV("status-filter__toggle--inactive", !toggle.Active && len(page.Statuses) > 0) }
-						if toggle.Active {
-							aria-current="true"
+		<div class="library-controls">
+			<ul class="status-filter">
+				for _, toggle := range page.StatusToggles {
+					<li>
+						<a
+							href={ toggle.Href }
+							class={ "status-filter__toggle",templ.KV("status-filter__toggle--inactive", !toggle.Active && len(page.Statuses) > 0) }
+							if toggle.Active {
+								aria-current="true"
+							}
+						>
+							@gameStatusBadge(toggle.Status, false)
+						</a>
+					</li>
+				}
+			</ul>
+			<form class="library-sort" method="get" action="/library">
+				for _, status := range page.Statuses {
+					<input type="hidden" name="status" value={ string(status) }/>
+				}
+				<label class="library-sort__field">
+					Sort by
+					<select class="library-sort__select" name="sort" data-auto-submit>
+						for _, sortOption := range page.SortOptions {
+							<option value={ string(sortOption.Value) } selected?={ sortOption.Value == page.Sort }>{ sortOption.Label }</option>
 						}
-					>
-						@gameStatusBadge(toggle.Status, false)
-					</a>
-				</li>
-			}
-		</ul>
-		<form method="get" action="/library">
-			for _, status := range page.Statuses {
-				<input type="hidden" name="status" value={ string(status) }/>
-			}
-			<label>
-				Sort by:
-				<select name="sort">
-					for _, sortOption := range page.SortOptions {
-						<option value={ string(sortOption.Value) } selected?={ sortOption.Value == page.Sort }>{ sortOption.Label }</option>
-					}
-				</select>
-			</label>
-			<button type="submit">Apply</button>
-		</form>
+					</select>
+				</label>
+				@sortOrderToggle(page.Order, page.OrderToggleURL)
+				<noscript>
+					<button class="library-sort__apply" type="submit">Apply</button>
+				</noscript>
+			</form>
+		</div>
 		if len(page.Games) > 0 {
 			<ul class="game-grid">
 				for _, entry := range page.Games {

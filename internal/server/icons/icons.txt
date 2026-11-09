@@ -1,4 +1,6 @@
 archive
+arrow-down-narrow-wide
+arrow-down-wide-narrow
 circle-x
 gamepad-2
 image-off

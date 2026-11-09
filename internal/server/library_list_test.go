@@ -90,41 +90,51 @@ func TestLibraryQueryStatusToggles(t *testing.T) {
 	}{
 		{
 			name:     "no filter adds the status",
-			query:    libraryQuery{Sort: librarySortTitle},
+			query:    libraryQuery{Sort: librarySortTitle, Order: sortOrderAsc},
 			status:   database.GameStatusShelved,
-			wantHref: "/library?sort=title&status=shelved",
+			wantHref: "/library?order=asc&sort=title&status=shelved",
 		},
 		{
-			name:     "adds the status in the fixed order",
-			query:    libraryQuery{Statuses: []database.GameStatus{database.GameStatusShelved}, Sort: librarySortAdded},
+			name: "adds the status in the fixed order",
+			query: libraryQuery{
+				Statuses: []database.GameStatus{database.GameStatusShelved},
+				Sort:     librarySortAdded,
+				Order:    sortOrderDesc,
+			},
 			status:   database.GameStatusBacklog,
-			wantHref: "/library?sort=added&status=backlog&status=shelved",
+			wantHref: "/library?order=desc&sort=added&status=backlog&status=shelved",
 		},
 		{
 			name: "removes an active status",
 			query: libraryQuery{
 				Statuses: []database.GameStatus{database.GameStatusShelved, database.GameStatusBacklog},
 				Sort:     librarySortTitle,
+				Order:    sortOrderAsc,
 			},
 			status:     database.GameStatusShelved,
 			wantActive: true,
-			wantHref:   "/library?sort=title&status=backlog",
+			wantHref:   "/library?order=asc&sort=title&status=backlog",
 		},
 		{
-			name:       "removing the last status shows all",
-			query:      libraryQuery{Statuses: []database.GameStatus{database.GameStatusPlaying}, Sort: librarySortTitle},
+			name: "removing the last status shows all",
+			query: libraryQuery{
+				Statuses: []database.GameStatus{database.GameStatusPlaying},
+				Sort:     librarySortTitle,
+				Order:    sortOrderAsc,
+			},
 			status:     database.GameStatusPlaying,
 			wantActive: true,
-			wantHref:   "/library?sort=title",
+			wantHref:   "/library?order=asc&sort=title",
 		},
 		{
 			name: "duplicate statuses appear once",
 			query: libraryQuery{
 				Statuses: []database.GameStatus{database.GameStatusPlaying, database.GameStatusPlaying},
 				Sort:     librarySortTitle,
+				Order:    sortOrderAsc,
 			},
 			status:   database.GameStatusBacklog,
-			wantHref: "/library?sort=title&status=backlog&status=playing",
+			wantHref: "/library?order=asc&sort=title&status=backlog&status=playing",
 		},
 	}
 
@@ -140,6 +150,37 @@ func TestLibraryQueryStatusToggles(t *testing.T) {
 			}
 			if toggles[i].Href != tt.wantHref {
 				t.Errorf("StatusToggles()[%q].Href = %q, want %q", tt.status, toggles[i].Href, tt.wantHref)
+			}
+		})
+	}
+}
+
+func TestLibraryQueryOrderToggleURL(t *testing.T) {
+	tests := []struct {
+		name  string
+		query libraryQuery
+		want  string
+	}{
+		{
+			name:  "ascending becomes descending",
+			query: libraryQuery{Sort: librarySortTitle, Order: sortOrderAsc},
+			want:  "/library?order=desc&sort=title",
+		},
+		{
+			name: "descending becomes ascending and keeps statuses",
+			query: libraryQuery{
+				Statuses: []database.GameStatus{database.GameStatusBacklog},
+				Sort:     librarySortStarted,
+				Order:    sortOrderDesc,
+			},
+			want: "/library?order=asc&sort=started&status=backlog",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.query.OrderToggleURL(); got != tt.want {
+				t.Errorf("OrderToggleURL() = %q, want %q", got, tt.want)
 			}
 		})
 	}
@@ -196,13 +237,15 @@ func TestSortLibrary(t *testing.T) {
 	e := entryBuilder()
 	tests := []struct {
 		name    string
-		order   librarySort
+		sort    librarySort
+		order   sortOrder
 		entries []database.LibraryEntry
 		want    []string
 	}{
 		{
 			name:  "started newest first, undated last",
-			order: librarySortStarted,
+			sort:  librarySortStarted,
+			order: sortOrderDesc,
 			entries: []database.LibraryEntry{
 				e("B", "", day(3, 1), nil),
 				e("A", "", nil, nil),
@@ -212,7 +255,8 @@ func TestSortLibrary(t *testing.T) {
 		},
 		{
 			name:  "finished newest first, undated last",
-			order: librarySortFinished,
+			sort:  librarySortFinished,
+			order: sortOrderDesc,
 			entries: []database.LibraryEntry{
 				e("B", "", nil, day(3, 1)),
 				e("A", "", nil, nil),
@@ -222,7 +266,8 @@ func TestSortLibrary(t *testing.T) {
 		},
 		{
 			name:  "same date ties sort by title",
-			order: librarySortStarted,
+			sort:  librarySortStarted,
+			order: sortOrderDesc,
 			entries: []database.LibraryEntry{
 				e("B", "", day(2, 1), nil),
 				e("A", "", day(2, 1), nil),
@@ -231,7 +276,8 @@ func TestSortLibrary(t *testing.T) {
 		},
 		{
 			name:  "added newest first, ties by title",
-			order: librarySortAdded,
+			sort:  librarySortAdded,
+			order: sortOrderDesc,
 			entries: []database.LibraryEntry{
 				addedOn(e("C", "", nil, nil), day(1, 1)),
 				addedOn(e("B", "", nil, nil), day(3, 1)),
@@ -242,7 +288,8 @@ func TestSortLibrary(t *testing.T) {
 		},
 		{
 			name:  "title",
-			order: librarySortTitle,
+			sort:  librarySortTitle,
+			order: sortOrderAsc,
 			entries: []database.LibraryEntry{
 				e("C", "", nil, nil),
 				e("A", "", nil, nil),
@@ -251,13 +298,69 @@ func TestSortLibrary(t *testing.T) {
 			},
 			want: []string{"A", "B", "C", "D"},
 		},
+		{
+			name:  "started oldest first, undated last",
+			sort:  librarySortStarted,
+			order: sortOrderAsc,
+			entries: []database.LibraryEntry{
+				e("B", "", day(3, 1), nil),
+				e("A", "", nil, nil),
+				e("C", "", day(1, 1), nil),
+			},
+			want: []string{"C", "B", "A"},
+		},
+		{
+			name:  "finished oldest first, undated last",
+			sort:  librarySortFinished,
+			order: sortOrderAsc,
+			entries: []database.LibraryEntry{
+				e("B", "", nil, day(3, 1)),
+				e("A", "", nil, nil),
+				e("C", "", nil, day(1, 1)),
+			},
+			want: []string{"C", "B", "A"},
+		},
+		{
+			name:  "ascending date ties sort by title",
+			sort:  librarySortStarted,
+			order: sortOrderAsc,
+			entries: []database.LibraryEntry{
+				e("B", "", day(2, 1), nil),
+				e("A", "", day(2, 1), nil),
+			},
+			want: []string{"A", "B"},
+		},
+		{
+			name:  "added oldest first, ties by title",
+			sort:  librarySortAdded,
+			order: sortOrderAsc,
+			entries: []database.LibraryEntry{
+				addedOn(e("C", "", nil, nil), day(1, 1)),
+				addedOn(e("B", "", nil, nil), day(3, 1)),
+				addedOn(e("A", "", nil, nil), day(3, 1)),
+				addedOn(e("D", "", nil, nil), day(2, 1)),
+			},
+			want: []string{"C", "D", "A", "B"},
+		},
+		{
+			name:  "title descending",
+			sort:  librarySortTitle,
+			order: sortOrderDesc,
+			entries: []database.LibraryEntry{
+				e("C", "", nil, nil),
+				e("A", "", nil, nil),
+				e("D", "", nil, nil),
+				e("B", "", nil, nil),
+			},
+			want: []string{"D", "C", "B", "A"},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := titles(sortLibrary(tt.entries, tt.order))
+			got := titles(sortLibrary(tt.entries, tt.sort, tt.order))
 			if !slices.Equal(got, tt.want) {
-				t.Errorf("sortLibrary(%q) = %v, want %v", tt.order, got, tt.want)
+				t.Errorf("sortLibrary(%q, %q) = %v, want %v", tt.sort, tt.order, got, tt.want)
 			}
 		})
 	}
