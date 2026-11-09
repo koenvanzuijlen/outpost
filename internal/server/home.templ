@@ -5,7 +5,7 @@ package server
 templ homeView(page homePage) {
 	@layout("") {
 		<h1>Outpost</h1>
-		<section class="home-section">
+		<section class="page-section">
 			<h2>Playing</h2>
 			if len(page.PlayingGames) > 0 {
 				<ul class="game-grid">
@@ -19,7 +19,7 @@ templ homeView(page homePage) {
 				<p>You are not currently playing any games.</p>
 			}
 		</section>
-		<section class="home-section">
+		<section class="page-section">
 			<h2>Backlog</h2>
 			if len(page.BacklogGames) > 0 {
 				<ul class="game-grid">
@@ -32,9 +32,9 @@ templ homeView(page homePage) {
 			} else {
 				<p>Your backlog is empty.</p>
 			}
-			<a href="/library?status=backlog" class="home-section__more">View all <span class="visually-hidden">backlog games</span> ({ page.BacklogCount })</a>
+			<a href="/library?status=backlog" class="page-section__more">View all <span class="visually-hidden">backlog games</span> ({ page.BacklogCount })</a>
 		</section>
-		<section class="home-section">
+		<section class="page-section">
 			<h2>Wishlist</h2>
 			if len(page.WishlistGames) > 0 {
 				<ul class="game-grid">
@@ -47,7 +47,7 @@ templ homeView(page homePage) {
 			} else {
 				<p>Your wishlist is empty.</p>
 			}
-			<a href="/wishlist" class="home-section__more">View all <span class="visually-hidden">wishlist games</span> ({ page.WishlistCount })</a>
+			<a href="/wishlist" class="page-section__more">View all <span class="visually-hidden">wishlist games</span> ({ page.WishlistCount })</a>
 		</section>
 	}
 }

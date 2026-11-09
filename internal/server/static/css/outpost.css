@@ -360,7 +360,7 @@
     padding: 1.5rem;
   }
 
-  .home-section {
+  .page-section {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -492,7 +492,7 @@
   }
 
   /* The section is a flex column, so align-self moves the link to the right edge. */
-  .home-section__more {
+  .page-section__more {
     align-self: flex-end;
   }
 }
