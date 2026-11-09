@@ -5,7 +5,6 @@ import (
 	"math/rand/v2"
 	"net/url"
 	"slices"
-	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
 )
@@ -167,20 +166,6 @@ func sortLibrary(entries []database.LibraryEntry, sort librarySort, order sortOr
 		)
 	})
 	return entries
-}
-
-// compareDatesNilLast compares two optional dates in the given order. Nil dates are last in both orders.
-func compareDatesNilLast(a, b *time.Time, order sortOrder) int {
-	if a == nil && b == nil {
-		return 0
-	}
-	if a == nil {
-		return 1
-	}
-	if b == nil {
-		return -1
-	}
-	return order.Apply(a.Compare(*b))
 }
 
 // randomSample returns a random sample of n entries from the given slice. If n is greater than or equal to the number

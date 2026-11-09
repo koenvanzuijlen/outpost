@@ -1,10 +1,26 @@
 package server
 
-// wishlistView renders the wishlist page: all wishlisted games.
+// wishlistView renders the wishlist page: the sort form and all wishlisted games.
 templ wishlistView(page wishlistPage) {
 	@layout("") {
 		<h1>Wishlist</h1>
 		<a href="/">Back to home</a>
+		<div class="list-controls">
+			<form class="sort-form" method="get" action="/wishlist">
+				<label class="sort-form__field">
+					Sort by
+					<select class="sort-form__select" name="sort" data-auto-submit>
+						for _, sortOption := range page.SortOptions {
+							<option value={ string(sortOption.Value) } selected?={ sortOption.Value == page.Sort }>{ sortOption.Label }</option>
+						}
+					</select>
+				</label>
+				@sortOrderToggle(page.Order, page.OrderToggleURL)
+				<noscript>
+					<button class="sort-form__apply" type="submit">Apply</button>
+				</noscript>
+			</form>
+		</div>
 		if len(page.Games) > 0 {
 			<ul class="game-grid">
 				for _, entry := range page.Games {

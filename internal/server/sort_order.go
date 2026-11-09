@@ -1,5 +1,7 @@
 package server
 
+import "time"
+
 // sortOrder is the direction of a sort, as in the query value order.
 type sortOrder string
 
@@ -29,4 +31,18 @@ func (o sortOrder) Apply(c int) int {
 		return c
 	}
 	return -c
+}
+
+// compareDatesNilLast compares two optional dates in the given order. Nil dates are last in both orders.
+func compareDatesNilLast(a, b *time.Time, order sortOrder) int {
+	if a == nil && b == nil {
+		return 0
+	}
+	if a == nil {
+		return 1
+	}
+	if b == nil {
+		return -1
+	}
+	return order.Apply(a.Compare(*b))
 }
