@@ -16,6 +16,7 @@ func TestStaticFiles(t *testing.T) {
 		wantCacheCtl string
 	}{
 		{"existing file", "/static/css/outpost.css", http.StatusOK, "public, max-age=3600"},
+		{"script", "/static/js/outpost.js", http.StatusOK, "public, max-age=3600"},
 		{"unknown file", "/static/missing.txt", http.StatusNotFound, ""},
 		{"directory", "/static/", http.StatusNotFound, ""},
 	}

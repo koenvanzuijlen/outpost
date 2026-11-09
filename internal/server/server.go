@@ -45,6 +45,7 @@ func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient) *Ser
 		crossOrigin.Handler,
 		server.recoverPanic,
 		server.requestLogging,
+		contentSecurityPolicy,
 	)
 	return server
 }

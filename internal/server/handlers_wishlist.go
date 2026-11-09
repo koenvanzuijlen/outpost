@@ -11,14 +11,38 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
-// wishlistPage represents the data needed to render the wishlist page.
+// wishlistPage represents the data needed to render the wishlist page: the sorted games, the current and available
+// sorts, and the order with the link that reverses it.
 type wishlistPage struct {
-	Games []dbgen.ListWishlistedUserGamesRow
+	Games          []dbgen.ListWishlistedUserGamesRow
+	Sort           wishlistSort
+	SortOptions    []wishlistSortOption
+	Order          sortOrder
+	OrderToggleURL string
 }
 
-// handleWishlist renders the wishlist page: all wishlisted games, oldest release first and unreleased games last.
+// handleWishlist renders the wishlist page with all wishlisted games. It reads query values sort (default released) and
+// order (asc or desc; default from wishlistSort.DefaultOrder), and returns 400 for an unknown value.
 func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	sort := wishlistSort(r.URL.Query().Get("sort"))
+	if sort == "" {
+		sort = wishlistSortReleased
+	}
+	if !sort.Valid() {
+		http.Error(w, "Invalid sort", http.StatusBadRequest)
+		return
+	}
+
+	order := sortOrder(r.URL.Query().Get("order"))
+	if order == "" {
+		order = sort.DefaultOrder()
+	}
+	if !order.Valid() {
+		http.Error(w, "Invalid order", http.StatusBadRequest)
+		return
+	}
 
 	wishlistedGames, err := server.store.ListWishlist(ctx, defaultUserID)
 	if err != nil {
@@ -27,8 +51,19 @@ func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	query := wishlistQuery{
+		Sort:  sort,
+		Order: order,
+	}
+
+	wishlistedGames = sortWishlist(wishlistedGames, sort, order)
+
 	server.renderComponent(w, r, wishlistView(wishlistPage{
-		Games: wishlistedGames,
+		Games:          wishlistedGames,
+		Sort:           sort,
+		SortOptions:    wishlistSortOptions(),
+		Order:          order,
+		OrderToggleURL: query.OrderToggleURL(),
 	}))
 }
 

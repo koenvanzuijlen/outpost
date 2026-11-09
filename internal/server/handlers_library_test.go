@@ -293,9 +293,57 @@ func TestHandleLibraryFiltersByStatus(t *testing.T) {
 	server := newTestServer(t)
 	addBacklogAndCompletedGames(t, server)
 
-	w := getPage(t, server, "/library?status=backlog")
-	assertBodyContains(t, w, `href="/games/194662"`)
-	assertBodyNotContains(t, w, `href="/games/1942"`)
+	const (
+		backlog   = `href="/games/194662"`
+		completed = `href="/games/1942"`
+	)
+	tests := []struct {
+		path    string
+		want    []string
+		wantNot []string
+	}{
+		{"/library?status=backlog", []string{backlog}, []string{completed}},
+		{"/library?status=backlog&status=completed", []string{backlog, completed}, nil},
+		{"/library?status=", []string{backlog, completed}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			w := getPage(t, server, tt.path)
+			for _, want := range tt.want {
+				assertBodyContains(t, w, want)
+			}
+			for _, unwanted := range tt.wantNot {
+				assertBodyNotContains(t, w, unwanted)
+			}
+		})
+	}
+}
+
+func TestHandleLibrarySortOrder(t *testing.T) {
+	server := newTestServer(t)
+	addBacklogAndCompletedGames(t, server)
+
+	tests := []struct {
+		path       string
+		wantFirst  string
+		wantSecond string
+	}{
+		{"/library", "1942", "194662"},
+		{"/library?sort=title&order=desc", "194662", "1942"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			w := getPage(t, server, tt.path)
+			body := w.Body.String()
+			first := strings.Index(body, `href="/games/`+tt.wantFirst+`"`)
+			second := strings.Index(body, `href="/games/`+tt.wantSecond+`"`)
+			if first == -1 || second == -1 || first > second {
+				t.Errorf("index of %s = %d, want before %s at %d", tt.wantFirst, first, tt.wantSecond, second)
+			}
+		})
+	}
 }
 
 func TestHandleLibraryInvalidQuery(t *testing.T) {
@@ -305,6 +353,8 @@ func TestHandleLibraryInvalidQuery(t *testing.T) {
 	}{
 		{"invalid sort", "/library?sort=bogus"},
 		{"invalid status", "/library?status=bogus"},
+		{"one invalid status", "/library?status=backlog&status=bogus"},
+		{"invalid order", "/library?order=bogus"},
 	}
 
 	for _, tt := range tests {
@@ -330,14 +380,24 @@ func TestHandleLibrarySelectedOptions(t *testing.T) {
 		{
 			"defaults",
 			"/library",
-			[]string{`<option value="title" selected>`},
-			[]string{`<option value="backlog" selected>`, `<option value="added" selected>`},
+			[]string{
+				`<option value="title" selected>`,
+				`href="/library?order=asc&amp;sort=title&amp;status=backlog" class="status-filter__toggle"`,
+				`href="/library?order=desc&amp;sort=title"`,
+			},
+			[]string{`aria-current="true"`, `name="status"`, `name="order"`},
 		},
 		{
 			"status and sort",
 			"/library?status=backlog&sort=added",
-			[]string{`<option value="backlog" selected>`, `<option value="added" selected>`},
-			[]string{`<option value="completed" selected>`, `<option value="title" selected>`},
+			[]string{
+				`<option value="added" selected>`,
+				`href="/library?order=desc&amp;sort=added" class="status-filter__toggle" aria-current="true"`,
+				`href="/library?order=desc&amp;sort=added&amp;status=backlog&amp;status=completed" class="status-filter__toggle status-filter__toggle--inactive"`,
+				`href="/library?order=asc&amp;sort=added&amp;status=backlog"`,
+				`<input type="hidden" name="status" value="backlog">`,
+			},
+			[]string{`<option value="title" selected>`, `name="order"`},
 		},
 	}
 

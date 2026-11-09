@@ -47,6 +47,33 @@ func TestRecoverPanic(t *testing.T) {
 	}
 }
 
+func TestContentSecurityPolicy(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+	}{
+		{"page", "/"},
+		{"static file", "/static/css/outpost.css"},
+		{"bad request", "/library?sort=bogus"},
+	}
+
+	want := "default-src 'self'; img-src 'self' https://images.igdb.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			w := httptest.NewRecorder()
+
+			server.ServeHTTP(w, req)
+
+			got := w.Result().Header.Get("Content-Security-Policy")
+			if got != want {
+				t.Errorf("Content-Security-Policy = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestCSRFProtection(t *testing.T) {
 	tests := []struct {
 		name          string
