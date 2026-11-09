@@ -7,4 +7,6 @@ image-off
 list-todo
 pause
 search
+star
+star-half
 trophy

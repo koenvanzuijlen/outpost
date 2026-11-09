@@ -27,7 +27,9 @@ templ gameCard(game dbgen.Game, status database.GameStatus, rating int64) {
 			</span>
 		}
 		if rating > 0 {
-			<span class="game-card__rating" role="img" aria-label={ ratingLabel(rating) } title={ ratingLabel(rating) }>{ ratingText(rating) }</span>
+			<span class="game-card__rating">
+				@ratingStars(rating, true)
+			</span>
 		}
 	</a>
 }

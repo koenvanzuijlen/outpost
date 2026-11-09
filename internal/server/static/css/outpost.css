@@ -65,6 +65,9 @@
     --color-accent-text: oklch(0.99 0.004 250);
 
     --color-focus: oklch(0.52 0.15 250);
+
+    /* Rating stars: gold (hue 80), with at least 3:1 contrast against the surface */
+    --color-star: oklch(0.62 0.13 80);
   }
 
   html {
@@ -368,6 +371,33 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
     gap: 1.5rem 1rem;
+  }
+
+  .rating-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    vertical-align: middle;
+  }
+
+  .rating-stars--compact {
+    gap: 0.25rem;
+  }
+
+  /* A half star stacks the star-half icon on the star icon in one grid cell. */
+  .rating-stars__star {
+    display: inline-grid;
+    color: var(--color-star);
+  }
+
+  .rating-stars__star > .icon {
+    grid-area: 1 / 1;
+  }
+
+  /* The CSS fill overrides the fill="none" attribute of the Lucide SVG. */
+  .rating-stars__star--full svg,
+  .rating-stars__star--half .icon + .icon svg {
+    fill: currentColor;
   }
 
   /* The status and the rating are positioned against the card, so they come last in the DOM and the link text starts

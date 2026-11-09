@@ -1,0 +1,24 @@
+package server
+
+// ratingStars shows rating as one image with ratingLabel as its accessible label and tooltip. The full variant shows
+// ratingStarCount stars, filled up to the rating. The compact variant shows the score and one filled star.
+templ ratingStars(rating int64, compact bool) {
+	{{ label := ratingLabel(rating) }}
+	<span class={ "rating-stars", templ.KV("rating-stars--compact", compact) } role="img" aria-label={ label } title={ label }>
+		if compact {
+			{ ratingScore(rating) }
+			<span class="rating-stars__star rating-stars__star--full">
+				@icon("star")
+			</span>
+		} else {
+			for _, fill := range ratingStarFills(rating) {
+				<span class={ "rating-stars__star", "rating-stars__star--" + string(fill) }>
+					@icon("star")
+					if fill == ratingStarHalf {
+						@icon("star-half")
+					}
+				</span>
+			}
+		}
+	</span>
+}
