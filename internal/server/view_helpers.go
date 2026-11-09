@@ -11,16 +11,20 @@ func gameURL(igdbID int64) string {
 	return fmt.Sprintf("/games/%d", igdbID)
 }
 
+// ratingScore returns the rating as a number of stars from 0.5 to 5, without trailing zeros ("4.5", "5").
+func ratingScore(rating int64) string {
+	starCount := float64(rating) / 2
+	return fmt.Sprintf("%g", starCount)
+}
+
 // ratingText converts a numeric rating into a textual star representation.
 func ratingText(rating int64) string {
-	starCount := float64(rating) / 2
-	return fmt.Sprintf("%g ⭐", starCount)
+	return ratingScore(rating) + " ⭐"
 }
 
 // ratingLabel converts a numeric rating into an accessible textual representation.
 func ratingLabel(rating int64) string {
-	starCount := float64(rating) / 2
-	return fmt.Sprintf("%g out of 5", starCount)
+	return ratingScore(rating) + " out of 5"
 }
 
 // outcomeLabel returns the display text for a playthrough outcome. The stored value "playing" reads oddly as an

@@ -23,6 +23,27 @@ func TestRatingText(t *testing.T) {
 	}
 }
 
+// TestRatingScore checks that the score shows half stars and drops the trailing zeros of whole stars.
+func TestRatingScore(t *testing.T) {
+	tests := []struct {
+		rating int64
+		want   string
+	}{
+		{1, "0.5"},
+		{2, "1"},
+		{7, "3.5"},
+		{10, "5"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			if got := ratingScore(tt.rating); got != tt.want {
+				t.Errorf("ratingScore(%d) = %q, want %q", tt.rating, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestOutcomeLabel(t *testing.T) {
 	tests := []struct {
 		outcome string
