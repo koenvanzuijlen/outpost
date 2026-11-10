@@ -44,6 +44,19 @@ func TestHandleGameFromIGDB(t *testing.T) {
 	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
 	assertBodyContains(t, w, "Add to library")
 	assertBodyNotContains(t, w, `name="status"`)
+	assertBodyContains(t, w, "Released on: Nintendo Switch, Nintendo Switch 2, PC (Microsoft Windows), PlayStation 4, PlayStation 5, Xbox One, Xbox Series X|S")
+	assertBodyContains(t, w, `<time datetime="2015-05-19">2015</time>`)
+}
+
+func TestHandleGameWithoutReleaseDate(t *testing.T) {
+	server := newTestServer(t)
+	game := loadIGDBGame(t, "game_by_id.json")
+	game.FirstReleaseDate = 0
+	server.igdbClient = &fakeIGDB{game: game}
+
+	w := getTestGamePage(t, server)
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
+	assertBodyNotContains(t, w, "<time")
 }
 
 func TestHandleGameCachedIGDBError(t *testing.T) {
@@ -130,6 +143,7 @@ func TestHandleGameInLibraryWishlisted(t *testing.T) {
 	assertBodyNotContains(t, w, "/playthroughs")
 	assertBodyContains(t, w, `action="/games/1942/library"`)
 	assertBodyNotContains(t, w, `action="/games/1942/wishlist"`)
+	assertBodyContains(t, w, "On your wishlist.")
 }
 
 func TestHandleGameNotInLibraryForms(t *testing.T) {
@@ -243,7 +257,7 @@ func TestHandleGameOtherDLCsNotInLibrary(t *testing.T) {
 	server.igdbClient = fake
 
 	w := getTestGamePage(t, server)
-	assertBodyContains(t, w, "Other DLC:")
+	assertBodyContains(t, w, "Other DLC</h2>")
 	assertBodyContains(t, w, `<a href="/games/12503">`)
 }
 

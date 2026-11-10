@@ -412,8 +412,10 @@
     text-decoration: none;
   }
 
-  /* The aspect ratio of IGDB's t_cover_big image (264×374). */
-  .game-card__cover {
+  /* The aspect ratio of IGDB's t_cover_big image (264×374). The game card and the game page header use the same
+     cover box. */
+  .game-card__cover,
+  .game-info__cover {
     display: grid;
     place-items: center;
     aspect-ratio: 264 / 374;
@@ -425,7 +427,8 @@
     font-size: 2.5rem;
   }
 
-  .game-card__cover img {
+  .game-card__cover img,
+  .game-info__cover img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -494,6 +497,62 @@
   /* The section is a flex column, so align-self moves the link to the right edge. */
   .page-section__more {
     align-self: flex-end;
+  }
+
+  /* The cover column has the width of t_cover_big (264px). On a narrow screen, the text moves below the cover. */
+  .game-info {
+    display: grid;
+    grid-template-columns: 16.5rem 1fr;
+    gap: 1.5rem 2rem;
+    align-items: start;
+  }
+
+  .game-info__cover {
+    font-size: 4rem;
+  }
+
+  @media (max-width: 40rem) {
+    .game-info {
+      grid-template-columns: 1fr;
+    }
+
+    .game-info__cover {
+      width: 12rem;
+    }
+  }
+
+  /* The line length stays readable for a long summary. */
+  .game-info__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 65ch;
+  }
+
+  .game-info__title {
+    font-size: 2.25rem;
+  }
+
+  .game-info__year {
+    color: var(--color-text-muted);
+    font-size: 1.125rem;
+  }
+
+  /* IGDB separates the paragraphs of a summary with line breaks. */
+  .game-info__summary {
+    white-space: pre-line;
+  }
+
+  .game-info__platforms {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  .game-library__summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
   }
 }
 

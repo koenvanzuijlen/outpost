@@ -3,67 +3,63 @@ package server
 import "strconv"
 import "github.com/koenvanzuijlen/outpost/internal/database"
 
-// gameView renders the game page: the game, the library state, the copies, and the other DLC. For a library game that
-// is not wishlisted, it also renders the details form and the playthroughs. For any game in the library or on the
-// wishlist, it renders the remove form.
+// gameView renders the game page as a header and sections, in this order: the IGDB details, the DLC (only for a base
+// game), your library, your copies and your playthroughs. The library and playthrough sections show only for a game in
+// the library that is not wishlisted.
 templ gameView(page gamePage) {
+	{{ inLibrary := page.Details.UserGame != nil && !page.Details.UserGame.Wishlisted }}
 	@layout("") {
 		@gameInfo(page)
-		@gameLibraryState(page)
-		if page.Details.UserGame != nil || page.Details.Parent != nil {
-			@gameCopies(page)
-		}
-		if page.Details.Parent == nil {
+		if page.Details.Parent == nil && (page.Details.Game.DlcsFetchedAt == nil || len(page.Details.OtherDLCs) > 0) {
 			@gameOtherDLC(page)
 		}
-		if page.Details.UserGame != nil {
-			if !page.Details.UserGame.Wishlisted {
-				@gameDetails(page)
-				@gamePlaythroughs(page)
-			}
-			@gameRemove(page)
+		if inLibrary {
+			@gameLibrary(page)
 		}
-		<a href="/">Back to home</a>
+		@gameCopies(page)
+		if inLibrary {
+			@gamePlaythroughs(page)
+		}
 	}
 }
 
-// gameInfo shows the title, the parent game of a DLC, the cover, the wishlist flag, the status, the rating, the release
-// date, and the summary.
+// gameInfo is the page header with the IGDB details: the cover on the left, and the title, the parent game of a DLC,
+// the release year, the summary and the release platforms on the right. A game without a cover shows a placeholder
+// icon.
 templ gameInfo(page gamePage) {
-	<h1>{ page.Details.Game.Title }</h1>
-	if page.Details.Parent != nil {
-		<p>DLC of <a href={ gameURL(page.Details.Parent.IgdbID) }>{ page.Details.Parent.Title }</a></p>
-	}
-	<div>
-		if page.Details.Game.CoverUrl != nil {
-			<img src={ *page.Details.Game.CoverUrl } alt={ page.Details.Game.Title }/>
-		}
-		if page.Details.UserGame != nil {
-			if page.Details.UserGame.Wishlisted {
-				<p>On your wishlist</p>
+	<header class="game-info">
+		<div class="game-info__cover">
+			if page.Details.Game.CoverUrl != nil {
+				<img src={ *page.Details.Game.CoverUrl } alt="" width="264" height="374"/>
+			} else {
+				@icon("image-off")
 			}
-			if page.Details.UserGame.Status != nil {
-				@gameStatusBadge(database.GameStatus(*page.Details.UserGame.Status), false)
+		</div>
+		<div class="game-info__text">
+			<h1 class="game-info__title">{ page.Details.Game.Title }</h1>
+			if page.Details.Parent != nil {
+				<p>DLC of <a href={ gameURL(page.Details.Parent.IgdbID) }>{ page.Details.Parent.Title }</a></p>
 			}
-			if page.Details.UserGame.Rating != nil {
-				@ratingStars(*page.Details.UserGame.Rating, false)
+			if page.Details.Game.ReleasedAt != nil {
+				<p class="game-info__year">
+					<time datetime={ page.Details.Game.ReleasedAt.Format("2006-01-02") }>{ page.Details.Game.ReleasedAt.Year() }</time>
+				</p>
 			}
-		}
-	</div>
-	if page.Details.Game.ReleasedAt != nil {
-		<p>Released: { page.Details.Game.ReleasedAt.Format("2 January 2006") }</p>
-	}
-	if page.Details.Game.Summary != nil {
-		<p>
-			Summary:
-			<br/>
-			{ *page.Details.Game.Summary }
-		</p>
-	}
+			if page.Details.Game.Summary != nil {
+				<p class="game-info__summary">{ *page.Details.Game.Summary }</p>
+			}
+			if len(page.Details.Platforms) > 0 {
+				<p class="game-info__platforms">
+					Released on: { platformNames(page.Details.Platforms) }
+				</p>
+			}
+		</div>
+	</header>
 }
 
-// gameLibraryState shows the forms that add the game to the library or the wishlist. It shows nothing if the game is
-// already in the library or on the wishlist.
+// gameLibraryState shows the forms that add the game to the library or the wishlist. A wishlisted game shows only the
+// library form, and a DLC shows a library form without a platform when its base game is in the library. It shows
+// nothing if the game is already in the library.
 templ gameLibraryState(page gamePage) {
 	{{ url := gameURL(page.Details.Game.IgdbID) }}
 	if page.CanAddToLibrary {
@@ -91,94 +87,107 @@ templ gameLibraryState(page gamePage) {
 	}
 }
 
-// gameCopies lists the platforms the game is owned on, with the DLC owned on each copy and a form to remove the copy.
-// For a base game, it also shows a form to add another copy. For a DLC, it points to the page of the base game, where
-// ownership is managed.
+// gameCopies is the section about ownership. For a library game, it lists the platforms the game is owned on, with the
+// DLC owned on each copy and a form to remove the copy, and a form to add a copy. For a DLC, it points to the page of
+// the base game, where ownership is managed. A game outside the library shows the forms to add it, and a wishlisted
+// game also shows the form to remove it from the wishlist.
 templ gameCopies(page gamePage) {
-	{{ url := gameURL(page.Details.Game.IgdbID) }}
-	if len(page.Details.OwnedPlatforms) > 0 {
-		<p>Owned on:</p>
-		<ul>
-			for _, platform := range page.Details.OwnedPlatforms {
-				<li>
-					{ platform.Name }
-					if len(page.Details.CopyDLCs[platform.IgdbID]) > 0 {
-						<br/>
-						DLC:
-						<ul>
-							for _, dlc := range page.Details.CopyDLCs[platform.IgdbID] {
-								<li>
-									<a href={ gameURL(dlc.Game.IgdbID) }>
-										{ dlc.Game.Title }
-										if dlc.Game.ReleasedAt != nil {
-											({ dlc.Game.ReleasedAt.Format("2 January 2006") })
-										}
-									</a> - 
-									if dlc.Owned {
-										owned
-									} else {
-										not owned
+	{{ wishlisted := page.Details.UserGame != nil && page.Details.UserGame.Wishlisted }}
+	<section class="page-section">
+		<h2>Your copies</h2>
+		if wishlisted {
+			<p>On your wishlist.</p>
+		}
+		if page.Details.UserGame != nil || page.Details.Parent != nil {
+			{{ url := gameURL(page.Details.Game.IgdbID) }}
+			if len(page.Details.OwnedPlatforms) > 0 {
+				<p>Owned on:</p>
+				<ul>
+					for _, platform := range page.Details.OwnedPlatforms {
+						<li>
+							{ platform.Name }
+							if len(page.Details.CopyDLCs[platform.IgdbID]) > 0 {
+								<br/>
+								DLC:
+								<ul>
+									for _, dlc := range page.Details.CopyDLCs[platform.IgdbID] {
+										<li>
+											<a href={ gameURL(dlc.Game.IgdbID) }>
+												{ dlc.Game.Title }
+												if dlc.Game.ReleasedAt != nil {
+													({ dlc.Game.ReleasedAt.Format("2 January 2006") })
+												}
+											</a> - 
+											if dlc.Owned {
+												owned
+											} else {
+												not owned
+											}
+											<form
+												method="post"
+												action={ gameURL(page.Details.Game.IgdbID) + "/copies/" + strconv.Itoa(int(platform.IgdbID)) + "/dlcs/" + strconv.Itoa(int(dlc.Game.IgdbID)) }
+											>
+												<button type="submit" name="owned" value={ !dlc.Owned } aria-pressed={ dlc.Owned }>Owned</button>
+											</form>
+											if dlc.InLibrary {
+												<p>In library: @gameStatusBadge(dlc.Status, false)</p>
+											}
+										</li>
 									}
-									<form
-										method="post"
-										action={ gameURL(page.Details.Game.IgdbID) + "/copies/" + strconv.Itoa(int(platform.IgdbID)) + "/dlcs/" + strconv.Itoa(int(dlc.Game.IgdbID)) }
-									>
-										<button type="submit" name="owned" value={ !dlc.Owned } aria-pressed={ dlc.Owned }>Owned</button>
-									</form>
-									if dlc.InLibrary {
-										<p>In library: @gameStatusBadge(dlc.Status, false)</p>
-									}
-								</li>
+								</ul>
 							}
-						</ul>
+							if page.Details.Parent == nil {
+								<details>
+									<summary>Remove copy</summary>
+									<form method="post" action={ url + "/copies/" + strconv.Itoa(int(platform.IgdbID)) + "/remove" }>
+										<p>This also removes the DLC you marked as owned on this copy.</p>
+										<button type="submit">Really remove</button>
+									</form>
+								</details>
+							}
+						</li>
 					}
-					if page.Details.Parent == nil {
-						<details>
-							<summary>Remove copy</summary>
-							<form method="post" action={ url + "/copies/" + strconv.Itoa(int(platform.IgdbID)) + "/remove" }>
-								<p>This also removes the DLC you marked as owned on this copy.</p>
-								<button type="submit">Really remove</button>
-							</form>
-						</details>
+				</ul>
+			} else if page.Details.Parent == nil {
+				<p>Not owned on any platform.</p>
+			}
+			if page.Details.Parent != nil {
+				<p>
+					if len(page.Details.OwnedPlatforms) == 0 {
+						Not owned on any platform.
 					}
-				</li>
+					Ownership of this DLC is managed on the page of <a href={ gameURL(page.Details.Parent.IgdbID) }>{ page.Details.Parent.Title }</a>.
+				</p>
 			}
-		</ul>
-	} else if page.Details.Parent == nil {
-		<p>Not owned on any platform.</p>
-	}
-	if page.Details.Parent != nil {
-		<p>
-			if len(page.Details.OwnedPlatforms) == 0 {
-				Not owned on any platform.
+			if page.Details.Parent == nil && !wishlisted && len(page.CopyPlatformOptions) > 0 {
+				<h3>Add a copy</h3>
+				<form method="post" action={ url + "/copies" }>
+					<label>
+						Owned on
+						<select name="platform_id">
+							for _, platform := range page.CopyPlatformOptions {
+								<option value={ strconv.Itoa(int(platform.IgdbID)) }>{ platform.Name }</option>
+							}
+						</select>
+					</label>
+					<button type="submit">Add copy</button>
+				</form>
 			}
-			Ownership of this DLC is managed on the page of <a href={ gameURL(page.Details.Parent.IgdbID) }>{ page.Details.Parent.Title }</a>.
-		</p>
-	}
-	if page.Details.Parent == nil && !page.Details.UserGame.Wishlisted && len(page.CopyPlatformOptions) > 0 {
-		<div>
-			<p>Add another copy</p>
-			<form method="post" action={ url + "/copies" }>
-				<label>
-					Owned on
-					<select name="platform_id">
-						for _, platform := range page.CopyPlatformOptions {
-							<option value={ strconv.Itoa(int(platform.IgdbID)) }>{ platform.Name }</option>
-						}
-					</select>
-				</label>
-				<button type="submit">Add copy</button>
-			</form>
-		</div>
-	}
+		}
+		@gameLibraryState(page)
+		if wishlisted {
+			@gameRemove(page)
+		}
+	</section>
 }
 
-// gameOtherDLC lists the other DLC of the game. If the DLC was never fetched, it shows a message instead.
+// gameOtherDLC is the section with the DLC that is not listed under a copy. If the DLC was never fetched, it shows a
+// message instead.
 templ gameOtherDLC(page gamePage) {
-	if page.Details.Game.DlcsFetchedAt != nil {
-		if len(page.Details.OtherDLCs) > 0 {
-			<div>
-				<p>Other DLC:</p>
+	<section class="page-section">
+		<h2>Other DLC</h2>
+		if page.Details.Game.DlcsFetchedAt != nil {
+			if len(page.Details.OtherDLCs) > 0 {
 				<ul>
 					for _, dlc := range page.Details.OtherDLCs {
 						<li>
@@ -191,21 +200,27 @@ templ gameOtherDLC(page gamePage) {
 						</li>
 					}
 				</ul>
-			</div>
-		}
-	} else {
-		<div>
+			}
+		} else {
 			<p>DLC couldn't be loaded.</p>
-		</div>
-	}
+		}
+	</section>
 }
 
-// gameDetails is the form to change the status, the rating, and the notes of a library game. The form is prefilled with
-// the current values.
-templ gameDetails(page gamePage) {
-	<div>
+// gameLibrary is the section of a library game with its status and rating, the form to change the status, the rating
+// and the notes, and the form to remove the game from the library. The form is prefilled with the current values.
+templ gameLibrary(page gamePage) {
+	<section class="page-section">
+		<h2>Your library</h2>
+		<p class="game-library__summary">
+			if page.CurrentStatus != "" {
+				@gameStatusBadge(page.CurrentStatus, false)
+			}
+			if page.CurrentRating > 0 {
+				@ratingStars(page.CurrentRating, false)
+			}
+		</p>
 		<form method="post" action={ gameURL(page.Details.Game.IgdbID) + "/details" }>
-			<h2>Status, rating and notes</h2>
 			<label>
 				Status
 				<select name="status">
@@ -229,17 +244,18 @@ templ gameDetails(page gamePage) {
 			</label>
 			<button type="submit">Save</button>
 		</form>
-	</div>
+		@gameRemove(page)
+	</section>
 }
 
-// gamePlaythroughs lists the playthroughs of the game. Each playthrough has outcome buttons, a form to edit it, and a
-// form to delete it. A last form starts a new playthrough.
+// gamePlaythroughs is the section with the playthroughs of the game. Each playthrough has outcome buttons, a form to
+// edit it, and a form to delete it. A last form starts a new playthrough.
 templ gamePlaythroughs(page gamePage) {
-	{{ url := gameURL(page.Details.Game.IgdbID) }}
-	<div>
-		<h2>Playthroughs</h2>
-		<ul>
-			if len(page.Details.Playthroughs) > 0 {
+	<section class="page-section">
+		<h2>Your playthroughs</h2>
+		{{ url := gameURL(page.Details.Game.IgdbID) }}
+		if len(page.Details.Playthroughs) > 0 {
+			<ul>
 				for _, entry := range page.Details.Playthroughs {
 					<li>
 						if entry.Playthrough.Name != nil {
@@ -316,14 +332,12 @@ templ gamePlaythroughs(page gamePage) {
 						</details>
 					</li>
 				}
-			} else {
-				<li>No playthroughs yet.</li>
-			}
-		</ul>
-	</div>
-	<div>
+			</ul>
+		} else {
+			<p>No playthroughs yet.</p>
+		}
 		<form method="post" action={ url + "/playthroughs" }>
-			<h3>Start a new playthrough</h3>
+			<h3>Start a playthrough</h3>
 			<label>
 				Playthrough name
 				<input type="text" name="name"/>
@@ -339,7 +353,7 @@ templ gamePlaythroughs(page gamePage) {
 			</label>
 			<button type="submit">Start</button>
 		</form>
-	</div>
+	</section>
 }
 
 // gameRemove is the form to remove the game from the library, or from the wishlist if the game is wishlisted. It

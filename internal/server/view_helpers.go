@@ -2,8 +2,10 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
+	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
 
 // gameURL returns the path of the game page for the game with the given IGDB ID.
@@ -34,4 +36,13 @@ func outcomeLabel(outcome string) string {
 		return "in progress"
 	}
 	return outcome
+}
+
+// platformNames returns the names of the platforms, separated by commas, for example "PC, Nintendo Switch".
+func platformNames(platforms []dbgen.Platform) string {
+	names := make([]string, 0, len(platforms))
+	for _, platform := range platforms {
+		names = append(names, platform.Name)
+	}
+	return strings.Join(names, ", ")
 }
