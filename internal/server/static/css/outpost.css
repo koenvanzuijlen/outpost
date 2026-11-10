@@ -360,7 +360,7 @@
     padding: 1.5rem;
   }
 
-  .home-section {
+  .page-section {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -371,6 +371,30 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
     gap: 1.5rem 1rem;
+  }
+
+  /* One row of narrow cards, such as the DLC of a game. The row scrolls horizontally when the cards do not fit. The
+     padding keeps the focus ring inside the scroll box, which clips everything outside it. The negative margin lines
+     the cards up with the heading again. The font size goes to the card titles, which inherit it. */
+  .game-grid--small {
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: 7rem;
+    gap: 0.75rem;
+    margin-inline: -0.375rem;
+    padding: 0.375rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    font-size: 0.875rem;
+  }
+
+  /* A long title stops after 2 lines with an ellipsis. The full title stays in the link text for screen readers. */
+  .game-grid--small .game-card__title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
   }
 
   .rating-stars {
@@ -412,8 +436,10 @@
     text-decoration: none;
   }
 
-  /* The aspect ratio of IGDB's t_cover_big image (264×374). */
-  .game-card__cover {
+  /* The aspect ratio of IGDB's t_cover_big image (264×374). The game card and the game page header use the same
+     cover box. */
+  .game-card__cover,
+  .game-info__cover {
     display: grid;
     place-items: center;
     aspect-ratio: 264 / 374;
@@ -425,7 +451,8 @@
     font-size: 2.5rem;
   }
 
-  .game-card__cover img {
+  .game-card__cover img,
+  .game-info__cover img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -492,8 +519,192 @@
   }
 
   /* The section is a flex column, so align-self moves the link to the right edge. */
-  .home-section__more {
+  .page-section__more {
     align-self: flex-end;
+  }
+
+  /* The cover column has the width of t_cover_big (264px). On a narrow screen, the text moves below the cover. */
+  .game-info {
+    display: grid;
+    grid-template-columns: 16.5rem 1fr;
+    gap: 1.5rem 2rem;
+    align-items: start;
+  }
+
+  .game-info__cover {
+    font-size: 4rem;
+  }
+
+  @media (max-width: 40rem) {
+    .game-info {
+      grid-template-columns: 1fr;
+    }
+
+    .game-info__cover {
+      width: 12rem;
+    }
+  }
+
+  /* The line length stays readable for a long summary. */
+  .game-info__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 65ch;
+  }
+
+  .game-info__title {
+    font-size: 2.25rem;
+  }
+
+  .game-info__year {
+    color: var(--color-text-muted);
+    font-size: 1.125rem;
+  }
+
+  /* IGDB separates the paragraphs of a summary with line breaks. */
+  .game-info__summary {
+    white-space: pre-line;
+  }
+
+  .game-info__platforms {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  .game-library__summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .game-copies {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 40rem;
+  }
+
+  /* A copy on a DLC page is a div with the same box, without the chevron. */
+  .game-copy {
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+  }
+
+  .game-copy__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+  }
+
+  /* The chevron replaces the default marker of the summary. */
+  summary.game-copy__header {
+    list-style: none;
+    cursor: pointer;
+  }
+
+  summary.game-copy__header::-webkit-details-marker {
+    display: none;
+  }
+
+  .game-copy__header > .icon {
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+    transition: rotate 150ms ease-out;
+  }
+
+  .game-copy[open] > .game-copy__header {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .game-copy[open] > .game-copy__header > .icon {
+    rotate: 180deg;
+  }
+
+  .game-copy__dlcs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 0.75rem 0;
+  }
+
+  /* The toggle looks like a checkbox with a label. aria-pressed holds the owned state. */
+  .game-copy__toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.125rem 0;
+    border: 0;
+    background: none;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .game-copy__toggle > .icon {
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+  }
+
+  .game-copy__toggle[aria-pressed="true"] > .icon {
+    color: var(--color-accent);
+  }
+
+  .game-copy__toggle:hover > .icon {
+    color: var(--color-accent-hover);
+  }
+
+  .game-copy__year {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* "Remove copy" is at the bottom right of an open copy. */
+  .game-copy__remove {
+    padding: 0.75rem;
+    text-align: end;
+  }
+
+  .game-copy__remove > summary {
+    display: inline;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+
+  .game-copy__remove > summary:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+  }
+
+  .game-copy__remove > form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .game-copy__remove button {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    cursor: pointer;
+  }
+
+  .game-copy__remove button:hover {
+    background: var(--color-bg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .game-copy__header > .icon {
+      transition: none;
+    }
   }
 }
 

@@ -1,6 +1,55 @@
 package server
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/koenvanzuijlen/outpost/internal/database"
+)
+
+func TestDLCTitle(t *testing.T) {
+	tests := []struct {
+		name        string
+		parentTitle string
+		title       string
+		want        string
+	}{
+		{"dash", "The Witcher 3: Wild Hunt", "The Witcher 3: Wild Hunt - Hearts of Stone", "Hearts of Stone"},
+		{"colon", "Elden Ring", "Elden Ring: Shadow of the Erdtree", "Shadow of the Erdtree"},
+		{"en dash", "Hades", "Hades – Bonus", "Bonus"},
+		{"no prefix", "The Witcher 3: Wild Hunt", "Thronebreaker", "Thronebreaker"},
+		{"same title", "Doom", "Doom", "Doom"},
+		{"longer word", "Doom", "Doomsday", "Doomsday"},
+		{"separator only", "Doom", "Doom -", "Doom -"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := dlcTitle(tt.parentTitle, tt.title); got != tt.want {
+				t.Errorf("dlcTitle(%q, %q) = %q, want %q", tt.parentTitle, tt.title, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCopySummary(t *testing.T) {
+	tests := []struct {
+		name string
+		dlcs []database.CopyDLC
+		want string
+	}{
+		{"no DLC", nil, "PC"},
+		{"none owned", []database.CopyDLC{{Owned: false}, {Owned: false}}, "PC"},
+		{"one owned", []database.CopyDLC{{Owned: true}, {Owned: false}}, "PC (1 DLC owned)"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := copySummary("PC", tt.dlcs); got != tt.want {
+				t.Errorf("copySummary(%q, %v) = %q, want %q", "PC", tt.dlcs, got, tt.want)
+			}
+		})
+	}
+}
 
 func TestRatingText(t *testing.T) {
 	tests := []struct {

@@ -178,15 +178,6 @@ func assertCopyDLCs(t *testing.T, got []CopyDLC, want map[int64]bool) {
 	}
 }
 
-// otherDLCIDs returns the IGDB IDs of the game's OtherDLCs.
-func otherDLCIDs(game GameOverview) []int64 {
-	ids := make([]int64, 0, len(game.OtherDLCs))
-	for _, dlc := range game.OtherDLCs {
-		ids = append(ids, dlc.Game.IgdbID)
-	}
-	return ids
-}
-
 // assertDLCStatus checks that the DLC row is tracked with the given status.
 func assertDLCStatus(t *testing.T, dlc dbgen.ListDLCGamesRow, want GameStatus) {
 	t.Helper()

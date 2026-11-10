@@ -99,7 +99,7 @@ WHERE
     g.parent_igdb_id = ?2
     AND g.game_type IN (/*SLICE:game_types*/?)
 ORDER BY
-    g.released_at ASC NULLS LAST,
+    g.released_at DESC NULLS LAST,
     g.title
 `
 

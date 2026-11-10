@@ -44,6 +44,19 @@ func TestHandleGameFromIGDB(t *testing.T) {
 	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
 	assertBodyContains(t, w, "Add to library")
 	assertBodyNotContains(t, w, `name="status"`)
+	assertBodyContains(t, w, "Released on: Nintendo Switch, Nintendo Switch 2, PC (Microsoft Windows), PlayStation 4, PlayStation 5, Xbox One, Xbox Series X|S")
+	assertBodyContains(t, w, `<time datetime="2015-05-19">2015</time>`)
+}
+
+func TestHandleGameWithoutReleaseDate(t *testing.T) {
+	server := newTestServer(t)
+	game := loadIGDBGame(t, "game_by_id.json")
+	game.FirstReleaseDate = 0
+	server.igdbClient = &fakeIGDB{game: game}
+
+	w := getTestGamePage(t, server)
+	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
+	assertBodyNotContains(t, w, "<time")
 }
 
 func TestHandleGameCachedIGDBError(t *testing.T) {
@@ -130,6 +143,7 @@ func TestHandleGameInLibraryWishlisted(t *testing.T) {
 	assertBodyNotContains(t, w, "/playthroughs")
 	assertBodyContains(t, w, `action="/games/1942/library"`)
 	assertBodyNotContains(t, w, `action="/games/1942/wishlist"`)
+	assertBodyContains(t, w, "On your wishlist.")
 }
 
 func TestHandleGameNotInLibraryForms(t *testing.T) {
@@ -213,7 +227,7 @@ func TestHandleGameDLCs(t *testing.T) {
 	fake.dlcs = loadIGDBGames(t, "dlcs.json")
 
 	w := getTestGamePage(t, server)
-	assertBodyContains(t, w, "Hearts of Stone (12 October 2015)")
+	assertBodyContains(t, w, `<span class="game-card__title">Hearts of Stone</span>`)
 	assertBodyNotContains(t, w, "couldn't be loaded")
 	if fake.dlcsCalls != 1 {
 		t.Errorf("dlcsCalls after first view = %d, want %d", fake.dlcsCalls, 1)
@@ -233,27 +247,30 @@ func TestHandleGameCopyDLCs(t *testing.T) {
 
 	w := getTestGamePage(t, server)
 	// Hearts of Stone (12503) is available on PC (6), the platform of the test copy.
-	assertBodyContains(t, w, "The Witcher 3: Wild Hunt - Hearts of Stone (12 October 2015)</a> - not owned")
+	assertBodyContains(t, w, `</span> Hearts of Stone <span class="game-copy__year">2015</span></button>`)
+	assertBodyNotContains(t, w, "DLC owned")
 }
 
-func TestHandleGameOtherDLCsNotInLibrary(t *testing.T) {
+func TestHandleGameDLCsNotInLibrary(t *testing.T) {
 	server := newTestServer(t)
 	fake := &fakeIGDB{game: loadIGDBGame(t, "game_by_id.json")}
 	fake.dlcs = loadIGDBGames(t, "dlcs.json")
 	server.igdbClient = fake
 
 	w := getTestGamePage(t, server)
-	assertBodyContains(t, w, "Other DLC:")
-	assertBodyContains(t, w, `<a href="/games/12503">`)
+	assertBodyContains(t, w, "<h2>DLC</h2>")
+	assertBodyContains(t, w, `<a href="/games/12503" class="game-card">`)
+	assertBodyContains(t, w, `<span class="game-card__title">Hearts of Stone</span>`)
 }
 
-func TestHandleGameCopyDLCLinksToPage(t *testing.T) {
+func TestHandleGameDLCsIncludeCopyDLC(t *testing.T) {
 	server := newTestServer(t)
 	addTestGameWithDLCs(t, server)
 
 	w := getTestGamePage(t, server)
-	assertBodyContains(t, w, `<a href="/games/12503">The Witcher 3: Wild Hunt - Hearts of Stone (12 October 2015)</a> - not owned`)
-	assertBodyNotContains(t, w, "Add to library separately")
+	if got := strings.Count(w.Body.String(), `class="game-card"`); got != 8 {
+		t.Errorf("game cards = %d, want 8", got)
+	}
 }
 
 func TestHandleGameDLCsError(t *testing.T) {
@@ -278,7 +295,7 @@ func TestHandleGameNoDLCs(t *testing.T) {
 	fake := addTestGame(t, server)
 
 	w := getTestGamePage(t, server)
-	assertBodyNotContains(t, w, "Other DLC")
+	assertBodyNotContains(t, w, "<h2>DLC</h2>")
 	if fake.dlcsCalls != 1 {
 		t.Errorf("dlcsCalls after first view = %d, want %d", fake.dlcsCalls, 1)
 	}
