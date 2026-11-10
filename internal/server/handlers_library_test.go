@@ -114,7 +114,7 @@ func TestHandleAddToLibraryDLC(t *testing.T) {
 	}
 
 	w = getTestGamePage(t, server)
-	assertBodyContains(t, w, `<a href="/games/12503">`)
+	assertBodyContains(t, w, `<a href="/games/12503" class="game-card">`)
 	assertBodyContains(t, w, `<span class="badge badge--backlog" role="img"`)
 	assertBodyNotContains(t, w, `action="`+testAddDLCPath+`"`)
 }

@@ -87,10 +87,11 @@ templ gameLibraryState(page gamePage) {
 	}
 }
 
-// gameCopies is the section about ownership. For a library game, it lists the platforms the game is owned on, with the
-// DLC owned on each copy and a form to remove the copy, and a form to add a copy. For a DLC, it points to the page of
-// the base game, where ownership is managed. A game outside the library shows the forms to add it, and a wishlisted
-// game also shows the form to remove it from the wishlist.
+// gameCopies is the section about ownership. For a library game, it shows one expandable row per copy, titled with
+// the owned DLC count. An open row shows an owned toggle per DLC available on that platform, and a form to remove the
+// copy. Below the rows is a form to add a copy. For a DLC, it shows the base game copies that own the DLC as rows that
+// do not expand, and points to the page of the base game, where ownership is managed. A game outside the library shows
+// the forms to add it, and a wishlisted game also shows the form to remove it from the wishlist.
 templ gameCopies(page gamePage) {
 	{{ wishlisted := page.Details.UserGame != nil && page.Details.UserGame.Wishlisted }}
 	<section class="page-section">
@@ -101,46 +102,57 @@ templ gameCopies(page gamePage) {
 		if page.Details.UserGame != nil || page.Details.Parent != nil {
 			{{ url := gameURL(page.Details.Game.IgdbID) }}
 			if len(page.Details.OwnedPlatforms) > 0 {
-				<p>Owned on:</p>
-				<ul>
+				<ul class="game-copies">
 					for _, platform := range page.Details.OwnedPlatforms {
 						<li>
-							{ platform.Name }
-							if len(page.Details.CopyDLCs[platform.IgdbID]) > 0 {
-								<br/>
-								DLC:
-								<ul>
-									for _, dlc := range page.Details.CopyDLCs[platform.IgdbID] {
-										<li>
-											<a href={ gameURL(dlc.Game.IgdbID) }>
-												{ dlc.Game.Title }
-												if dlc.Game.ReleasedAt != nil {
-													({ dlc.Game.ReleasedAt.Format("2 January 2006") })
-												}
-											</a> - 
-											if dlc.Owned {
-												owned
-											} else {
-												not owned
-											}
-											<form
-												method="post"
-												action={ gameURL(page.Details.Game.IgdbID) + "/copies/" + strconv.Itoa(int(platform.IgdbID)) + "/dlcs/" + strconv.Itoa(int(dlc.Game.IgdbID)) }
-											>
-												<button type="submit" name="owned" value={ !dlc.Owned } aria-pressed={ dlc.Owned }>Owned</button>
-											</form>
-										</li>
-									}
-								</ul>
-							}
 							if page.Details.Parent == nil {
-								<details>
-									<summary>Remove copy</summary>
-									<form method="post" action={ url + "/copies/" + strconv.Itoa(int(platform.IgdbID)) + "/remove" }>
-										<p>This also removes the DLC you marked as owned on this copy.</p>
-										<button type="submit">Really remove</button>
-									</form>
+								<details class="game-copy">
+									<summary class="game-copy__header">
+										<span class="game-copy__title">
+											{ copySummary(platform.Name, page.Details.CopyDLCs[platform.IgdbID]) }
+										</span>
+										@icon("chevron-down")
+									</summary>
+									if len(page.Details.CopyDLCs[platform.IgdbID]) > 0 {
+										<ul class="game-copy__dlcs">
+											for _, dlc := range page.Details.CopyDLCs[platform.IgdbID] {
+												<li>
+													<form
+														method="post"
+														action={ gameURL(page.Details.Game.IgdbID) + "/copies/" + strconv.Itoa(int(platform.IgdbID)) + "/dlcs/" + strconv.Itoa(int(dlc.Game.IgdbID)) }
+													>
+														<button type="submit" name="owned" value={ !dlc.Owned } aria-pressed={ dlc.Owned } class="game-copy__toggle">
+															if dlc.Owned {
+																@icon("square-check-big")
+															} else {
+																@icon("square")
+															}
+															{ dlcTitle(page.Details.Game.Title, dlc.Game.Title) }
+															if dlc.Game.ReleasedAt != nil {
+																<span class="game-copy__year">{ dlc.Game.ReleasedAt.Year() }</span>
+															}
+														</button>
+													</form>
+												</li>
+											}
+										</ul>
+									}
+									<details class="game-copy__remove">
+										<summary>Remove copy</summary>
+										<form method="post" action={ url + "/copies/" + strconv.Itoa(int(platform.IgdbID)) + "/remove" }>
+											<p>This also removes the DLC you marked as owned on this copy.</p>
+											<button type="submit">Really remove</button>
+										</form>
+									</details>
 								</details>
+							} else {
+								<div class="game-copy">
+									<div class="game-copy__header">
+										<span class="game-copy__title">
+											{ platform.Name }
+										</span>
+									</div>
+								</div>
 							}
 						</li>
 					}

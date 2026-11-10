@@ -578,6 +578,134 @@
     align-items: center;
     gap: 0.75rem;
   }
+
+  .game-copies {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 40rem;
+  }
+
+  /* A copy on a DLC page is a div with the same box, without the chevron. */
+  .game-copy {
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+  }
+
+  .game-copy__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+  }
+
+  /* The chevron replaces the default marker of the summary. */
+  summary.game-copy__header {
+    list-style: none;
+    cursor: pointer;
+  }
+
+  summary.game-copy__header::-webkit-details-marker {
+    display: none;
+  }
+
+  .game-copy__header > .icon {
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+    transition: rotate 150ms ease-out;
+  }
+
+  .game-copy[open] > .game-copy__header {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .game-copy[open] > .game-copy__header > .icon {
+    rotate: 180deg;
+  }
+
+  .game-copy__dlcs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 0.75rem 0;
+  }
+
+  /* The toggle looks like a checkbox with a label. aria-pressed holds the owned state. */
+  .game-copy__toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.125rem 0;
+    border: 0;
+    background: none;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .game-copy__toggle > .icon {
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+  }
+
+  .game-copy__toggle[aria-pressed="true"] > .icon {
+    color: var(--color-accent);
+  }
+
+  .game-copy__toggle:hover > .icon {
+    color: var(--color-accent-hover);
+  }
+
+  .game-copy__year {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* "Remove copy" is at the bottom right of an open copy. */
+  .game-copy__remove {
+    padding: 0.75rem;
+    text-align: end;
+  }
+
+  .game-copy__remove > summary {
+    display: inline;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+
+  .game-copy__remove > summary:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+  }
+
+  .game-copy__remove > form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .game-copy__remove button {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    cursor: pointer;
+  }
+
+  .game-copy__remove button:hover {
+    background: var(--color-bg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .game-copy__header > .icon {
+      transition: none;
+    }
+  }
 }
 
 @layer utilities {

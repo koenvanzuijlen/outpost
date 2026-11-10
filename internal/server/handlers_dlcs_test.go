@@ -21,6 +21,7 @@ func TestHandleSetDLCOwnedStatus(t *testing.T) {
 	w = getTestGamePage(t, server)
 	assertBodyContains(t, w, `action="`+testDLCPath+`"`)
 	assertBodyContains(t, w, `value="false" aria-pressed="true"`)
+	assertBodyContains(t, w, "PC (Microsoft Windows) (1 DLC owned)")
 }
 
 func TestHandleSetDLCOwnedValidation(t *testing.T) {

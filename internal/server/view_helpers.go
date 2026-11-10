@@ -61,3 +61,18 @@ func dlcTitle(parentTitle, title string) string {
 	}
 	return trimmed
 }
+
+// copySummary returns the title of a copy row: the platform name, followed by the number of owned DLC if the user owns
+// at least one DLC on the copy, for example "PC (1 DLC owned)".
+func copySummary(platformName string, dlcs []database.CopyDLC) string {
+	ownedCount := 0
+	for _, dlc := range dlcs {
+		if dlc.Owned {
+			ownedCount++
+		}
+	}
+	if ownedCount == 0 {
+		return platformName
+	}
+	return fmt.Sprintf("%s (%d DLC owned)", platformName, ownedCount)
+}

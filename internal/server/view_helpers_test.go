@@ -1,6 +1,10 @@
 package server
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/koenvanzuijlen/outpost/internal/database"
+)
 
 func TestDLCTitle(t *testing.T) {
 	tests := []struct {
@@ -22,6 +26,26 @@ func TestDLCTitle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := dlcTitle(tt.parentTitle, tt.title); got != tt.want {
 				t.Errorf("dlcTitle(%q, %q) = %q, want %q", tt.parentTitle, tt.title, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCopySummary(t *testing.T) {
+	tests := []struct {
+		name string
+		dlcs []database.CopyDLC
+		want string
+	}{
+		{"no DLC", nil, "PC"},
+		{"none owned", []database.CopyDLC{{Owned: false}, {Owned: false}}, "PC"},
+		{"one owned", []database.CopyDLC{{Owned: true}, {Owned: false}}, "PC (1 DLC owned)"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := copySummary("PC", tt.dlcs); got != tt.want {
+				t.Errorf("copySummary(%q, %v) = %q, want %q", "PC", tt.dlcs, got, tt.want)
 			}
 		})
 	}

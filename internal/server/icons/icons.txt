@@ -1,12 +1,15 @@
 archive
 arrow-down-narrow-wide
 arrow-down-wide-narrow
+chevron-down
 circle-x
 gamepad-2
 image-off
 list-todo
 pause
 search
+square
+square-check-big
 star
 star-half
 trophy
