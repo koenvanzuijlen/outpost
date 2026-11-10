@@ -10,8 +10,8 @@ templ gameView(page gamePage) {
 	{{ inLibrary := page.Details.UserGame != nil && !page.Details.UserGame.Wishlisted }}
 	@layout("") {
 		@gameInfo(page)
-		if page.Details.Parent == nil && (page.Details.Game.DlcsFetchedAt == nil || len(page.Details.OtherDLCs) > 0) {
-			@gameOtherDLC(page)
+		if page.Details.Parent == nil && (page.Details.Game.DlcsFetchedAt == nil || len(page.Details.DLCs) > 0) {
+			@gameDLC(page)
 		}
 		if inLibrary {
 			@gameLibrary(page)
@@ -129,9 +129,6 @@ templ gameCopies(page gamePage) {
 											>
 												<button type="submit" name="owned" value={ !dlc.Owned } aria-pressed={ dlc.Owned }>Owned</button>
 											</form>
-											if dlc.InLibrary {
-												<p>In library: @gameStatusBadge(dlc.Status, false)</p>
-											}
 										</li>
 									}
 								</ul>
@@ -181,26 +178,23 @@ templ gameCopies(page gamePage) {
 	</section>
 }
 
-// gameOtherDLC is the section with the DLC that is not listed under a copy. If the DLC was never fetched, it shows a
-// message instead.
-templ gameOtherDLC(page gamePage) {
+// gameDLC is the section with all DLC of a base game, newest first, as small game cards with their status. The card
+// titles leave out the title of the base game. If the DLC was never fetched, it shows a message instead.
+templ gameDLC(page gamePage) {
 	<section class="page-section">
-		<h2>Other DLC</h2>
+		<h2>DLC</h2>
 		if page.Details.Game.DlcsFetchedAt != nil {
-			if len(page.Details.OtherDLCs) > 0 {
-				<ul>
-					for _, dlc := range page.Details.OtherDLCs {
-						<li>
-							<a href={ gameURL(dlc.Game.IgdbID) }>
-								{ dlc.Game.Title }
-								if dlc.Game.ReleasedAt != nil {
-									({ dlc.Game.ReleasedAt.Format("2 January 2006") })
-								}
-							</a>
-						</li>
-					}
-				</ul>
-			}
+			<ul class="game-grid game-grid--small">
+				for _, dlc := range page.Details.DLCs {
+					<li>
+						{{
+							card := dlc.Game
+							card.Title = dlcTitle(page.Details.Game.Title, dlc.Game.Title)
+						}}
+						@gameCard(card, database.GameStatus(derefOrZero(dlc.Status)), 0)
+					</li>
+				}
+			</ul>
 		} else {
 			<p>DLC couldn't be loaded.</p>
 		}

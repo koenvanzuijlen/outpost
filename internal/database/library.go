@@ -23,7 +23,8 @@ var ErrGameNotInCatalog = errors.New("game not in the catalog")
 // GameOverview is a catalog game with everything the game page shows. Platforms are the platforms the game is released
 // on, from the catalog. UserGame is the user's library or wishlist entry, or nil if the game is in neither.
 // OwnedPlatforms are the platforms of the user's copies (for DLC: the base game's copies it is owned on). DLCs and
-// Parent come from the catalog; Parent is nil for a DLC whose base game isn't in the catalog. ParentInLibrary reports
+// Parent come from the catalog; DLCs are sorted newest first, with undated DLC last. Parent is nil for a DLC whose base
+// game isn't in the catalog. ParentInLibrary reports
 // whether that base game is in the user's library (not on the wishlist). CopyDLCs lists, per owned copy, the DLC
 // released on its platform. OtherDLCs are the DLC that appear under no copy. CopyDLCs and Playthroughs need a user game
 // and are empty without one.

@@ -46,7 +46,7 @@ func TestSaveDLCs(t *testing.T) {
 	if len(details.DLCs) != 3 {
 		t.Fatalf("len(DLCs) = %d, want 3", len(details.DLCs))
 	}
-	want := []int64{201, 202, 203}
+	want := []int64{203, 202, 201}
 	for i, dlc := range details.DLCs {
 		if dlc.Game.IgdbID != want[i] {
 			t.Errorf("DLCs[%d].IgdbID = %d, want %d", i, dlc.Game.IgdbID, want[i])

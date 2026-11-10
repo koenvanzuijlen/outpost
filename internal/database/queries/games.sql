@@ -30,7 +30,7 @@ WHERE
     g.parent_igdb_id = sqlc.arg(parent_igdb_id)
     AND g.game_type IN (sqlc.slice(game_types))
 ORDER BY
-    g.released_at ASC NULLS LAST,
+    g.released_at DESC NULLS LAST,
     g.title;
 
 -- name: UpsertGame :one

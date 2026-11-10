@@ -46,3 +46,18 @@ func platformNames(platforms []dbgen.Platform) string {
 	}
 	return strings.Join(names, ", ")
 }
+
+// dlcTitle returns the title of a DLC without the title of its parent game and the separator after it, for example
+// "Hearts of Stone" for "The Witcher 3: Wild Hunt - Hearts of Stone". It returns the full title if the title does not
+// start with the parent title and a separator, or if nothing is left after them.
+func dlcTitle(parentTitle, title string) string {
+	rest, ok := strings.CutPrefix(title, parentTitle)
+	if !ok {
+		return title
+	}
+	trimmed := strings.TrimLeft(rest, " -–:")
+	if trimmed == rest || trimmed == "" {
+		return title
+	}
+	return trimmed
+}
