@@ -25,13 +25,13 @@ func ratingLabel(rating int64) string {
 	return ratingScore(rating) + " out of 5"
 }
 
-// outcomeLabel returns the display text for a playthrough outcome. The stored value "playing" reads oddly as an
-// outcome, so it is shown as "in progress"; other outcomes are shown as they are.
+// outcomeLabel returns the badge text for a playthrough outcome: the label of the game status with the same value. The
+// stored value "playing" reads oddly as an outcome, so it is shown as "In progress".
 func outcomeLabel(outcome string) string {
 	if outcome == string(database.PlaythroughOutcomePlaying) {
-		return "in progress"
+		return "In progress"
 	}
-	return outcome
+	return gameStatusLabel(database.GameStatus(outcome))
 }
 
 // platformNames returns the names of the platforms, separated by commas, for example "PC, Nintendo Switch".

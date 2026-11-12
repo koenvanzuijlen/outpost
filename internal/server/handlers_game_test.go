@@ -215,9 +215,8 @@ func TestHandleGameActivePlaythrough(t *testing.T) {
 
 	w := getTestGamePage(t, server)
 	assertBodyContains(t, w, "Hard mode run")
-	assertBodyContains(t, w, "Outcome: in progress")
-	assertBodyContains(t, w, `aria-pressed="true">in progress</button>`)
-	assertBodyContains(t, w, "Platform: PC (Microsoft Windows)")
+	assertBodyContains(t, w, `value="playing" aria-pressed="true"`)
+	assertBodyContains(t, w, "<span>PC (Microsoft Windows)</span>")
 	assertBodyContains(t, w, fmt.Sprintf("/games/1942/playthroughs/%d/outcome", playthroughID))
 	assertBodyContains(t, w, fmt.Sprintf("/games/1942/playthroughs/%d/delete", playthroughID))
 	assertBodyContains(t, w, fmt.Sprintf(`action="/games/1942/playthroughs/%d"`, playthroughID))
@@ -237,10 +236,9 @@ func TestHandleGameCompletedPlaythrough(t *testing.T) {
 
 	w = getTestGamePage(t, server)
 	assertBodyContains(t, w, "Hard mode run")
-	assertBodyContains(t, w, "Platform: PC (Microsoft Windows)")
-	assertBodyContains(t, w, "Outcome: abandoned")
-	assertBodyContains(t, w, `aria-pressed="true">abandoned</button>`)
-	assertBodyContains(t, w, `aria-pressed="false">in progress</button>`)
+	assertBodyContains(t, w, "<span>PC (Microsoft Windows)</span>")
+	assertBodyContains(t, w, `value="abandoned" aria-pressed="true"`)
+	assertBodyContains(t, w, `value="playing" aria-pressed="false"`)
 	assertBodyContains(t, w, fmt.Sprintf("/games/1942/playthroughs/%d/outcome", playthroughID))
 	assertBodyContains(t, w, fmt.Sprintf("/games/1942/playthroughs/%d/delete", playthroughID))
 	assertBodyContains(t, w, `name="finished_at"`)
@@ -515,7 +513,7 @@ func TestHandleGamePlaythroughOutcomeAriaPressed(t *testing.T) {
 	if got := strings.Count(form, `aria-pressed="true"`); got != 1 {
 		t.Errorf("pressed buttons = %d, want 1 in %q", got, form)
 	}
-	if !strings.Contains(form, `aria-pressed="true">in progress</button>`) {
+	if !strings.Contains(form, `value="playing" aria-pressed="true"`) {
 		t.Errorf("in progress is not pressed in %q", form)
 	}
 
@@ -526,10 +524,10 @@ func TestHandleGamePlaythroughOutcomeAriaPressed(t *testing.T) {
 	if got := strings.Count(form, `aria-pressed="true"`); got != 1 {
 		t.Errorf("pressed buttons = %d, want 1 in %q", got, form)
 	}
-	if !strings.Contains(form, `aria-pressed="true">abandoned</button>`) {
+	if !strings.Contains(form, `value="abandoned" aria-pressed="true"`) {
 		t.Errorf("abandoned is not pressed in %q", form)
 	}
-	if !strings.Contains(form, `aria-pressed="false">in progress</button>`) {
+	if !strings.Contains(form, `value="playing" aria-pressed="false"`) {
 		t.Errorf("in progress is still pressed in %q", form)
 	}
 }

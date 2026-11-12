@@ -79,10 +79,10 @@ func TestOutcomeLabel(t *testing.T) {
 		outcome string
 		want    string
 	}{
-		{"playing", "in progress"},
-		{"completed", "completed"},
-		{"abandoned", "abandoned"},
-		{"retired", "retired"},
+		{"playing", "In progress"},
+		{"completed", "Completed"},
+		{"abandoned", "Abandoned"},
+		{"retired", "Retired"},
 	}
 
 	for _, tt := range tests {

@@ -95,7 +95,7 @@ func TestHandleStartPlaythroughDLC(t *testing.T) {
 	assertLocation(t, w, "/games/12503")
 
 	w = getGamePage(t, server, 12503)
-	assertBodyContains(t, w, "Platform: PC (Microsoft Windows)")
+	assertBodyContains(t, w, "<span>PC (Microsoft Windows)</span>")
 	assertBodyContains(t, w, `Ownership of this DLC is managed on the page of <a href="/games/1942">`)
 	assertBodyNotContains(t, w, "Not owned on any platform.")
 }

@@ -2,26 +2,30 @@ package server
 
 import "github.com/koenvanzuijlen/outpost/internal/database"
 
-// gameStatusBadge shows status as a badge in the color of the status. The full variant shows the icon and the status
-// text. The compact variant shows only the icon, with the status text as its accessible label and tooltip.
+// gameStatusBadge shows status as a badge in the color of the status, with the status label as its text. See
+// gameStatusBadgeWithLabel.
 templ gameStatusBadge(status database.GameStatus, compact bool) {
-	{{
-		statusIcon := gameStatusIcon(status)
-		statusLabel := gameStatusLabel(status)
-	}}
+	@gameStatusBadgeWithLabel(status, gameStatusLabel(status), compact)
+}
+
+// gameStatusBadgeWithLabel shows status as a badge in the color and with the icon of the status, with label as its
+// text. The full variant shows the icon and label. The compact variant shows only the icon, with label as its
+// accessible label and tooltip.
+templ gameStatusBadgeWithLabel(status database.GameStatus, label string, compact bool) {
+	{{ statusIcon := gameStatusIcon(status) }}
 	<span
 		class={ "badge", "badge--" + string(status) }
 		if compact {
 			role="img"
-			aria-label={ statusLabel }
-			title={ statusLabel }
+			aria-label={ label }
+			title={ label }
 		}
 	>
 		if statusIcon != "" {
 			@icon(statusIcon)
 		}
 		if !compact {
-			{ statusLabel }
+			{ label }
 		}
 	</span>
 }

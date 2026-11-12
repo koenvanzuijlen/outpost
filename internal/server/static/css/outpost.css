@@ -266,14 +266,16 @@
   }
 
   .status-filter__toggle:hover .badge,
-  .status-picker__option:hover .badge {
+  .status-picker__option:hover .badge,
+  .game-playthrough__outcome:hover .badge {
     border-color: oklch(0.6 var(--badge-chroma) var(--badge-hue));
   }
 
   /* All badge colors derive from the chroma, so a chroma of 0 makes the badge grey. The dashed border and the open
      background also show the state without color. */
   .status-filter__toggle--inactive .badge,
-  .status-picker__option:not(:has(:checked)) .badge {
+  .status-picker__option:not(:has(:checked)) .badge,
+  .game-playthrough__outcome[aria-pressed="false"] .badge {
     --badge-chroma: 0;
 
     border-style: dashed;
@@ -281,7 +283,8 @@
     color: var(--color-text-muted);
   }
 
-  .status-picker {
+  .status-picker,
+  .game-playthrough__outcomes {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
@@ -732,15 +735,17 @@
     font-size: 0.875rem;
   }
 
-  .game-copies {
+  .game-copies,
+  .game-playthroughs {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     max-width: 40rem;
   }
 
-  /* A copy on a DLC page is a div with the same box, without the chevron. */
-  .game-copy {
+  /* A copy on a DLC page is a div with the same box, without the chevron. A playthrough has the same box. */
+  .game-copy,
+  .game-playthrough {
     border: 1px solid var(--color-border-strong);
     border-radius: 0.5rem;
     background: var(--color-surface);
@@ -852,6 +857,49 @@
 
   .game-copy__remove button:hover {
     background: var(--color-bg);
+  }
+
+  .game-playthrough {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .game-playthrough__title {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .game-playthrough__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* A playthrough without a name has no title, so the meta line leads the card. */
+  .game-playthrough__meta:first-child {
+    color: var(--color-text);
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  /* The separator has empty alternative text, so screen readers do not read it. */
+  .game-playthrough__meta > * + *::before {
+    content: "·" / "";
+    margin-inline-end: 0.5rem;
+  }
+
+  /* The button is the click target and the badge inside it sets the look. aria-pressed holds the active outcome. The
+     radius gives the focus ring the shape of the badge. */
+  .game-playthrough__outcome {
+    display: flex;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    cursor: pointer;
   }
 
   @media (prefers-reduced-motion: reduce) {
