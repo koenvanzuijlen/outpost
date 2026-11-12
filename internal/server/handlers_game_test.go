@@ -130,7 +130,32 @@ func TestHandleGameInLibrary(t *testing.T) {
 	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
 	assertBodyContains(t, w, "PC (Microsoft Windows)")
 	assertBodyContains(t, w, `name="status" value="completed" checked`)
-	assertBodyContains(t, w, "4.5")
+}
+
+// TestHandleGameRatingInputChecked checks that the rating input of the game page checks the saved rating.
+func TestHandleGameRatingInputChecked(t *testing.T) {
+	tests := []struct {
+		name   string
+		rating string
+		want   string
+	}{
+		{"rated", "9", `name="rating" value="9" checked`},
+		{"unrated", "", `name="rating" value="" checked`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			addTestGame(t, server)
+
+			w := postForm(t, server, "/games/1942/details", "status=completed&rating="+tt.rating)
+			if w.Code != http.StatusSeeOther {
+				t.Fatalf("update game status = %d, want %d", w.Code, http.StatusSeeOther)
+			}
+
+			assertBodyContains(t, getTestGamePage(t, server), tt.want)
+		})
+	}
 }
 
 func TestHandleGameInLibraryWishlisted(t *testing.T) {

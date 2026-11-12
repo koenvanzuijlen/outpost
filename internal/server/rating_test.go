@@ -37,6 +37,30 @@ func TestRatingStarFills(t *testing.T) {
 	}
 }
 
+// TestRatingInputOptions checks the number of rating input options and the value, label and side of the options at the
+// start and end of the range.
+func TestRatingInputOptions(t *testing.T) {
+	got := ratingInputOptions()
+	if len(got) != 10 {
+		t.Fatalf("len(ratingInputOptions()) = %d, want 10", len(got))
+	}
+
+	tests := []struct {
+		index int
+		want  ratingInputOption
+	}{
+		{0, ratingInputOption{1, "0.5 out of 5", ratingStarLeft}},
+		{1, ratingInputOption{2, "1 out of 5", ratingStarRight}},
+		{9, ratingInputOption{10, "5 out of 5", ratingStarRight}},
+	}
+
+	for _, tt := range tests {
+		if got[tt.index] != tt.want {
+			t.Errorf("ratingInputOptions()[%d] = %+v, want %+v", tt.index, got[tt.index], tt.want)
+		}
+	}
+}
+
 // TestRatingStars checks that the full variant has the star class of a half star and that the compact variant shows
 // the score.
 func TestRatingStars(t *testing.T) {

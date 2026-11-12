@@ -291,7 +291,8 @@
     border: 0;
   }
 
-  .status-picker__legend {
+  .status-picker__legend,
+  .rating-input__legend {
     margin-block-end: 0.5rem;
     padding: 0;
     font-weight: 500;
@@ -457,6 +458,84 @@
     fill: currentColor;
   }
 
+  /* The font size sets the star size, because the icons are 1em. The legend resets it. */
+  .rating-input {
+    display: flex;
+    align-items: center;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 1.5rem;
+  }
+
+  .rating-input__legend {
+    font-size: 1rem;
+  }
+
+  /* The labels are positioned, so the hidden radios stay inside them and the page does not scroll on focus. */
+  .rating-input__clear,
+  .rating-input__option {
+    position: relative;
+    display: flex;
+    cursor: pointer;
+  }
+
+  .rating-input__clear {
+    margin-inline-end: 0.5rem;
+    border-radius: 999px;
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+  }
+
+  .rating-input__clear:is(:hover, :has(:checked)) {
+    color: var(--color-text);
+  }
+
+  /* Each option is half a star wide and clips the full star icon. A right option aligns the icon to its end, so the
+     icon overflows to the start and the option shows the right half. */
+  .rating-input__option {
+    width: 0.5em;
+    overflow: hidden;
+    color: var(--color-star);
+  }
+
+  .rating-input__option--right {
+    justify-content: flex-end;
+  }
+
+  .rating-input__option--right + .rating-input__option--left {
+    margin-inline-start: 0.125em;
+  }
+
+  /* The radios are hidden, so the labels show the keyboard focus. overflow: hidden does not clip the outline. */
+  .rating-input__clear:has(:focus-visible),
+  .rating-input__option:has(:focus-visible) {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  /* The checked option and all options before it are filled. */
+  .rating-input__option:has(:checked) svg,
+  .rating-input__option:has(~ .rating-input__option :checked) svg {
+    fill: currentColor;
+  }
+
+  /* While the pointer is over an option, the hover fill replaces the checked fill: the hovered option and all options
+     before it are filled. Hovering "No rating" empties all stars. These selectors are more specific than the checked
+     fill, so they win regardless of source order. */
+  .rating-input:has(:is(.rating-input__clear, .rating-input__option):hover)
+    .rating-input__option
+    svg {
+    fill: none;
+  }
+
+  .rating-input:has(.rating-input__option:hover)
+    .rating-input__option:is(:hover, :has(~ .rating-input__option:hover))
+    svg {
+    fill: currentColor;
+  }
+
   /* The status and the rating are positioned against the card, so they come last in the DOM and the link text starts
      with the title. */
   .game-card {
@@ -603,13 +682,6 @@
   .game-info__platforms {
     color: var(--color-text-muted);
     font-size: 0.875rem;
-  }
-
-  .game-library__summary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
   }
 
   .game-copies {

@@ -1,5 +1,7 @@
 package server
 
+import "strconv"
+
 // ratingStars shows rating as one image with ratingLabel as its accessible label and tooltip. The full variant shows
 // ratingStarCount stars, filled up to the rating. The compact variant shows the score and one filled star.
 templ ratingStars(rating int64, compact bool) {
@@ -21,4 +23,25 @@ templ ratingStars(rating int64, compact bool) {
 			}
 		}
 	</span>
+}
+
+// ratingInput shows radio inputs named rating: "No rating" with an empty value, then one per half star with the ratings
+// 1 to 10 from ratingInputOptions. The radio of current is checked; a current of 0 checks "No rating". Each half star
+// has its ratingLabel as its accessible name.
+templ ratingInput(current int64) {
+	<fieldset class="rating-input">
+		<legend class="rating-input__legend">Rating</legend>
+		<label class="rating-input__clear" title="No rating">
+			<input class="visually-hidden" type="radio" name="rating" value="" checked?={ current == 0 }/>
+			@icon("circle-x")
+			<span class="visually-hidden">No rating</span>
+		</label>
+		for _, option := range ratingInputOptions() {
+			<label class={ "rating-input__option", "rating-input__option--" + string(option.Side) }>
+				<input class="visually-hidden" type="radio" name="rating" value={ strconv.FormatInt(option.Value, 10) } checked?={ current == option.Value }/>
+				@icon("star")
+				<span class="visually-hidden">{ option.Label }</span>
+			</label>
+		}
+	</fieldset>
 }
