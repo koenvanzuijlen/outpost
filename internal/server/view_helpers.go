@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -102,4 +103,10 @@ func dateInputValue(t *time.Time) string {
 		return ""
 	}
 	return t.Format("2006-01-02")
+}
+
+// playthroughAnchor returns the HTML id of the card of a playthrough, for example "playthrough-7". The redirects of the
+// playthrough handlers use the id as the URL fragment.
+func playthroughAnchor(id int64) string {
+	return "playthrough-" + strconv.FormatInt(id, 10)
 }

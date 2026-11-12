@@ -17,10 +17,16 @@ func TestHandleStartPlaythrough(t *testing.T) {
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	assertLocation(t, w, "/games/1942")
 
 	details := getTestGame(t, server)
 	playthrough := onlyPlaythrough(t, details)
+	id := strconv.FormatInt(playthrough.Playthrough.ID, 10)
+	assertLocation(t, w, "/games/1942#playthrough-"+id)
+
+	page := getGamePage(t, server, 1942)
+	assertBodyContains(t, page, `id="playthrough-`+id+`"`)
+	assertBodyContains(t, page, `id="playthroughs"`)
+
 	if playthrough.Playthrough.Name == nil || *playthrough.Playthrough.Name != "First run" {
 		t.Errorf("name = %v, want %q", derefOrNil(playthrough.Playthrough.Name), "First run")
 	}
@@ -92,7 +98,11 @@ func TestHandleStartPlaythroughDLC(t *testing.T) {
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	assertLocation(t, w, "/games/12503")
+	dlc, err := server.store.GetGame(t.Context(), defaultUserID, 12503)
+	if err != nil {
+		t.Fatalf("GetGame(12503) failed: %v", err)
+	}
+	assertLocation(t, w, "/games/12503#playthrough-"+strconv.FormatInt(onlyPlaythrough(t, dlc).Playthrough.ID, 10))
 
 	w = getGamePage(t, server, 12503)
 	assertBodyContains(t, w, "<span>PC (Microsoft Windows)</span>")
@@ -123,7 +133,7 @@ func TestHandleSetPlaythroughOutcome(t *testing.T) {
 			if w.Code != http.StatusSeeOther {
 				t.Fatalf("set outcome status = %d, want %d", w.Code, http.StatusSeeOther)
 			}
-			assertLocation(t, w, "/games/1942")
+			assertLocation(t, w, "/games/1942#playthrough-"+strconv.FormatInt(playthroughID, 10))
 
 			details := getTestGame(t, server)
 			if details.UserGame.Status == nil || *details.UserGame.Status != outcome {
@@ -210,7 +220,7 @@ func TestHandleUpdatePlaythrough(t *testing.T) {
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("update status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	assertLocation(t, w, "/games/1942")
+	assertLocation(t, w, "/games/1942#playthrough-"+strconv.FormatInt(playthroughID, 10))
 
 	details := getTestGame(t, server)
 	playthrough := onlyPlaythrough(t, details)
@@ -314,7 +324,7 @@ func TestHandleDeletePlaythrough(t *testing.T) {
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	assertLocation(t, w, "/games/1942")
+	assertLocation(t, w, "/games/1942#playthroughs")
 
 	details := getTestGame(t, server)
 	if len(details.Playthroughs) != 0 {
@@ -331,7 +341,7 @@ func TestHandleDeletePlaythroughUnknown(t *testing.T) {
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	assertLocation(t, w, "/games/1942")
+	assertLocation(t, w, "/games/1942#playthroughs")
 
 	details := getTestGame(t, server)
 	if len(details.Playthroughs) != 1 {

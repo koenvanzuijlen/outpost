@@ -248,12 +248,12 @@ templ gamePlaythroughDate(date time.Time) {
 // gamePlaythroughs is the section with the playthroughs of the game, as a list of cards. A form below the list starts
 // a new playthrough.
 templ gamePlaythroughs(page gamePage) {
-	<section class="page-section">
+	<section class="page-section" id="playthroughs">
 		<h2>Your playthroughs</h2>
 		if len(page.Details.Playthroughs) > 0 {
 			<ul class="game-playthroughs">
 				for _, entry := range page.Details.Playthroughs {
-					<li class="game-playthrough">
+					<li class="game-playthrough" id={ playthroughAnchor(entry.Playthrough.ID) }>
 						@gamePlaythrough(page, entry)
 					</li>
 				}
