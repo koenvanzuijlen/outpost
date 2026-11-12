@@ -19,11 +19,6 @@ func ratingScore(rating int64) string {
 	return fmt.Sprintf("%g", starCount)
 }
 
-// ratingText converts a numeric rating into a textual star representation.
-func ratingText(rating int64) string {
-	return ratingScore(rating) + " ⭐"
-}
-
 // ratingLabel converts a numeric rating into an accessible textual representation.
 func ratingLabel(rating int64) string {
 	return ratingScore(rating) + " out of 5"

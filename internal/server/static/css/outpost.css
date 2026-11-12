@@ -265,18 +265,52 @@
     text-decoration: none;
   }
 
-  .status-filter__toggle:hover .badge {
+  .status-filter__toggle:hover .badge,
+  .status-picker__option:hover .badge {
     border-color: oklch(0.6 var(--badge-chroma) var(--badge-hue));
   }
 
   /* All badge colors derive from the chroma, so a chroma of 0 makes the badge grey. The dashed border and the open
      background also show the state without color. */
-  .status-filter__toggle--inactive .badge {
+  .status-filter__toggle--inactive .badge,
+  .status-picker__option:not(:has(:checked)) .badge {
     --badge-chroma: 0;
 
     border-style: dashed;
     background: transparent;
     color: var(--color-text-muted);
+  }
+
+  .status-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .status-picker__legend,
+  .rating-input__legend {
+    margin-block-end: 0.5rem;
+    padding: 0;
+    font-weight: 500;
+  }
+
+  /* The label is the click target and the badge inside it sets the look. The relative position keeps the hidden
+     radio inside the label, so the page does not scroll when the radio gets focus. */
+  .status-picker__option {
+    position: relative;
+    display: flex;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  /* The radio is hidden, so the label shows the keyboard focus. */
+  .status-picker__option:has(:focus-visible) {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
   }
 
   /* The filters and the sort form of a game list share a row. The form moves to a new row when the row is too narrow. */
@@ -308,7 +342,8 @@
   /* The select, the order toggle and the apply button share the border and the radius of the search form. */
   .sort-form__select,
   .sort-order-toggle,
-  .sort-form__apply {
+  .sort-form__apply,
+  .game-details__save {
     border: 1px solid var(--color-border-strong);
     border-radius: 0.5rem;
     background: var(--color-surface);
@@ -339,14 +374,16 @@
     color: var(--color-accent-hover);
   }
 
-  .sort-form__apply {
+  .sort-form__apply,
+  .game-details__save {
     padding: 0.375rem 0.75rem;
     color: var(--color-accent);
     font-weight: 500;
     cursor: pointer;
   }
 
-  .sort-form__apply:hover {
+  .sort-form__apply:hover,
+  .game-details__save:hover {
     background: var(--color-bg);
     color: var(--color-accent-hover);
   }
@@ -421,6 +458,84 @@
   /* The CSS fill overrides the fill="none" attribute of the Lucide SVG. */
   .rating-stars__star--full svg,
   .rating-stars__star--half .icon + .icon svg {
+    fill: currentColor;
+  }
+
+  /* The font size sets the star size, because the icons are 1em. The legend resets it. */
+  .rating-input {
+    display: flex;
+    align-items: center;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 1.5rem;
+  }
+
+  .rating-input__legend {
+    font-size: 1rem;
+  }
+
+  /* The labels are positioned, so the hidden radios stay inside them and the page does not scroll on focus. */
+  .rating-input__clear,
+  .rating-input__option {
+    position: relative;
+    display: flex;
+    cursor: pointer;
+  }
+
+  .rating-input__clear {
+    margin-inline-end: 0.5rem;
+    border-radius: 999px;
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+  }
+
+  .rating-input__clear:is(:hover, :has(:checked)) {
+    color: var(--color-text);
+  }
+
+  /* Each option is half a star wide and clips the full star icon. A right option aligns the icon to its end, so the
+     icon overflows to the start and the option shows the right half. */
+  .rating-input__option {
+    width: 0.5em;
+    overflow: hidden;
+    color: var(--color-star);
+  }
+
+  .rating-input__option--right {
+    justify-content: flex-end;
+  }
+
+  .rating-input__option--right + .rating-input__option--left {
+    margin-inline-start: 0.125em;
+  }
+
+  /* The radios are hidden, so the labels show the keyboard focus. overflow: hidden does not clip the outline. */
+  .rating-input__clear:has(:focus-visible),
+  .rating-input__option:has(:focus-visible) {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  /* The checked option and all options before it are filled. */
+  .rating-input__option:has(:checked) svg,
+  .rating-input__option:has(~ .rating-input__option :checked) svg {
+    fill: currentColor;
+  }
+
+  /* While the pointer is over an option, the hover fill replaces the checked fill: the hovered option and all options
+     before it are filled. Hovering "No rating" empties all stars. These selectors are more specific than the checked
+     fill, so they win regardless of source order. */
+  .rating-input:has(:is(.rating-input__clear, .rating-input__option):hover)
+    .rating-input__option
+    svg {
+    fill: none;
+  }
+
+  .rating-input:has(.rating-input__option:hover)
+    .rating-input__option:is(:hover, :has(~ .rating-input__option:hover))
+    svg {
     fill: currentColor;
   }
 
@@ -572,11 +687,49 @@
     font-size: 0.875rem;
   }
 
-  .game-library__summary {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
+  /* Each part of the form is on its own row. start keeps the buttons at their own width; the notes stretch. The
+     minmax column cannot grow wider than the section. */
+  .game-details {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 1.25rem;
+  }
+
+  /* The notes have the same maximum width as the copies. */
+  .game-details__notes {
+    display: grid;
+    justify-self: stretch;
+    gap: 0.5rem;
+    max-inline-size: 40rem;
+    font-weight: 500;
+  }
+
+  /* The textarea has the border and radius of the other controls. field-sizing makes it grow with the text, between
+     the minimum and the maximum height; without support, it keeps the minimum height and the user can resize it. */
+  .game-details__notes-input {
+    inline-size: 100%;
+    min-block-size: 10rem;
+    max-block-size: 30rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    font-weight: 400;
+    line-height: 1.5;
+    resize: vertical;
+    field-sizing: content;
+  }
+
+  .game-details__notes-input:hover {
+    border-color: var(--color-text-muted);
+  }
+
+  /* The minimum height keeps the empty status line, so the page does not move when the text appears. */
+  .game-details__save-status {
+    min-block-size: 1lh;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
   }
 
   .game-copies {

@@ -213,42 +213,23 @@ templ gameDLC(page gamePage) {
 	</section>
 }
 
-// gameLibrary is the section of a library game with its status and rating, the form to change the status, the rating
-// and the notes, and the form to remove the game from the library. The form is prefilled with the current values.
+// gameLibrary is the section of a library game with the form to change the status, the rating and the notes, and the
+// form to remove the game from the library. The form is prefilled with the current values. With JavaScript, the form
+// saves each change right away (data-auto-save); without it, the Save button submits the form.
 templ gameLibrary(page gamePage) {
 	<section class="page-section">
 		<h2>Your library</h2>
-		<p class="game-library__summary">
-			if page.CurrentStatus != "" {
-				@gameStatusBadge(page.CurrentStatus, false)
-			}
-			if page.CurrentRating > 0 {
-				@ratingStars(page.CurrentRating, false)
-			}
-		</p>
-		<form method="post" action={ gameURL(page.Details.Game.IgdbID) + "/details" }>
-			<label>
-				Status
-				<select name="status">
-					for _, status := range page.Statuses {
-						<option value={ status } selected?={ status == page.CurrentStatus }>{ gameStatusLabel(status) }</option>
-					}
-				</select>
-			</label>
-			<label>
-				Rating
-				<select name="rating">
-					<option value="" selected?={ page.CurrentRating == 0 }>Unrated</option>
-					for _, rating := range page.RatingOptions {
-						<option value={ rating.Value } selected?={ page.CurrentRating == rating.Value }>{ rating.Label }</option>
-					}
-				</select>
-			</label>
-			<label>
+		<form class="game-details" method="post" action={ gameURL(page.Details.Game.IgdbID) + "/details" } data-auto-save>
+			@gameStatusPicker(page.Statuses, page.CurrentStatus)
+			@ratingInput(page.CurrentRating)
+			<label class="game-details__notes">
 				Notes
-				<textarea name="notes" maxlength={ page.MaxNotesLength }>{ derefOrZero(page.Details.UserGame.Notes) }</textarea>
+				<textarea class="game-details__notes-input" name="notes" maxlength={ page.MaxNotesLength }>{ derefOrZero(page.Details.UserGame.Notes) }</textarea>
 			</label>
-			<button type="submit">Save</button>
+			<noscript>
+				<button class="game-details__save" type="submit">Save</button>
+			</noscript>
+			<p class="game-details__save-status" role="status" data-save-status></p>
 		</form>
 		@gameRemove(page)
 	</section>

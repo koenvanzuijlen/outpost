@@ -19,24 +19,6 @@ import (
 // maxNotesLength defines the maximum allowed length for game notes.
 const maxNotesLength = 10_000
 
-// ratingOption represents a single rating option for a game.
-type ratingOption struct {
-	Value int64
-	Label string
-}
-
-// ratingOptions returns the ratings 1 to 10 with their star labels, for the rating select.
-func ratingOptions() []ratingOption {
-	options := make([]ratingOption, 10)
-	for i := 1; i <= 10; i++ {
-		options[i-1] = ratingOption{
-			Value: int64(i),
-			Label: ratingText(int64(i)),
-		}
-	}
-	return options
-}
-
 // outcomeOption is a playthrough outcome as offered on the game page.
 type outcomeOption struct {
 	Value string
@@ -61,7 +43,6 @@ type gamePage struct {
 	CopyPlatformOptions []dbgen.Platform
 	Statuses            []database.GameStatus
 	CurrentStatus       database.GameStatus
-	RatingOptions       []ratingOption
 	CurrentRating       int64
 	OutcomeOptions      []outcomeOption
 	MaxNotesLength      int64
@@ -162,7 +143,6 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		Details:             details,
 		CopyPlatformOptions: copyPlatformOptions,
 		Statuses:            database.GameStatuses,
-		RatingOptions:       ratingOptions(),
 		OutcomeOptions:      outcomeOptions(),
 		MaxNotesLength:      maxNotesLength,
 		CanAddToLibrary: igdb.GameType(details.Game.GameType).Standalone() &&
