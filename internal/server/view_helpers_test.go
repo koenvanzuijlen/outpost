@@ -3,6 +3,7 @@ package server
 import (
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
@@ -48,6 +49,27 @@ func TestCopySummary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := copySummary("PC", tt.dlcs); got != tt.want {
 				t.Errorf("copySummary(%q, %v) = %q, want %q", "PC", tt.dlcs, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestDateInputValue checks that a nil date gives an empty string and a date gives the format of a date input.
+func TestDateInputValue(t *testing.T) {
+	date := time.Date(2026, time.January, 2, 15, 4, 5, 0, time.UTC)
+	tests := []struct {
+		name string
+		date *time.Time
+		want string
+	}{
+		{"nil", nil, ""},
+		{"date", &date, "2026-01-02"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := dateInputValue(tt.date); got != tt.want {
+				t.Errorf("dateInputValue() = %q, want %q", got, tt.want)
 			}
 		})
 	}

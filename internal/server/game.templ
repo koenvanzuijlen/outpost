@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/koenvanzuijlen/outpost/internal/database"
+	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 	"strconv"
 	"time"
 )
@@ -244,119 +245,132 @@ templ gamePlaythroughDate(date time.Time) {
 	<time datetime={ date.Format("2006-01-02") }>{ date.Format("2 January 2006") }</time>
 }
 
-// gamePlaythroughs is the section with the playthroughs of the game, as cards. A card shows the name as its title if
-// the playthrough has one, a line with the platform and the dates, and one button per outcome that looks like a status
-// badge. The button of the current outcome is pressed. Each card also has a form to edit the playthrough and a form to
-// delete it. A last form starts a new playthrough.
+// gamePlaythroughs is the section with the playthroughs of the game, as a list of cards. A form below the list starts
+// a new playthrough.
 templ gamePlaythroughs(page gamePage) {
 	<section class="page-section">
 		<h2>Your playthroughs</h2>
-		{{ url := gameURL(page.Details.Game.IgdbID) }}
 		if len(page.Details.Playthroughs) > 0 {
 			<ul class="game-playthroughs">
 				for _, entry := range page.Details.Playthroughs {
 					<li class="game-playthrough">
-						if entry.Playthrough.Name != nil {
-							<h3 class="game-playthrough__title">
-								{ *entry.Playthrough.Name }
-							</h3>
-						}
-						if entry.PlatformName != nil || entry.Playthrough.StartedAt != nil || entry.Playthrough.FinishedAt != nil {
-							<p class="game-playthrough__meta">
-								if entry.PlatformName != nil {
-									<span>{ *entry.PlatformName }</span>
-								}
-								if entry.Playthrough.StartedAt != nil {
-									<span>Started @gamePlaythroughDate(*entry.Playthrough.StartedAt)</span>
-								}
-								if entry.Playthrough.FinishedAt != nil {
-									<span>Finished @gamePlaythroughDate(*entry.Playthrough.FinishedAt)</span>
-								}
-							</p>
-						}
-						<form method="post" action={ url + "/playthroughs/" + strconv.Itoa(int(entry.Playthrough.ID)) + "/outcome" }>
-							<fieldset class="game-playthrough__outcomes">
-								<legend class="visually-hidden">Outcome</legend>
-								for _, option := range page.OutcomeOptions {
-									<button
-										class="game-playthrough__outcome"
-										type="submit"
-										name="outcome"
-										value={ option.Value }
-										aria-pressed={ option.Value == entry.Playthrough.Outcome }
-									>
-										@gameStatusBadgeWithLabel(database.GameStatus(option.Value), option.Label, false)
-									</button>
-								}
-							</fieldset>
-						</form>
-						<details>
-							<summary>Edit</summary>
-							<form method="post" action={ url + "/playthroughs/" + strconv.Itoa(int(entry.Playthrough.ID)) }>
-								<label>
-									Playthrough name
-									<input type="text" name="name" value={ derefOrZero(entry.Playthrough.Name) }/>
-								</label>
-								<label>
-									Platform
-									<select name="platform">
-										<option value="" selected?={ derefOrZero(entry.Playthrough.PlatformID) == 0 }>No platform</option>
-										for _, platform := range playthroughPlatformOptions(page.Details.OwnedPlatforms, entry) {
-											<option value={ strconv.Itoa(int(platform.IgdbID)) } selected?={ platform.ID == derefOrZero(entry.Playthrough.PlatformID) }>{ platform.Name }</option>
-										}
-									</select>
-								</label>
-								<label>
-									Started at
-									<input
-										type="date"
-										name="started_at"
-										value={ derefOrZero(entry.Playthrough.StartedAt).Format("2006-01-02") }
-									/>
-								</label>
-								if entry.Playthrough.Outcome != string(database.PlaythroughOutcomePlaying) {
-									<label>
-										Finished at
-										<input
-											type="date"
-											name="finished_at"
-											value={ derefOrZero(entry.Playthrough.FinishedAt).Format("2006-01-02") }
-										/>
-									</label>
-								}
-								<button type="submit">Update playthrough</button>
-							</form>
-						</details>
-						<details>
-							<summary>Delete</summary>
-							<form method="post" action={ url + "/playthroughs/" + strconv.Itoa(int(entry.Playthrough.ID)) + "/delete" }>
-								<button type="submit">Really delete</button>
-							</form>
-						</details>
+						@gamePlaythrough(page, entry)
 					</li>
 				}
 			</ul>
 		} else {
 			<p>No playthroughs yet.</p>
 		}
-		<form method="post" action={ url + "/playthroughs" }>
-			<h3>Start a playthrough</h3>
-			<label>
-				Playthrough name
-				<input type="text" name="name"/>
+		<h3>Start a playthrough</h3>
+		<form class="game-playthrough-form" method="post" action={ gameURL(page.Details.Game.IgdbID) + "/playthroughs" }>
+			<label class="game-playthrough-form__field">
+				Name
+				<input class="game-playthrough-form__input" type="text" name="name"/>
 			</label>
-			<label>
+			<label class="game-playthrough-form__field">
 				Platform
-				<select name="platform">
+				<select class="game-playthrough-form__input" name="platform">
 					<option value="">No platform</option>
 					for _, platform := range page.Details.OwnedPlatforms {
 						<option value={ strconv.Itoa(int(platform.IgdbID)) }>{ platform.Name }</option>
 					}
 				</select>
 			</label>
-			<button type="submit">Start</button>
+			<button class="game-playthrough-form__submit" type="submit">Start</button>
 		</form>
 	</section>
+}
+
+// gamePlaythrough is the card of one playthrough. The card shows the name as its title if the playthrough has one, a
+// line with the platform and the dates, and one button per outcome that looks like a status badge. The button of the
+// current outcome is pressed. A pencil opens the edit form in place of the card content. The form to delete the
+// playthrough is inside the edit form. The finished date is only in the edit form if the playthrough is not in
+// progress.
+templ gamePlaythrough(page gamePage, entry dbgen.ListPlaythroughsForUserGameIDRow) {
+	{{ url := gameURL(page.Details.Game.IgdbID) + "/playthroughs/" + strconv.FormatInt(entry.Playthrough.ID, 10) }}
+	if entry.Playthrough.Name != nil {
+		<h3 class="game-playthrough__title">
+			{ *entry.Playthrough.Name }
+		</h3>
+	}
+	if entry.PlatformName != nil || entry.Playthrough.StartedAt != nil || entry.Playthrough.FinishedAt != nil {
+		<p class="game-playthrough__meta">
+			if entry.PlatformName != nil {
+				<span>{ *entry.PlatformName }</span>
+			}
+			if entry.Playthrough.StartedAt != nil {
+				<span>Started @gamePlaythroughDate(*entry.Playthrough.StartedAt)</span>
+			}
+			if entry.Playthrough.FinishedAt != nil {
+				<span>Finished @gamePlaythroughDate(*entry.Playthrough.FinishedAt)</span>
+			}
+		</p>
+	}
+	<form method="post" action={ url + "/outcome" }>
+		<fieldset class="game-playthrough__outcomes">
+			<legend class="visually-hidden">Outcome</legend>
+			for _, option := range page.OutcomeOptions {
+				<button
+					class="game-playthrough__outcome"
+					type="submit"
+					name="outcome"
+					value={ option.Value }
+					aria-pressed={ option.Value == entry.Playthrough.Outcome }
+				>
+					@gameStatusBadgeWithLabel(database.GameStatus(option.Value), option.Label, false)
+				</button>
+			}
+		</fieldset>
+	</form>
+	<details class="game-playthrough__edit">
+		<summary class="game-playthrough__edit-toggle">
+			@icon("pencil")
+			@icon("x")
+			<span class="visually-hidden">Edit playthrough</span>
+		</summary>
+		<form class="game-playthrough-form" method="post" action={ url }>
+			<label class="game-playthrough-form__field">
+				Name
+				<input class="game-playthrough-form__input" type="text" name="name" value={ derefOrZero(entry.Playthrough.Name) }/>
+			</label>
+			<label class="game-playthrough-form__field">
+				Platform
+				<select class="game-playthrough-form__input" name="platform">
+					<option value="" selected?={ derefOrZero(entry.Playthrough.PlatformID) == 0 }>No platform</option>
+					for _, platform := range playthroughPlatformOptions(page.Details.OwnedPlatforms, entry) {
+						<option value={ strconv.FormatInt(platform.IgdbID, 10) } selected?={ platform.ID == derefOrZero(entry.Playthrough.PlatformID) }>{ platform.Name }</option>
+					}
+				</select>
+			</label>
+			<label class="game-playthrough-form__field">
+				Started
+				<input
+					class="game-playthrough-form__input"
+					type="date"
+					name="started_at"
+					value={ dateInputValue(entry.Playthrough.StartedAt) }
+				/>
+			</label>
+			if entry.Playthrough.Outcome != string(database.PlaythroughOutcomePlaying) {
+				<label class="game-playthrough-form__field">
+					Finished
+					<input
+						class="game-playthrough-form__input"
+						type="date"
+						name="finished_at"
+						value={ dateInputValue(entry.Playthrough.FinishedAt) }
+					/>
+				</label>
+			}
+			<button class="game-playthrough-form__submit" type="submit">Save</button>
+		</form>
+		<details class="game-playthrough__delete">
+			<summary>Delete playthrough</summary>
+			<form method="post" action={ url + "/delete" }>
+				<button type="submit">Really delete</button>
+			</form>
+		</details>
+	</details>
 }
 
 // gameRemove is the form to remove the game from the library, or from the wishlist if the game is wishlisted. It

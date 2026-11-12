@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
@@ -92,4 +93,13 @@ func playthroughPlatformOptions(owned []dbgen.Platform, entry dbgen.ListPlaythro
 		Name:   *entry.PlatformName,
 		IgdbID: *entry.PlatformIgdbID,
 	})
+}
+
+// dateInputValue returns the date as the value of a date input (2006-01-02). It returns an empty string if the date is
+// nil, so that the input is empty.
+func dateInputValue(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format("2006-01-02")
 }
