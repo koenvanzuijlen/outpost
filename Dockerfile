@@ -10,7 +10,8 @@ RUN mkdir /data
 COPY . .
 
 ENV CGO_ENABLED=0
-RUN go build -trimpath -ldflags="-s -w" -o /out/outpost ./cmd/outpost
+ARG VERSION=dev
+RUN go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/outpost ./cmd/outpost
 
 FROM gcr.io/distroless/static-debian13:nonroot
 

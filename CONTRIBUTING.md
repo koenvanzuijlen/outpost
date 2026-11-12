@@ -18,8 +18,10 @@ The app runs on `http://localhost:8080` and uses `outpost.db` in the repository 
 To build the Docker image locally:
 
 ```sh
-docker build -t outpost .
+docker build --build-arg VERSION=1.2.3 -t outpost .
 ```
+
+`VERSION` sets the version that Outpost shows and logs at startup. Without `VERSION`, the image reports `dev`.
 
 ## Tasks
 

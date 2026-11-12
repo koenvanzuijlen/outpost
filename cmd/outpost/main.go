@@ -20,6 +20,10 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/server"
 )
 
+// version is the release version of Outpost, for example "1.0.0". The build sets it with
+// -ldflags "-X main.version=…". A build without that flag reports "dev".
+var version = "dev"
+
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -32,6 +36,8 @@ func main() {
 
 // run starts the Outpost server and handles graceful shutdown.
 func run(logger *slog.Logger) error {
+	logger.Info("Starting Outpost", "version", version)
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

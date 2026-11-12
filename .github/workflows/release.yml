@@ -58,3 +58,4 @@ jobs:
           push: true
           tags: ${{ steps.docker_metadata.outputs.tags }}
           labels: ${{ steps.docker_metadata.outputs.labels }}
+          build-args: VERSION=${{ steps.docker_metadata.outputs.version }}
