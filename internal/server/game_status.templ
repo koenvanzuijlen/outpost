@@ -25,3 +25,17 @@ templ gameStatusBadge(status database.GameStatus, compact bool) {
 		}
 	</span>
 }
+
+// gameStatusPicker shows one status button per status in statuses, as radio inputs named status. The button of current
+// is checked. Each button looks like a status badge, and an unchecked button is grey.
+templ gameStatusPicker(statuses []database.GameStatus, current database.GameStatus) {
+	<fieldset class="status-picker">
+		<legend class="status-picker__legend">Status</legend>
+		for _, status := range statuses {
+			<label class="status-picker__option">
+				<input class="visually-hidden" type="radio" name="status" value={ string(status) } checked?={ status == current }/>
+				@gameStatusBadge(status, false)
+			</label>
+		}
+	</fieldset>
+}

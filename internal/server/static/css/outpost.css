@@ -265,18 +265,51 @@
     text-decoration: none;
   }
 
-  .status-filter__toggle:hover .badge {
+  .status-filter__toggle:hover .badge,
+  .status-picker__option:hover .badge {
     border-color: oklch(0.6 var(--badge-chroma) var(--badge-hue));
   }
 
   /* All badge colors derive from the chroma, so a chroma of 0 makes the badge grey. The dashed border and the open
      background also show the state without color. */
-  .status-filter__toggle--inactive .badge {
+  .status-filter__toggle--inactive .badge,
+  .status-picker__option:not(:has(:checked)) .badge {
     --badge-chroma: 0;
 
     border-style: dashed;
     background: transparent;
     color: var(--color-text-muted);
+  }
+
+  .status-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .status-picker__legend {
+    margin-block-end: 0.5rem;
+    padding: 0;
+    font-weight: 500;
+  }
+
+  /* The label is the click target and the badge inside it sets the look. The relative position keeps the hidden
+     radio inside the label, so the page does not scroll when the radio gets focus. */
+  .status-picker__option {
+    position: relative;
+    display: flex;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  /* The radio is hidden, so the label shows the keyboard focus. */
+  .status-picker__option:has(:focus-visible) {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
   }
 
   /* The filters and the sort form of a game list share a row. The form moves to a new row when the row is too narrow. */

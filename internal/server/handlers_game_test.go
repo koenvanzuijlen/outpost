@@ -129,7 +129,7 @@ func TestHandleGameInLibrary(t *testing.T) {
 	w = getTestGamePage(t, server)
 	assertBodyContains(t, w, "The Witcher 3: Wild Hunt")
 	assertBodyContains(t, w, "PC (Microsoft Windows)")
-	assertBodyContains(t, w, `name="status"`)
+	assertBodyContains(t, w, `name="status" value="completed" checked`)
 	assertBodyContains(t, w, "4.5")
 }
 

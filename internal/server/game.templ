@@ -213,28 +213,18 @@ templ gameDLC(page gamePage) {
 	</section>
 }
 
-// gameLibrary is the section of a library game with its status and rating, the form to change the status, the rating
-// and the notes, and the form to remove the game from the library. The form is prefilled with the current values.
+// gameLibrary is the section of a library game with its rating, the form to change the status, the rating and the
+// notes, and the form to remove the game from the library. The form is prefilled with the current values.
 templ gameLibrary(page gamePage) {
 	<section class="page-section">
 		<h2>Your library</h2>
 		<p class="game-library__summary">
-			if page.CurrentStatus != "" {
-				@gameStatusBadge(page.CurrentStatus, false)
-			}
 			if page.CurrentRating > 0 {
 				@ratingStars(page.CurrentRating, false)
 			}
 		</p>
 		<form method="post" action={ gameURL(page.Details.Game.IgdbID) + "/details" }>
-			<label>
-				Status
-				<select name="status">
-					for _, status := range page.Statuses {
-						<option value={ status } selected?={ status == page.CurrentStatus }>{ gameStatusLabel(status) }</option>
-					}
-				</select>
-			</label>
+			@gameStatusPicker(page.Statuses, page.CurrentStatus)
 			<label>
 				Rating
 				<select name="rating">
