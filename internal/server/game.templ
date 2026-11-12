@@ -214,18 +214,22 @@ templ gameDLC(page gamePage) {
 }
 
 // gameLibrary is the section of a library game with the form to change the status, the rating and the notes, and the
-// form to remove the game from the library. The form is prefilled with the current values.
+// form to remove the game from the library. The form is prefilled with the current values. With JavaScript, the form
+// saves each change right away (data-auto-save); without it, the Save button submits the form.
 templ gameLibrary(page gamePage) {
 	<section class="page-section">
 		<h2>Your library</h2>
-		<form method="post" action={ gameURL(page.Details.Game.IgdbID) + "/details" }>
+		<form class="game-details" method="post" action={ gameURL(page.Details.Game.IgdbID) + "/details" } data-auto-save>
 			@gameStatusPicker(page.Statuses, page.CurrentStatus)
 			@ratingInput(page.CurrentRating)
-			<label>
+			<label class="game-details__notes">
 				Notes
-				<textarea name="notes" maxlength={ page.MaxNotesLength }>{ derefOrZero(page.Details.UserGame.Notes) }</textarea>
+				<textarea class="game-details__notes-input" name="notes" maxlength={ page.MaxNotesLength }>{ derefOrZero(page.Details.UserGame.Notes) }</textarea>
 			</label>
-			<button type="submit">Save</button>
+			<noscript>
+				<button class="game-details__save" type="submit">Save</button>
+			</noscript>
+			<p class="game-details__save-status" role="status" data-save-status></p>
 		</form>
 		@gameRemove(page)
 	</section>

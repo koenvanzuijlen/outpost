@@ -800,7 +800,8 @@ func gameDLC(page gamePage) templ.Component {
 }
 
 // gameLibrary is the section of a library game with the form to change the status, the rating and the notes, and the
-// form to remove the game from the library. The form is prefilled with the current values.
+// form to remove the game from the library. The form is prefilled with the current values. With JavaScript, the form
+// saves each change right away (data-auto-save); without it, the Save button submits the form.
 func gameLibrary(page gamePage) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -818,20 +819,20 @@ func gameLibrary(page gamePage) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<section class=\"page-section\"><h2>Your library</h2><form method=\"post\" action=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<section class=\"page-section\"><h2>Your library</h2><form class=\"game-details\" method=\"post\" action=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var34 string
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templruntime.NewAttributeExpression(gameURL(page.Details.Game.IgdbID) + "/details").ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 221, Col: 77}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 222, Col: 98}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var34)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 77, "\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 77, "\" data-auto-save>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -843,14 +844,14 @@ func gameLibrary(page gamePage) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 78, "<label>Notes <textarea name=\"notes\" maxlength=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 78, "<label class=\"game-details__notes\">Notes <textarea class=\"game-details__notes-input\" name=\"notes\" maxlength=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templruntime.NewAttributeExpression(page.MaxNotesLength).Resolve(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 226, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 227, Col: 92}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var35)
 		if templ_7745c5c3_Err != nil {
@@ -863,13 +864,13 @@ func gameLibrary(page gamePage) templ.Component {
 		var templ_7745c5c3_Var36 string
 		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(derefOrZero(page.Details.UserGame.Notes))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 226, Col: 103}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 227, Col: 137}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 80, "</textarea></label> <button type=\"submit\">Save</button></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 80, "</textarea></label><noscript><button class=\"game-details__save\" type=\"submit\">Save</button></noscript><p class=\"game-details__save-status\" role=\"status\" data-save-status></p></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -927,7 +928,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 					var templ_7745c5c3_Var38 string
 					templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(*entry.Playthrough.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 245, Col: 35}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 249, Col: 35}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 					if templ_7745c5c3_Err != nil {
@@ -946,7 +947,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 					var templ_7745c5c3_Var39 string
 					templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(*entry.PlatformName)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 248, Col: 41}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 252, Col: 41}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 					if templ_7745c5c3_Err != nil {
@@ -964,7 +965,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 				var templ_7745c5c3_Var40 string
 				templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(outcomeLabel(entry.Playthrough.Outcome))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 250, Col: 59}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 254, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 				if templ_7745c5c3_Err != nil {
@@ -982,7 +983,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 					var templ_7745c5c3_Var41 string
 					templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs((*entry.Playthrough.StartedAt).Format("2 January 2006"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 252, Col: 76}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 256, Col: 76}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 					if templ_7745c5c3_Err != nil {
@@ -1001,7 +1002,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 					var templ_7745c5c3_Var42 string
 					templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs((*entry.Playthrough.FinishedAt).Format("2 January 2006"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 255, Col: 78}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 259, Col: 78}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 					if templ_7745c5c3_Err != nil {
@@ -1019,7 +1020,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 				var templ_7745c5c3_Var43 string
 				templ_7745c5c3_Var43, templ_7745c5c3_Err = templruntime.NewAttributeExpression(url + "/playthroughs/" + strconv.Itoa(int(entry.Playthrough.ID)) + "/outcome").ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 257, Col: 112}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 261, Col: 112}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var43)
 				if templ_7745c5c3_Err != nil {
@@ -1041,7 +1042,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 					var templ_7745c5c3_Var44 string
 					templ_7745c5c3_Var44, templ_7745c5c3_Err = templruntime.NewAttributeExpression(option.Value).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 268, Col: 29}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 272, Col: 29}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var44)
 					if templ_7745c5c3_Err != nil {
@@ -1054,7 +1055,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 					var templ_7745c5c3_Var45 string
 					templ_7745c5c3_Var45, templ_7745c5c3_Err = templruntime.NewAttributeExpression(pressed).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 269, Col: 31}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 273, Col: 31}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var45)
 					if templ_7745c5c3_Err != nil {
@@ -1067,7 +1068,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 					var templ_7745c5c3_Var46 string
 					templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(option.Label)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 270, Col: 23}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 274, Col: 23}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 					if templ_7745c5c3_Err != nil {
@@ -1085,7 +1086,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 				var templ_7745c5c3_Var47 string
 				templ_7745c5c3_Var47, templ_7745c5c3_Err = templruntime.NewAttributeExpression(url + "/playthroughs/" + strconv.Itoa(int(entry.Playthrough.ID))).ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 275, Col: 100}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 279, Col: 100}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var47)
 				if templ_7745c5c3_Err != nil {
@@ -1098,7 +1099,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 				var templ_7745c5c3_Var48 string
 				templ_7745c5c3_Var48, templ_7745c5c3_Err = templruntime.NewAttributeExpression(derefOrZero(entry.Playthrough.Name)).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 278, Col: 83}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 282, Col: 83}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var48)
 				if templ_7745c5c3_Err != nil {
@@ -1126,7 +1127,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 					var templ_7745c5c3_Var49 string
 					templ_7745c5c3_Var49, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(int(platform.IgdbID))).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 285, Col: 61}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 289, Col: 61}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var49)
 					if templ_7745c5c3_Err != nil {
@@ -1149,7 +1150,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 					var templ_7745c5c3_Var50 string
 					templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(platform.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 285, Col: 150}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 289, Col: 150}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 					if templ_7745c5c3_Err != nil {
@@ -1167,7 +1168,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 				var templ_7745c5c3_Var51 string
 				templ_7745c5c3_Var51, templ_7745c5c3_Err = templruntime.NewAttributeExpression(derefOrZero(entry.Playthrough.StartedAt).Format("2006-01-02")).Resolve(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 294, Col: 79}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 298, Col: 79}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var51)
 				if templ_7745c5c3_Err != nil {
@@ -1185,7 +1186,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 					var templ_7745c5c3_Var52 string
 					templ_7745c5c3_Var52, templ_7745c5c3_Err = templruntime.NewAttributeExpression(derefOrZero(entry.Playthrough.FinishedAt).Format("2006-01-02")).Resolve(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 303, Col: 81}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 307, Col: 81}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var52)
 					if templ_7745c5c3_Err != nil {
@@ -1203,7 +1204,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 				var templ_7745c5c3_Var53 string
 				templ_7745c5c3_Var53, templ_7745c5c3_Err = templruntime.NewAttributeExpression(url + "/playthroughs/" + strconv.Itoa(int(entry.Playthrough.ID)) + "/delete").ResolveURL(ctx)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 312, Col: 112}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 316, Col: 112}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var53)
 				if templ_7745c5c3_Err != nil {
@@ -1231,7 +1232,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 		var templ_7745c5c3_Var54 string
 		templ_7745c5c3_Var54, templ_7745c5c3_Err = templruntime.NewAttributeExpression(url + "/playthroughs").ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 322, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 326, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var54)
 		if templ_7745c5c3_Err != nil {
@@ -1249,7 +1250,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 			var templ_7745c5c3_Var55 string
 			templ_7745c5c3_Var55, templ_7745c5c3_Err = templruntime.NewAttributeExpression(strconv.Itoa(int(platform.IgdbID))).Resolve(ctx)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 333, Col: 56}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 337, Col: 56}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var55)
 			if templ_7745c5c3_Err != nil {
@@ -1262,7 +1263,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 			var templ_7745c5c3_Var56 string
 			templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs(platform.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 333, Col: 74}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 337, Col: 74}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 			if templ_7745c5c3_Err != nil {
@@ -1311,7 +1312,7 @@ func gameRemove(page gamePage) templ.Component {
 		var templ_7745c5c3_Var58 string
 		templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(removeFrom)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 353, Col: 27}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 357, Col: 27}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 		if templ_7745c5c3_Err != nil {
@@ -1324,7 +1325,7 @@ func gameRemove(page gamePage) templ.Component {
 		var templ_7745c5c3_Var59 string
 		templ_7745c5c3_Var59, templ_7745c5c3_Err = templruntime.NewAttributeExpression(gameURL(page.Details.Game.IgdbID) + "/" + removeFrom + "/remove").ResolveURL(ctx)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 357, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/game.templ`, Line: 361, Col: 76}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var59)
 		if templ_7745c5c3_Err != nil {

@@ -342,7 +342,8 @@
   /* The select, the order toggle and the apply button share the border and the radius of the search form. */
   .sort-form__select,
   .sort-order-toggle,
-  .sort-form__apply {
+  .sort-form__apply,
+  .game-details__save {
     border: 1px solid var(--color-border-strong);
     border-radius: 0.5rem;
     background: var(--color-surface);
@@ -373,14 +374,16 @@
     color: var(--color-accent-hover);
   }
 
-  .sort-form__apply {
+  .sort-form__apply,
+  .game-details__save {
     padding: 0.375rem 0.75rem;
     color: var(--color-accent);
     font-weight: 500;
     cursor: pointer;
   }
 
-  .sort-form__apply:hover {
+  .sort-form__apply:hover,
+  .game-details__save:hover {
     background: var(--color-bg);
     color: var(--color-accent-hover);
   }
@@ -680,6 +683,51 @@
   }
 
   .game-info__platforms {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* Each part of the form is on its own row. start keeps the buttons at their own width; the notes stretch. The
+     minmax column cannot grow wider than the section. */
+  .game-details {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 1.25rem;
+  }
+
+  /* The notes have the same maximum width as the copies. */
+  .game-details__notes {
+    display: grid;
+    justify-self: stretch;
+    gap: 0.5rem;
+    max-inline-size: 40rem;
+    font-weight: 500;
+  }
+
+  /* The textarea has the border and radius of the other controls. field-sizing makes it grow with the text, between
+     the minimum and the maximum height; without support, it keeps the minimum height and the user can resize it. */
+  .game-details__notes-input {
+    inline-size: 100%;
+    min-block-size: 10rem;
+    max-block-size: 30rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    font-weight: 400;
+    line-height: 1.5;
+    resize: vertical;
+    field-sizing: content;
+  }
+
+  .game-details__notes-input:hover {
+    border-color: var(--color-text-muted);
+  }
+
+  /* The minimum height keeps the empty status line, so the page does not move when the text appears. */
+  .game-details__save-status {
+    min-block-size: 1lh;
     color: var(--color-text-muted);
     font-size: 0.875rem;
   }
