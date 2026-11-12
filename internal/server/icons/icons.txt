@@ -4,6 +4,7 @@ arrow-down-wide-narrow
 chevron-down
 circle-x
 gamepad-2
+git-branch
 image-off
 list-todo
 pause

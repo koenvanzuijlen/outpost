@@ -1,7 +1,7 @@
 package server
 
-// layout is the HTML document around every page, with the menu bar. The search box in the menu bar is prefilled with
-// query. The page content goes in children.
+// layout is the HTML document around every page, with the menu bar and the footer. The search box in the menu bar is
+// prefilled with query. The page content goes in children. The footer shows the version from the context.
 templ layout(query string) {
 	<!DOCTYPE html>
 	<html lang="en">
@@ -20,6 +20,7 @@ templ layout(query string) {
 			<main class="page">
 				{ children... }
 			</main>
+			@siteFooter(versionFromContext(ctx))
 		</body>
 	</html>
 }

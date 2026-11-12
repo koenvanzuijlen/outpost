@@ -1,0 +1,13 @@
+package server
+
+// siteFooter is the footer shown at the bottom of every page: the Outpost version and a link to the source code on
+// GitHub.
+templ siteFooter(version string) {
+	<footer class="site-footer">
+		<p class="site-footer__version">Outpost { version }</p>
+		<a class="site-footer__source" href={ sourceURL }>
+			@icon("git-branch")
+			GitHub
+		</a>
+	</footer>
+}
