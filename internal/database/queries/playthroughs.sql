@@ -1,7 +1,8 @@
 -- name: ListPlaythroughsForUserGameID :many
 SELECT
     sqlc.embed(pt),
-    p.name AS platform_name
+    p.name AS platform_name,
+    p.igdb_id AS platform_igdb_id
 FROM
     playthroughs pt
     LEFT JOIN platforms p ON pt.platform_id = p.id

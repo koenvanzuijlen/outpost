@@ -71,11 +71,17 @@ func TestGetGameWithPlaythroughs(t *testing.T) {
 	if details.Playthroughs[0].PlatformName == nil || *details.Playthroughs[0].PlatformName != "Xbox" {
 		t.Errorf("Playthroughs[0].PlatformName = %v, want %v", derefOrNil(details.Playthroughs[0].PlatformName), "Xbox")
 	}
+	if details.Playthroughs[0].PlatformIgdbID == nil || *details.Playthroughs[0].PlatformIgdbID != 11 {
+		t.Errorf("Playthroughs[0].PlatformIgdbID = %v, want %v", derefOrNil(details.Playthroughs[0].PlatformIgdbID), 11)
+	}
 	if details.Playthroughs[1].Playthrough.Name == nil || *details.Playthroughs[1].Playthrough.Name != "Test Playthrough older" {
 		t.Errorf("Playthroughs[1].Name = %v, want %v", derefOrNil(details.Playthroughs[1].Playthrough.Name), "Test Playthrough older")
 	}
 	if details.Playthroughs[1].PlatformName != nil {
 		t.Errorf("Playthroughs[1].PlatformName = %v, want %v", derefOrNil(details.Playthroughs[1].PlatformName), nil)
+	}
+	if details.Playthroughs[1].PlatformIgdbID != nil {
+		t.Errorf("Playthroughs[1].PlatformIgdbID = %v, want %v", derefOrNil(details.Playthroughs[1].PlatformIgdbID), nil)
 	}
 }
 

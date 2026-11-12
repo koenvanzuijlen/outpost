@@ -154,7 +154,8 @@ func (q *Queries) ListPlaythroughDates(ctx context.Context, userID int64) ([]Lis
 const listPlaythroughsForUserGameID = `-- name: ListPlaythroughsForUserGameID :many
 SELECT
     pt.id, pt.user_game_id, pt.platform_id, pt.name, pt.outcome, pt.started_at, pt.finished_at,
-    p.name AS platform_name
+    p.name AS platform_name,
+    p.igdb_id AS platform_igdb_id
 FROM
     playthroughs pt
     LEFT JOIN platforms p ON pt.platform_id = p.id
@@ -166,8 +167,9 @@ ORDER BY
 `
 
 type ListPlaythroughsForUserGameIDRow struct {
-	Playthrough  Playthrough
-	PlatformName *string
+	Playthrough    Playthrough
+	PlatformName   *string
+	PlatformIgdbID *int64
 }
 
 func (q *Queries) ListPlaythroughsForUserGameID(ctx context.Context, userGameID int64) ([]ListPlaythroughsForUserGameIDRow, error) {
@@ -188,6 +190,7 @@ func (q *Queries) ListPlaythroughsForUserGameID(ctx context.Context, userGameID 
 			&i.Playthrough.StartedAt,
 			&i.Playthrough.FinishedAt,
 			&i.PlatformName,
+			&i.PlatformIgdbID,
 		); err != nil {
 			return nil, err
 		}

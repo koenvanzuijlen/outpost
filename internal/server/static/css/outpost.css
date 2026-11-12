@@ -266,14 +266,16 @@
   }
 
   .status-filter__toggle:hover .badge,
-  .status-picker__option:hover .badge {
+  .status-picker__option:hover .badge,
+  .game-playthrough__outcome:hover .badge {
     border-color: oklch(0.6 var(--badge-chroma) var(--badge-hue));
   }
 
   /* All badge colors derive from the chroma, so a chroma of 0 makes the badge grey. The dashed border and the open
      background also show the state without color. */
   .status-filter__toggle--inactive .badge,
-  .status-picker__option:not(:has(:checked)) .badge {
+  .status-picker__option:not(:has(:checked)) .badge,
+  .game-playthrough__outcome[aria-pressed="false"] .badge {
     --badge-chroma: 0;
 
     border-style: dashed;
@@ -281,7 +283,8 @@
     color: var(--color-text-muted);
   }
 
-  .status-picker {
+  .status-picker,
+  .game-playthrough__outcomes {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
@@ -339,23 +342,28 @@
     font-weight: 500;
   }
 
-  /* The select, the order toggle and the apply button share the border and the radius of the search form. */
+  /* The select, the order toggle and the apply button share the border and the radius of the search form. The
+     controls of other forms use the same box. */
   .sort-form__select,
   .sort-order-toggle,
   .sort-form__apply,
-  .game-details__save {
+  .game-details__save,
+  .game-playthrough-form__input,
+  .game-playthrough-form__submit {
     border: 1px solid var(--color-border-strong);
     border-radius: 0.5rem;
     background: var(--color-surface);
   }
 
-  .sort-form__select {
+  .sort-form__select,
+  .game-playthrough-form__input {
     padding: 0.375rem 0.5rem;
     color: var(--color-text);
     cursor: pointer;
   }
 
-  .sort-form__select:hover {
+  .sort-form__select:hover,
+  .game-playthrough-form__input:hover {
     border-color: var(--color-text-muted);
   }
 
@@ -375,7 +383,8 @@
   }
 
   .sort-form__apply,
-  .game-details__save {
+  .game-details__save,
+  .game-playthrough-form__submit {
     padding: 0.375rem 0.75rem;
     color: var(--color-accent);
     font-weight: 500;
@@ -383,7 +392,8 @@
   }
 
   .sort-form__apply:hover,
-  .game-details__save:hover {
+  .game-details__save:hover,
+  .game-playthrough-form__submit:hover {
     background: var(--color-bg);
     color: var(--color-accent-hover);
   }
@@ -732,15 +742,17 @@
     font-size: 0.875rem;
   }
 
-  .game-copies {
+  .game-copies,
+  .game-playthroughs {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     max-width: 40rem;
   }
 
-  /* A copy on a DLC page is a div with the same box, without the chevron. */
-  .game-copy {
+  /* A copy on a DLC page is a div with the same box, without the chevron. A playthrough has the same box. */
+  .game-copy,
+  .game-playthrough {
     border: 1px solid var(--color-border-strong);
     border-radius: 0.5rem;
     background: var(--color-surface);
@@ -816,25 +828,34 @@
     font-size: 0.875rem;
   }
 
-  /* "Remove copy" is at the bottom right of an open copy. */
+  /* "Remove copy" is at the bottom right of an open copy. "Delete playthrough" has the same look at the bottom right of
+     the edit form. */
   .game-copy__remove {
     padding: 0.75rem;
     text-align: end;
   }
 
-  .game-copy__remove > summary {
+  .game-playthrough__delete {
+    margin-block-start: 0.75rem;
+    text-align: end;
+  }
+
+  .game-copy__remove > summary,
+  .game-playthrough__delete > summary {
     display: inline;
     color: var(--color-text-muted);
     font-size: 0.875rem;
     cursor: pointer;
   }
 
-  .game-copy__remove > summary:hover {
+  .game-copy__remove > summary:hover,
+  .game-playthrough__delete > summary:hover {
     color: var(--color-text);
     text-decoration: underline;
   }
 
-  .game-copy__remove > form {
+  .game-copy__remove > form,
+  .game-playthrough__delete > form {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -842,7 +863,8 @@
     margin-top: 0.5rem;
   }
 
-  .game-copy__remove button {
+  .game-copy__remove button,
+  .game-playthrough__delete button {
     padding: 0.375rem 0.75rem;
     border: 1px solid var(--color-border-strong);
     border-radius: 0.5rem;
@@ -850,8 +872,136 @@
     cursor: pointer;
   }
 
-  .game-copy__remove button:hover {
+  .game-copy__remove button:hover,
+  .game-playthrough__delete button:hover {
     background: var(--color-bg);
+  }
+
+  /* All children are in the first column. The edit toggle is in the second column of the first row, so the pencil is at
+     the top right. A child with a fixed column goes to the next free row, so the other children stack in order. */
+  .game-playthrough {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem;
+  }
+
+  .game-playthrough > * {
+    grid-column: 1;
+  }
+
+  .game-playthrough > .game-playthrough__edit {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* In edit mode, the form replaces the view and uses the full width. */
+  .game-playthrough:has(> .game-playthrough__edit[open])
+    > :not(.game-playthrough__edit) {
+    display: none;
+  }
+
+  .game-playthrough > .game-playthrough__edit[open] {
+    grid-column: 1 / -1;
+  }
+
+  /* The toggle is a round icon button. The auto margin keeps it on the right when the edit form is open. The negative
+     margins align the icon, not the hover background, with the padding of the card. */
+  .game-playthrough__edit-toggle {
+    display: flex;
+    inline-size: fit-content;
+    margin-block-start: -0.25rem;
+    margin-inline: auto -0.25rem;
+    padding: 0.25rem;
+    border-radius: 999px;
+    color: var(--color-text-muted);
+    font-size: 1.25rem;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .game-playthrough__edit-toggle::-webkit-details-marker {
+    display: none;
+  }
+
+  .game-playthrough__edit-toggle:hover {
+    background: var(--color-bg);
+    color: var(--color-accent-hover);
+  }
+
+  /* The first icon is the pencil and the second icon is the x. The open state selects the icon that shows. */
+  .game-playthrough__edit:not([open])
+    > .game-playthrough__edit-toggle
+    > .icon
+    + .icon,
+  .game-playthrough__edit[open]
+    > .game-playthrough__edit-toggle
+    > .icon:first-child {
+    display: none;
+  }
+
+  .game-playthrough__edit > .game-playthrough-form {
+    margin-block-start: 0.5rem;
+  }
+
+  .game-playthrough__title {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .game-playthrough__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* A playthrough without a name has no title, so the meta line leads the card. */
+  .game-playthrough__meta:first-child {
+    color: var(--color-text);
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  /* The separator has empty alternative text, so screen readers do not read it. */
+  .game-playthrough__meta > * + *::before {
+    content: "·" / "";
+    margin-inline-end: 0.5rem;
+  }
+
+  /* The button is the click target and the badge inside it sets the look. aria-pressed holds the active outcome. The
+     radius gives the focus ring the shape of the badge. */
+  .game-playthrough__outcome {
+    display: flex;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    cursor: pointer;
+  }
+
+  /* The fields wrap on a narrow screen. Each field shows its label text above its control, and the controls line up at
+     the bottom with the submit button. */
+  .game-playthrough-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+  }
+
+  .game-playthrough-form__field {
+    display: grid;
+    gap: 0.25rem;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  /* The control resets the text style that it inherits from the label. */
+  .game-playthrough-form__input {
+    font-size: 1rem;
+    font-weight: 400;
   }
 
   @media (prefers-reduced-motion: reduce) {

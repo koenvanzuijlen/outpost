@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -11,7 +10,7 @@ import (
 )
 
 // handleStartPlaythrough starts a playthrough of a library game. It reads path value igdbID and form values name and
-// platform (both optional), and redirects to the game page.
+// platform (both optional), and redirects to the new playthrough on the game page.
 func (server *Server) handleStartPlaythrough(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -27,7 +26,7 @@ func (server *Server) handleStartPlaythrough(w http.ResponseWriter, r *http.Requ
 
 	name := ptrIfNonZero(strings.TrimSpace(r.PostFormValue("name")))
 
-	_, err := server.store.StartPlaythrough(r.Context(), defaultUserID, igdbID, platformIGDBID, name, time.Now())
+	playthrough, err := server.store.StartPlaythrough(r.Context(), defaultUserID, igdbID, platformIGDBID, name, time.Now())
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			http.Error(w, "Game not in library", http.StatusNotFound)
@@ -40,11 +39,11 @@ func (server *Server) handleStartPlaythrough(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
+	http.Redirect(w, r, gameURL(igdbID)+"#"+playthroughAnchor(playthrough.ID), http.StatusSeeOther)
 }
 
 // handleSetPlaythroughOutcome sets the outcome of a playthrough. It reads path values igdbID and playthroughID and form
-// value outcome, and redirects to the game page.
+// value outcome, and redirects to the playthrough on the game page.
 func (server *Server) handleSetPlaythroughOutcome(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -75,12 +74,12 @@ func (server *Server) handleSetPlaythroughOutcome(w http.ResponseWriter, r *http
 		return
 	}
 
-	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
+	http.Redirect(w, r, gameURL(igdbID)+"#"+playthroughAnchor(playthroughID), http.StatusSeeOther)
 }
 
 // handleUpdatePlaythrough updates the name, platform and dates of a playthrough. It reads path values igdbID and
 // playthroughID and form values name, platform, started_at and finished_at (all optional; empty clears the field), and
-// redirects to the game page.
+// redirects to the playthrough on the game page.
 func (server *Server) handleUpdatePlaythrough(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -135,11 +134,11 @@ func (server *Server) handleUpdatePlaythrough(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
+	http.Redirect(w, r, gameURL(igdbID)+"#"+playthroughAnchor(playthroughID), http.StatusSeeOther)
 }
 
 // handleDeletePlaythrough deletes a playthrough. It reads path values igdbID and playthroughID, and redirects to the
-// game page. A playthrough that is already gone counts as success.
+// playthroughs section of the game page. A playthrough that is already gone counts as success.
 func (server *Server) handleDeletePlaythrough(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -164,5 +163,5 @@ func (server *Server) handleDeletePlaythrough(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
+	http.Redirect(w, r, gameURL(igdbID)+"#playthroughs", http.StatusSeeOther)
 }
