@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
@@ -70,4 +71,25 @@ func copySummary(platformName string, dlcs []database.CopyDLC) string {
 		return platformName
 	}
 	return fmt.Sprintf("%s (%d DLC owned)", platformName, ownedCount)
+}
+
+// playthroughPlatformOptions returns the platforms for the platform select of the playthrough in entry: the owned
+// platforms, followed by the platform of the playthrough if it is not owned. The platform of the playthrough must be
+// in the list, because the browser selects the first option when no option matches, and saving would then clear the
+// platform. The result never shares its backing array with owned.
+func playthroughPlatformOptions(owned []dbgen.Platform, entry dbgen.ListPlaythroughsForUserGameIDRow) []dbgen.Platform {
+	if entry.Playthrough.PlatformID == nil || entry.PlatformName == nil || entry.PlatformIgdbID == nil {
+		return owned
+	}
+	if slices.ContainsFunc(owned, func(p dbgen.Platform) bool {
+		return p.ID == *entry.Playthrough.PlatformID
+	}) {
+		return owned
+	}
+
+	return append(slices.Clip(owned), dbgen.Platform{
+		ID:     *entry.Playthrough.PlatformID,
+		Name:   *entry.PlatformName,
+		IgdbID: *entry.PlatformIgdbID,
+	})
 }

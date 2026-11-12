@@ -285,7 +285,7 @@ templ gamePlaythroughs(page gamePage) {
 									Platform
 									<select name="platform">
 										<option value="" selected?={ derefOrZero(entry.Playthrough.PlatformID) == 0 }>No platform</option>
-										for _, platform := range page.Details.OwnedPlatforms {
+										for _, platform := range playthroughPlatformOptions(page.Details.OwnedPlatforms, entry) {
 											<option value={ strconv.Itoa(int(platform.IgdbID)) } selected?={ platform.ID == derefOrZero(entry.Playthrough.PlatformID) }>{ platform.Name }</option>
 										}
 									</select>

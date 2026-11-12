@@ -1119,7 +1119,7 @@ func gamePlaythroughs(page gamePage) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				for _, platform := range page.Details.OwnedPlatforms {
+				for _, platform := range playthroughPlatformOptions(page.Details.OwnedPlatforms, entry) {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, "<option value=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err

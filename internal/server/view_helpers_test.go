@@ -1,9 +1,11 @@
 package server
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
+	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 )
 
 func TestDLCTitle(t *testing.T) {
@@ -110,5 +112,86 @@ func TestRatingLabel(t *testing.T) {
 				t.Errorf("ratingLabel(%d) = %q, want %q", tt.rating, got, tt.want)
 			}
 		})
+	}
+}
+
+// The test platforms have different internal IDs and IGDB IDs, so a test fails if the code mixes up the two IDs.
+var (
+	testPlatformPC     = dbgen.Platform{ID: 1, IgdbID: 6, Name: "PC"}
+	testPlatformSwitch = dbgen.Platform{ID: 2, IgdbID: 130, Name: "Switch"}
+	testPlatformXbox   = dbgen.Platform{ID: 3, IgdbID: 49, Name: "Xbox"}
+)
+
+// platformEntry returns a playthrough row that points at the given platform.
+func platformEntry(p dbgen.Platform) dbgen.ListPlaythroughsForUserGameIDRow {
+	return dbgen.ListPlaythroughsForUserGameIDRow{
+		Playthrough:    dbgen.Playthrough{PlatformID: new(p.ID)},
+		PlatformName:   new(p.Name),
+		PlatformIgdbID: new(p.IgdbID),
+	}
+}
+
+// TestPlaythroughPlatformOptions checks that the platform options are the owned platforms, plus the platform of the
+// playthrough if it is not owned.
+func TestPlaythroughPlatformOptions(t *testing.T) {
+	tests := []struct {
+		name  string
+		owned []dbgen.Platform
+		entry dbgen.ListPlaythroughsForUserGameIDRow
+		want  []int64
+	}{
+		{
+			name:  "no platform",
+			owned: []dbgen.Platform{testPlatformPC},
+			entry: dbgen.ListPlaythroughsForUserGameIDRow{},
+			want:  []int64{6},
+		},
+		{
+			name:  "owned platform",
+			owned: []dbgen.Platform{testPlatformPC, testPlatformSwitch},
+			entry: platformEntry(testPlatformSwitch),
+			want:  []int64{6, 130},
+		},
+		{
+			name:  "platform not owned",
+			owned: []dbgen.Platform{testPlatformPC},
+			entry: platformEntry(testPlatformSwitch),
+			want:  []int64{6, 130},
+		},
+		{
+			name:  "nothing owned",
+			owned: nil,
+			entry: platformEntry(testPlatformSwitch),
+			want:  []int64{130},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []int64
+			for _, p := range playthroughPlatformOptions(tt.owned, tt.entry) {
+				got = append(got, p.IgdbID)
+			}
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("playthroughPlatformOptions() IGDB IDs = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestPlaythroughPlatformOptionsKeepsOwned checks that a call does not change the result of an earlier call when owned
+// has spare capacity. Without a copy, both results share the backing array of owned.
+func TestPlaythroughPlatformOptionsKeepsOwned(t *testing.T) {
+	owned := make([]dbgen.Platform, 1, 2)
+	owned[0] = testPlatformPC
+
+	first := playthroughPlatformOptions(owned, platformEntry(testPlatformSwitch))
+	playthroughPlatformOptions(owned, platformEntry(testPlatformXbox))
+
+	if len(first) != 2 {
+		t.Fatalf("len(first) = %d, want 2", len(first))
+	}
+	if first[1].IgdbID != 130 {
+		t.Errorf("first[1].IgdbID = %d, want %d", first[1].IgdbID, 130)
 	}
 }
