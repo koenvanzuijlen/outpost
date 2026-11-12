@@ -27,11 +27,14 @@ type Server struct {
 	logger     *slog.Logger
 	store      *database.Store
 	igdbClient IGDBClient
+	version    string
 }
 
-// New creates a Server with the given logger, store and IGDB client. It registers the routes and the middleware.
-func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient) *Server {
+// New creates a Server with the given logger, store and IGDB client. Every page shows version in the footer. New
+// registers the routes and the middleware.
+func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient, version string) *Server {
 	server := &Server{
+		version:    version,
 		mux:        http.NewServeMux(),
 		logger:     logger,
 		store:      store,

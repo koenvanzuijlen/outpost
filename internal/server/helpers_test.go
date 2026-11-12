@@ -19,6 +19,9 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
+// testVersion is the version of the test server. The value cannot appear in a page by accident.
+const testVersion = "0.0.0-test"
+
 // fakeIGDB is a mock implementation of the IGDB client used for testing.
 type fakeIGDB struct {
 	searchResults []igdb.Game
@@ -86,7 +89,7 @@ func newTestServer(t *testing.T) *Server {
 		_ = store.Close()
 	})
 
-	return New(logger, store, nil)
+	return New(logger, store, nil, testVersion)
 }
 
 // addTestGame adds The Witcher 3 (1942) to the library, owned on PC (6), and returns the fake IGDB client.

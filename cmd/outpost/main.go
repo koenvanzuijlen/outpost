@@ -60,7 +60,7 @@ func run(logger *slog.Logger) error {
 	}
 	client := igdb.New(clientID, clientSecret)
 
-	app := server.New(logger, store, client)
+	app := server.New(logger, store, client, version)
 	port := envOrDefault("PORT", "8080")
 	srv := &http.Server{
 		Addr:              ":" + port,
