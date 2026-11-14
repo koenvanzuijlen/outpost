@@ -19,6 +19,7 @@ func TestErrorPage(t *testing.T) {
 	}{
 		{"bad request", http.MethodGet, "/games/abc", "", false, http.StatusBadRequest, "Invalid IGDB ID"},
 		{"not found", http.MethodPost, "/games/1942/details", "status=playing", false, http.StatusNotFound, "Game not in library"},
+		{"unknown URL", http.MethodGet, "/nonexistent", "", false, http.StatusNotFound, "Page not found"},
 		{"server error", http.MethodGet, "/", "", true, http.StatusInternalServerError, "Something went wrong"},
 	}
 

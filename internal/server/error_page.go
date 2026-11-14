@@ -21,3 +21,9 @@ func (server *Server) renderError(w http.ResponseWriter, r *http.Request, status
 func (server *Server) renderServerError(w http.ResponseWriter, r *http.Request) {
 	server.renderError(w, r, http.StatusInternalServerError, "Something went wrong")
 }
+
+// handleNotFound renders the error page with a 404 for every GET request that no other route matches. It reads no
+// request values.
+func (server *Server) handleNotFound(w http.ResponseWriter, r *http.Request) {
+	server.renderError(w, r, http.StatusNotFound, "Page not found")
+}
