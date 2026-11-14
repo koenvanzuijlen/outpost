@@ -628,10 +628,11 @@
     text-decoration: none;
   }
 
-  /* The aspect ratio of IGDB's t_cover_big image (264×374). The game card and the game page header use the same
-     cover box. */
+  /* The aspect ratio of IGDB's t_cover_big image (264×374). The game card, the game page header and the search results
+     use the same cover box. */
   .game-card__cover,
-  .game-info__cover {
+  .game-info__cover,
+  .search-result__cover {
     display: grid;
     place-items: center;
     aspect-ratio: 264 / 374;
@@ -644,7 +645,8 @@
   }
 
   .game-card__cover img,
-  .game-info__cover img {
+  .game-info__cover img,
+  .search-result__cover img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -1097,6 +1099,65 @@
   .add-form__input {
     font-size: 1rem;
     font-weight: 400;
+  }
+
+  /* A result has the layout of the game page header at a smaller size. The minmax column cannot grow wider than the
+     page, so a long title or a long select wraps or shrinks. */
+  .search-result {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    padding-block: 1.25rem;
+  }
+
+  /* The border is only between results. The first result starts directly below the heading. */
+  .search-result + .search-result {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .search-result:first-child {
+    padding-block-start: 0;
+  }
+
+  .search-result__cover {
+    font-size: 1.5rem;
+  }
+
+  @media (max-width: 40rem) {
+    .search-result {
+      grid-template-columns: 4.5rem minmax(0, 1fr);
+      gap: 1rem;
+    }
+  }
+
+  .search-result__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .search-result__title {
+    font-size: 1.25rem;
+  }
+
+  .search-result__year {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* The summary shows 2 lines at most and ends with an ellipsis. The full summary is on the game page. */
+  .search-result__summary {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    max-width: 65ch;
+    overflow: hidden;
+  }
+
+  .search-result__actions {
+    margin-block-start: 0.5rem;
   }
 
   @media (prefers-reduced-motion: reduce) {
