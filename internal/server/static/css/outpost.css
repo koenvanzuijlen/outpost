@@ -66,6 +66,12 @@
 
     --color-focus: oklch(0.52 0.15 250);
 
+    /* Danger: red (hue 27), for buttons that destroy data. The text has at least 4.5:1 contrast against the surface. */
+    --color-danger: oklch(0.52 0.19 27);
+    --color-danger-hover: oklch(0.45 0.18 27);
+    --color-danger-bg: oklch(0.97 0.02 27);
+    --color-danger-text: oklch(0.99 0.004 250);
+
     /* Rating stars: gold (hue 80), with at least 3:1 contrast against the surface */
     --color-star: oklch(0.62 0.13 80);
   }
@@ -890,7 +896,8 @@
   }
 
   /* "Remove copy" is at the bottom right of an open copy. "Delete playthrough" has the same look at the bottom right of
-     the edit form. */
+     the edit form. "Remove from library" and "Remove from wishlist" have the same look at the right edge of the 40rem
+     column of the copies and the notes. */
   .game-copy__remove {
     padding: 0.75rem;
     text-align: end;
@@ -901,8 +908,14 @@
     text-align: end;
   }
 
+  .game-remove {
+    max-inline-size: 40rem;
+    text-align: end;
+  }
+
   .game-copy__remove > summary,
-  .game-playthrough__delete > summary {
+  .game-playthrough__delete > summary,
+  .game-remove > summary {
     display: inline;
     color: var(--color-text-muted);
     font-size: 0.875rem;
@@ -910,13 +923,15 @@
   }
 
   .game-copy__remove > summary:hover,
-  .game-playthrough__delete > summary:hover {
+  .game-playthrough__delete > summary:hover,
+  .game-remove > summary:hover {
     color: var(--color-text);
     text-decoration: underline;
   }
 
   .game-copy__remove > form,
-  .game-playthrough__delete > form {
+  .game-playthrough__delete > form,
+  .game-remove > form {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -924,18 +939,25 @@
     margin-top: 0.5rem;
   }
 
+  /* The confirm button destroys data, so it is red. It fills with red on hover. */
   .game-copy__remove button,
-  .game-playthrough__delete button {
+  .game-playthrough__delete button,
+  .game-remove button {
     padding: 0.375rem 0.75rem;
-    border: 1px solid var(--color-border-strong);
+    border: 1px solid var(--color-danger);
     border-radius: 0.5rem;
-    background: var(--color-surface);
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+    font-weight: 500;
     cursor: pointer;
   }
 
   .game-copy__remove button:hover,
-  .game-playthrough__delete button:hover {
-    background: var(--color-bg);
+  .game-playthrough__delete button:hover,
+  .game-remove button:hover {
+    border-color: var(--color-danger-hover);
+    background: var(--color-danger-hover);
+    color: var(--color-danger-text);
   }
 
   /* All children are in the first column. The edit toggle is in the second column of the first row, so the pencil is at

@@ -1405,7 +1405,7 @@ func gameRemove(page gamePage) templ.Component {
 		if page.Details.UserGame.Wishlisted {
 			removeFrom = "wishlist"
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 133, "<details><summary>Remove from ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 133, "<details class=\"game-remove\"><summary>Remove from ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
