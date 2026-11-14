@@ -6,6 +6,9 @@ import "context"
 // sourceURL to its own source code, as the AGPL requires.
 const sourceURL = "https://github.com/koenvanzuijlen/outpost"
 
+// igdbURL is the location of IGDB, the source of the game data. The footer links to it.
+const igdbURL = "https://www.igdb.com/"
+
 // versionContextKey is the context key for the version of Outpost. Its type is unexported, so no other package can
 // use the same key.
 type versionContextKey struct{}

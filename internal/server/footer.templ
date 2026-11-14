@@ -1,13 +1,16 @@
 package server
 
-// siteFooter is the footer shown at the bottom of every page: the Outpost version and a link to the source code on
-// GitHub.
+// siteFooter is the footer shown at the bottom of every page: the Outpost version, a link to the source code on GitHub
+// and a link to IGDB, the source of the game data. A separator goes between the items.
 templ siteFooter(version string) {
 	<footer class="site-footer">
-		<p class="site-footer__version">Outpost { version }</p>
-		<a class="site-footer__source" href={ sourceURL }>
-			@icon("git-branch")
-			GitHub
-		</a>
+		<span>Outpost { version }</span>
+		<span>
+			<a class="site-footer__source" href={ sourceURL } target="_blank" rel="noopener noreferrer">
+				@icon("git-branch")
+				GitHub
+			</a>
+		</span>
+		<span>Powered by <a href={ igdbURL } target="_blank" rel="noopener noreferrer">IGDB</a></span>
 	</footer>
 }
