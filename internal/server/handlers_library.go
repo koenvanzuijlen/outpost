@@ -38,7 +38,7 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		if !database.GameStatus(s).Valid() {
-			http.Error(w, "Invalid game status", http.StatusBadRequest)
+			server.renderError(w, r, http.StatusBadRequest, "Invalid game status")
 			return
 		}
 		selectedStatus = append(selectedStatus, database.GameStatus(s))
@@ -49,7 +49,7 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 		sort = librarySortTitle
 	}
 	if !sort.Valid() {
-		http.Error(w, "Invalid sort", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid sort")
 		return
 	}
 
@@ -58,14 +58,14 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 		order = sort.DefaultOrder()
 	}
 	if !order.Valid() {
-		http.Error(w, "Invalid order", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid order")
 		return
 	}
 
 	games, err := server.store.ListLibrary(ctx, defaultUserID)
 	if err != nil {
 		server.logger.Error("failed to list library", "error", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		server.renderServerError(w, r)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	games = filterLibrary(games, selectedStatus)
 	games = sortLibrary(games, sort, order)
 
-	server.renderComponent(w, r, libraryView(libraryPage{
+	server.renderComponent(w, r, http.StatusOK, libraryView(libraryPage{
 		Games:          games,
 		Statuses:       selectedStatus,
 		StatusToggles:  query.StatusToggles(),
@@ -96,23 +96,23 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
-		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
 		return
 	}
 
 	platformIGDBID, ok := formOptionalPositiveInt(r, "platform_id")
 	if !ok {
-		http.Error(w, "Invalid platform", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid platform")
 		return
 	}
 
 	game, err := server.igdbClient.GameByID(r.Context(), int(igdbID))
 	if err != nil {
 		if errors.Is(err, igdb.ErrGameNotFound) {
-			http.Error(w, "Game not found", http.StatusNotFound)
+			server.renderError(w, r, http.StatusNotFound, "Game not found")
 		} else {
 			server.logger.Error("failed to fetch game", "error", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			server.renderServerError(w, r)
 		}
 		return
 	}
@@ -120,7 +120,7 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 	isStandalone := game.GameType.Standalone()
 	isDLC := game.GameType.DLC()
 	if !isStandalone && !isDLC {
-		http.Error(w, "This game type can't be added to the library", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "This game type can't be added to the library")
 		return
 	}
 
@@ -130,7 +130,7 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 		if platformIGDBID != nil {
 			i := slices.IndexFunc(game.Platforms, func(p igdb.Platform) bool { return int64(p.ID) == *platformIGDBID })
 			if i == -1 {
-				http.Error(w, "Game not available for this platform", http.StatusBadRequest)
+				server.renderError(w, r, http.StatusBadRequest, "Game not available for this platform")
 				return
 			}
 			platform = new(upsertPlatformParamsFromIGDB(game.Platforms[i], now))
@@ -139,28 +139,28 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 		err = server.store.AddToLibrary(r.Context(), upsertGameParamsFromIGDB(game, now), platform, defaultUserID, now)
 		if err != nil && !errors.Is(err, database.ErrAlreadyOwnedOnPlatform) {
 			server.logger.Error("failed to add to library", "error", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			server.renderServerError(w, r)
 			return
 		}
 	} else {
 		if game.ParentGameID == 0 {
-			http.Error(w, "DLC has no base game", http.StatusBadRequest)
+			server.renderError(w, r, http.StatusBadRequest, "DLC has no base game")
 			return
 		}
 		if platformIGDBID != nil {
-			http.Error(w, "Invalid platform", http.StatusBadRequest)
+			server.renderError(w, r, http.StatusBadRequest, "Invalid platform")
 			return
 		}
 
 		err := server.store.AddDLCToLibrary(r.Context(), defaultUserID, int64(game.ParentGameID), int64(game.ID), now)
 		if err != nil {
 			if errors.Is(err, database.ErrUserGameNotFound) {
-				http.Error(w, "Base game not in library", http.StatusNotFound)
+				server.renderError(w, r, http.StatusNotFound, "Base game not in library")
 			} else if errors.Is(err, database.ErrDLCNotFound) {
-				http.Error(w, "DLC not found", http.StatusNotFound)
+				server.renderError(w, r, http.StatusNotFound, "DLC not found")
 			} else {
 				server.logger.Error("failed to add DLC to library", "error", err)
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				server.renderServerError(w, r)
 			}
 			return
 		}
@@ -174,14 +174,14 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 func (server *Server) handleRemoveFromWishlist(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
-		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
 		return
 	}
 
 	err := server.store.RemoveUserGame(r.Context(), defaultUserID, igdbID, true)
 	if err != nil && !errors.Is(err, database.ErrUserGameNotFound) {
 		server.logger.Error("failed to remove from wishlist", "error", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		server.renderServerError(w, r)
 		return
 	}
 
@@ -194,14 +194,14 @@ func (server *Server) handleRemoveFromWishlist(w http.ResponseWriter, r *http.Re
 func (server *Server) handleRemoveFromLibrary(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
-		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
 		return
 	}
 
 	err := server.store.RemoveUserGame(r.Context(), defaultUserID, igdbID, false)
 	if err != nil && !errors.Is(err, database.ErrUserGameNotFound) {
 		server.logger.Error("failed to remove from library", "error", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		server.renderServerError(w, r)
 		return
 	}
 

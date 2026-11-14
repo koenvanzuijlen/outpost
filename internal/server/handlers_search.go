@@ -41,7 +41,7 @@ func (server *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 			state = searchStateNoResults
 		}
 	}
-	server.renderComponent(w, r, searchView(searchPage{
+	server.renderComponent(w, r, http.StatusOK, searchView(searchPage{
 		State:   state,
 		Query:   query,
 		Results: games,

@@ -1,0 +1,14 @@
+package server
+
+import "strconv"
+
+// errorView is the error page: the status code, the message as the heading, and a link to the home page.
+templ errorView(page errorPage) {
+	@layout("") {
+		<section class="error-page">
+			<p class="error-page__status">{ strconv.Itoa(page.Status) }</p>
+			<h1 class="error-page__message">{ page.Message }</h1>
+			<a class="error-page__home" href="/">Go to home</a>
+		</section>
+	}
+}

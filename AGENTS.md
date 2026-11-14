@@ -37,6 +37,7 @@ Never run a server that keeps running. Never run `git stash` or other commands t
 - Start every templ component name with its feature (`libraryEntry`, `gameInfo`).
 - Wrap errors with `%w` and return them. Log only at the boundaries (`main` and handlers). Use `log/slog`, injected and not global.
 - Handlers validate cheap local input first. They answer 400 for bad input, 404 for unknown IDs and 500 for failures of the application. A successful POST redirects with 303. Every error branch returns. Write the error message in the handler and never use `err.Error()` as the response.
+- Answer errors with `renderError` (400 and 404) or `renderServerError` (500), not with `http.Error`. Both render the error page in the page layout.
 - Use the IGDB ID at the boundary (URLs and forms). Use the internal ID after the game is looked up.
 - Write plain forms first. Add JavaScript only where plain forms are not enough.
 - Put JavaScript in `static/js/` and CSS in `static/css/`. The Content-Security-Policy blocks inline scripts, event
