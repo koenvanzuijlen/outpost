@@ -61,32 +61,34 @@ templ gameInfo(page gamePage) {
 	</header>
 }
 
-// gameLibraryState shows the forms that add the game to the library or the wishlist. A wishlisted game shows only the
-// library form, and a DLC shows a library form without a platform when its base game is in the library. It shows
-// nothing if the game is already in the library.
+// gameLibraryState shows the forms that add the game to the library or the wishlist, in one row. A wishlisted game shows
+// only the library form, and a DLC shows a library form without a platform when its base game is in the library. It
+// shows nothing if the game is already in the library.
 templ gameLibraryState(page gamePage) {
 	{{ url := gameURL(page.Details.Game.IgdbID) }}
 	if page.CanAddToLibrary {
-		<form method="post" action={ url + "/library" }>
-			<label>
-				Owned on
-				<select name="platform_id">
-					for _, platform := range page.Details.Platforms {
-						<option value={ strconv.Itoa(int(platform.IgdbID)) }>{ platform.Name }</option>
-					}
-					<option value="">Not owned</option>
-				</select>
-			</label>
-			<button type="submit">Add to library</button>
-		</form>
-		if page.CanAddToWishlist {
-			<form method="post" action={ url + "/wishlist" }>
-				<button type="submit">Add to wishlist</button>
+		<div class="add-forms">
+			<form class="add-form" method="post" action={ url + "/library" }>
+				<label class="add-form__field">
+					Owned on
+					<select class="add-form__input" name="platform_id">
+						for _, platform := range page.Details.Platforms {
+							<option value={ strconv.Itoa(int(platform.IgdbID)) }>{ platform.Name }</option>
+						}
+						<option value="">Not owned</option>
+					</select>
+				</label>
+				<button class="add-form__submit" type="submit">Add to library</button>
 			</form>
-		}
+			if page.CanAddToWishlist {
+				<form class="add-form" method="post" action={ url + "/wishlist" }>
+					<button class="add-form__submit" type="submit">Add to wishlist</button>
+				</form>
+			}
+		</div>
 	} else if page.CanAddDLC {
-		<form method="post" action={ url + "/library" }>
-			<button type="submit">Add to library</button>
+		<form class="add-form" method="post" action={ url + "/library" }>
+			<button class="add-form__submit" type="submit">Add to library</button>
 		</form>
 	}
 }
@@ -94,14 +96,17 @@ templ gameLibraryState(page gamePage) {
 // gameCopies is the section about ownership. For a library game, it shows one expandable row per copy, titled with
 // the owned DLC count. An open row shows an owned toggle per DLC available on that platform, and a form to remove the
 // copy. Below the rows is a form to add a copy. For a DLC, it shows the base game copies that own the DLC as rows that
-// do not expand, and points to the page of the base game, where ownership is managed. A game outside the library shows
-// the forms to add it, and a wishlisted game also shows the form to remove it from the wishlist.
+// do not expand, and points to the page of the base game, where ownership is managed. A game outside the library states
+// that, and shows the forms to add it. A wishlisted game states that it is on the wishlist, and shows the form to add it
+// to the library and the form to remove it from the wishlist.
 templ gameCopies(page gamePage) {
 	{{ wishlisted := page.Details.UserGame != nil && page.Details.UserGame.Wishlisted }}
 	<section class="page-section">
 		<h2>Your copies</h2>
 		if wishlisted {
 			<p>On your wishlist.</p>
+		} else if page.Details.UserGame == nil && page.Details.Parent == nil {
+			<p>Not in your library.</p>
 		}
 		if page.Details.UserGame != nil || page.Details.Parent != nil {
 			{{ url := gameURL(page.Details.Game.IgdbID) }}
@@ -161,7 +166,7 @@ templ gameCopies(page gamePage) {
 						</li>
 					}
 				</ul>
-			} else if page.Details.Parent == nil {
+			} else if page.Details.Parent == nil && !wishlisted {
 				<p>Not owned on any platform.</p>
 			}
 			if page.Details.Parent != nil {
@@ -174,16 +179,16 @@ templ gameCopies(page gamePage) {
 			}
 			if page.Details.Parent == nil && !wishlisted && len(page.CopyPlatformOptions) > 0 {
 				<h3>Add a copy</h3>
-				<form method="post" action={ url + "/copies" }>
-					<label>
+				<form class="add-form" method="post" action={ url + "/copies" }>
+					<label class="add-form__field">
 						Owned on
-						<select name="platform_id">
+						<select class="add-form__input" name="platform_id">
 							for _, platform := range page.CopyPlatformOptions {
 								<option value={ strconv.Itoa(int(platform.IgdbID)) }>{ platform.Name }</option>
 							}
 						</select>
 					</label>
-					<button type="submit">Add copy</button>
+					<button class="add-form__submit" type="submit">Add copy</button>
 				</form>
 			}
 		}

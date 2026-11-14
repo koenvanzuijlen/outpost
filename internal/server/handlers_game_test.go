@@ -169,6 +169,7 @@ func TestHandleGameInLibraryWishlisted(t *testing.T) {
 	assertBodyContains(t, w, `action="/games/1942/library"`)
 	assertBodyNotContains(t, w, `action="/games/1942/wishlist"`)
 	assertBodyContains(t, w, "On your wishlist.")
+	assertBodyNotContains(t, w, "Not owned on any platform.")
 }
 
 func TestHandleGameNotInLibraryForms(t *testing.T) {
@@ -178,6 +179,7 @@ func TestHandleGameNotInLibraryForms(t *testing.T) {
 	w := getTestGamePage(t, server)
 	assertBodyContains(t, w, `action="/games/1942/library"`)
 	assertBodyContains(t, w, `action="/games/1942/wishlist"`)
+	assertBodyContains(t, w, "Not in your library.")
 }
 
 func TestHandleAddWishlistedGameToLibrary(t *testing.T) {

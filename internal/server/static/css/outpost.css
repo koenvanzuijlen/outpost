@@ -352,21 +352,25 @@
   .sort-form__apply,
   .game-details__save,
   .game-playthrough-form__input,
-  .game-playthrough-form__submit {
+  .game-playthrough-form__submit,
+  .add-form__input,
+  .add-form__submit {
     border: 1px solid var(--color-border-strong);
     border-radius: 0.5rem;
     background: var(--color-surface);
   }
 
   .sort-form__select,
-  .game-playthrough-form__input {
+  .game-playthrough-form__input,
+  .add-form__input {
     padding: 0.375rem 0.5rem;
     color: var(--color-text);
     cursor: pointer;
   }
 
   .sort-form__select:hover,
-  .game-playthrough-form__input:hover {
+  .game-playthrough-form__input:hover,
+  .add-form__input:hover {
     border-color: var(--color-text-muted);
   }
 
@@ -387,7 +391,8 @@
 
   .sort-form__apply,
   .game-details__save,
-  .game-playthrough-form__submit {
+  .game-playthrough-form__submit,
+  .add-form__submit {
     padding: 0.375rem 0.75rem;
     color: var(--color-accent);
     font-weight: 500;
@@ -396,7 +401,8 @@
 
   .sort-form__apply:hover,
   .game-details__save:hover,
-  .game-playthrough-form__submit:hover {
+  .game-playthrough-form__submit:hover,
+  .add-form__submit:hover {
     background: var(--color-bg);
     color: var(--color-accent-hover);
   }
@@ -1037,15 +1043,26 @@
   }
 
   /* The fields wrap on a narrow screen. Each field shows its label text above its control, and the controls line up at
-     the bottom with the submit button. */
-  .game-playthrough-form {
+     the bottom with the submit button. The forms that add a game or a copy have the same layout. */
+  .game-playthrough-form,
+  .add-form {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 0.75rem;
   }
 
-  .game-playthrough-form__field {
+  /* Forms that share a row, such as "Add to library" and "Add to wishlist". The column gap is wider than the gap inside
+     a form, so each form reads as a separate action. */
+  .add-forms {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 1.5rem;
+  }
+
+  .game-playthrough-form__field,
+  .add-form__field {
     display: grid;
     gap: 0.25rem;
     color: var(--color-text-muted);
@@ -1054,7 +1071,8 @@
   }
 
   /* The control resets the text style that it inherits from the label. */
-  .game-playthrough-form__input {
+  .game-playthrough-form__input,
+  .add-form__input {
     font-size: 1rem;
     font-weight: 400;
   }
