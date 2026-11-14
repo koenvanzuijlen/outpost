@@ -66,6 +66,12 @@
 
     --color-focus: oklch(0.52 0.15 250);
 
+    /* Danger: red (hue 27), for buttons that destroy data. The text has at least 4.5:1 contrast against the surface. */
+    --color-danger: oklch(0.52 0.19 27);
+    --color-danger-hover: oklch(0.45 0.18 27);
+    --color-danger-bg: oklch(0.97 0.02 27);
+    --color-danger-text: oklch(0.99 0.004 250);
+
     /* Rating stars: gold (hue 80), with at least 3:1 contrast against the surface */
     --color-star: oklch(0.62 0.13 80);
   }
@@ -352,21 +358,28 @@
   .sort-form__apply,
   .game-details__save,
   .game-playthrough-form__input,
-  .game-playthrough-form__submit {
+  .game-playthrough-form__submit,
+  .add-form__input,
+  .add-form__submit {
     border: 1px solid var(--color-border-strong);
     border-radius: 0.5rem;
     background: var(--color-surface);
   }
 
+  /* Browsers ignore line-height on a select, so a select is lower than a button with the same padding. The minimum
+     height is the height of a button with 1rem text: one line, the padding and the border. */
   .sort-form__select,
-  .game-playthrough-form__input {
+  .game-playthrough-form__input,
+  .add-form__input {
+    min-block-size: calc(1.5rem + 0.75rem + 2px);
     padding: 0.375rem 0.5rem;
     color: var(--color-text);
     cursor: pointer;
   }
 
   .sort-form__select:hover,
-  .game-playthrough-form__input:hover {
+  .game-playthrough-form__input:hover,
+  .add-form__input:hover {
     border-color: var(--color-text-muted);
   }
 
@@ -387,7 +400,8 @@
 
   .sort-form__apply,
   .game-details__save,
-  .game-playthrough-form__submit {
+  .game-playthrough-form__submit,
+  .add-form__submit {
     padding: 0.375rem 0.75rem;
     color: var(--color-accent);
     font-weight: 500;
@@ -396,7 +410,8 @@
 
   .sort-form__apply:hover,
   .game-details__save:hover,
-  .game-playthrough-form__submit:hover {
+  .game-playthrough-form__submit:hover,
+  .add-form__submit:hover {
     background: var(--color-bg);
     color: var(--color-accent-hover);
   }
@@ -616,10 +631,11 @@
     text-decoration: none;
   }
 
-  /* The aspect ratio of IGDB's t_cover_big image (264×374). The game card and the game page header use the same
-     cover box. */
+  /* The aspect ratio of IGDB's t_cover_big image (264×374). The game card, the game page header and the search results
+     use the same cover box. */
   .game-card__cover,
-  .game-info__cover {
+  .game-info__cover,
+  .search-result__cover {
     display: grid;
     place-items: center;
     aspect-ratio: 264 / 374;
@@ -632,7 +648,8 @@
   }
 
   .game-card__cover img,
-  .game-info__cover img {
+  .game-info__cover img,
+  .search-result__cover img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -884,7 +901,8 @@
   }
 
   /* "Remove copy" is at the bottom right of an open copy. "Delete playthrough" has the same look at the bottom right of
-     the edit form. */
+     the edit form. "Remove from library" and "Remove from wishlist" have the same look at the right edge of the 40rem
+     column of the copies and the notes. */
   .game-copy__remove {
     padding: 0.75rem;
     text-align: end;
@@ -895,8 +913,14 @@
     text-align: end;
   }
 
+  .game-remove {
+    max-inline-size: 40rem;
+    text-align: end;
+  }
+
   .game-copy__remove > summary,
-  .game-playthrough__delete > summary {
+  .game-playthrough__delete > summary,
+  .game-remove > summary {
     display: inline;
     color: var(--color-text-muted);
     font-size: 0.875rem;
@@ -904,13 +928,15 @@
   }
 
   .game-copy__remove > summary:hover,
-  .game-playthrough__delete > summary:hover {
+  .game-playthrough__delete > summary:hover,
+  .game-remove > summary:hover {
     color: var(--color-text);
     text-decoration: underline;
   }
 
   .game-copy__remove > form,
-  .game-playthrough__delete > form {
+  .game-playthrough__delete > form,
+  .game-remove > form {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -918,18 +944,25 @@
     margin-top: 0.5rem;
   }
 
+  /* The confirm button destroys data, so it is red. It fills with red on hover. */
   .game-copy__remove button,
-  .game-playthrough__delete button {
+  .game-playthrough__delete button,
+  .game-remove button {
     padding: 0.375rem 0.75rem;
-    border: 1px solid var(--color-border-strong);
+    border: 1px solid var(--color-danger);
     border-radius: 0.5rem;
-    background: var(--color-surface);
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+    font-weight: 500;
     cursor: pointer;
   }
 
   .game-copy__remove button:hover,
-  .game-playthrough__delete button:hover {
-    background: var(--color-bg);
+  .game-playthrough__delete button:hover,
+  .game-remove button:hover {
+    border-color: var(--color-danger-hover);
+    background: var(--color-danger-hover);
+    color: var(--color-danger-text);
   }
 
   /* All children are in the first column. The edit toggle is in the second column of the first row, so the pencil is at
@@ -1037,15 +1070,26 @@
   }
 
   /* The fields wrap on a narrow screen. Each field shows its label text above its control, and the controls line up at
-     the bottom with the submit button. */
-  .game-playthrough-form {
+     the bottom with the submit button. The forms that add a game or a copy have the same layout. */
+  .game-playthrough-form,
+  .add-form {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 0.75rem;
   }
 
-  .game-playthrough-form__field {
+  /* Forms that share a row, such as "Add to library" and "Add to wishlist". The column gap is wider than the gap inside
+     a form, so each form reads as a separate action. */
+  .add-forms {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 1.5rem;
+  }
+
+  .game-playthrough-form__field,
+  .add-form__field {
     display: grid;
     gap: 0.25rem;
     color: var(--color-text-muted);
@@ -1054,9 +1098,69 @@
   }
 
   /* The control resets the text style that it inherits from the label. */
-  .game-playthrough-form__input {
+  .game-playthrough-form__input,
+  .add-form__input {
     font-size: 1rem;
     font-weight: 400;
+  }
+
+  /* A result has the layout of the game page header at a smaller size. The minmax column cannot grow wider than the
+     page, so a long title or a long select wraps or shrinks. */
+  .search-result {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    padding-block: 1.25rem;
+  }
+
+  /* The border is only between results. The first result starts directly below the heading. */
+  .search-result + .search-result {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .search-result:first-child {
+    padding-block-start: 0;
+  }
+
+  .search-result__cover {
+    font-size: 1.5rem;
+  }
+
+  @media (max-width: 40rem) {
+    .search-result {
+      grid-template-columns: 4.5rem minmax(0, 1fr);
+      gap: 1rem;
+    }
+  }
+
+  .search-result__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .search-result__title {
+    font-size: 1.25rem;
+  }
+
+  .search-result__year {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* The summary shows 2 lines at most and ends with an ellipsis. The full summary is on the game page. */
+  .search-result__summary {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    max-width: 65ch;
+    overflow: hidden;
+  }
+
+  .search-result__actions {
+    margin-block-start: 0.5rem;
   }
 
   @media (prefers-reduced-motion: reduce) {
