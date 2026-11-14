@@ -15,7 +15,7 @@ docker run -d --name outpost -p 8080:8080 --env-file .env -v outpost-data:/data 
 
 `.env` holds the settings below; start from [`.env.example`](.env.example). The database lives in the `outpost-data` volume. The container runs as a non-root user.
 
-Images are published to [Docker Hub](https://hub.docker.com/r/koenvanzuijlen/outpost) for every release. Pin an exact version with a tag like `:0.0.3`, or follow updates without breaking changes with `:0.0`.
+Images are published to [Docker Hub](https://hub.docker.com/r/koenvanzuijlen/outpost) for every release. Use `:1` to get updates without breaking changes.
 
 ### Backups
 
