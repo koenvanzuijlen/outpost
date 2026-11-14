@@ -84,14 +84,14 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
-		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
 		return
 	}
 
 	details, err := server.store.GetGame(ctx, defaultUserID, igdbID)
 	if err != nil && !errors.Is(err, database.ErrGameNotInCatalog) {
 		server.logger.Error("failed to get game", "error", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		server.renderServerError(w, r)
 		return
 	}
 	cached := err == nil
@@ -102,17 +102,17 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		details, err = server.store.GetGame(ctx, defaultUserID, igdbID)
 		if err != nil {
 			server.logger.Error("failed to get game", "error", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			server.renderServerError(w, r)
 			return
 		}
 	case cached:
 		server.logger.Warn("failed to refresh game, showing cached data", "igdb_id", igdbID, "error", fetchErr)
 	case errors.Is(fetchErr, igdb.ErrGameNotFound):
-		http.Error(w, "Game not found", http.StatusNotFound)
+		server.renderError(w, r, http.StatusNotFound, "Game not found")
 		return
 	default:
 		server.logger.Error("failed to fetch game", "igdb_id", igdbID, "error", fetchErr)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		server.renderServerError(w, r)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 			details, err = server.store.GetGame(ctx, defaultUserID, igdbID)
 			if err != nil {
 				server.logger.Error("failed to get game", "error", err)
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				server.renderServerError(w, r)
 				return
 			}
 		}
@@ -167,25 +167,25 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 func (server *Server) handleUpdateGameDetails(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
-		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
 		return
 	}
 
 	status := database.GameStatus(r.PostFormValue("status"))
 	if !status.Valid() {
-		http.Error(w, "Invalid game status", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid game status")
 		return
 	}
 
 	rating, ok := formOptionalPositiveInt(r, "rating")
 	if !ok || (rating != nil && *rating > 10) {
-		http.Error(w, "Invalid rating", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid rating")
 		return
 	}
 
 	notes := strings.TrimSpace(r.PostFormValue("notes"))
 	if utf8.RuneCountInString(notes) > maxNotesLength {
-		http.Error(w, "Notes too long", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Notes too long")
 		return
 	}
 
@@ -196,12 +196,12 @@ func (server *Server) handleUpdateGameDetails(w http.ResponseWriter, r *http.Req
 	})
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
-			http.Error(w, "Game not in library", http.StatusNotFound)
+			server.renderError(w, r, http.StatusNotFound, "Game not in library")
 		} else if errors.Is(err, database.ErrInvalidGameStatus) {
-			http.Error(w, "Invalid game status", http.StatusBadRequest)
+			server.renderError(w, r, http.StatusBadRequest, "Invalid game status")
 		} else {
 			server.logger.Error("failed to update library game", "error", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			server.renderServerError(w, r)
 		}
 		return
 	}

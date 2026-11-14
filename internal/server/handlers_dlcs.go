@@ -40,25 +40,25 @@ func (server *Server) fetchDLCs(ctx context.Context, igdbID int64) error {
 func (server *Server) handleSetDLCOwned(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
-		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
 		return
 	}
 
 	platformIGDBID, ok := pathID(r, "platformIGDBID")
 	if !ok {
-		http.Error(w, "Invalid platform IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid platform IGDB ID")
 		return
 	}
 
 	dlcIGDBID, ok := pathID(r, "dlcIGDBID")
 	if !ok {
-		http.Error(w, "Invalid DLC IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid DLC IGDB ID")
 		return
 	}
 
 	value := r.PostFormValue("owned")
 	if value != "true" && value != "false" {
-		http.Error(w, "Invalid owned value", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid owned value")
 		return
 	}
 	owned := value == "true"
@@ -66,12 +66,12 @@ func (server *Server) handleSetDLCOwned(w http.ResponseWriter, r *http.Request) 
 	err := server.store.SetDLCOwned(r.Context(), defaultUserID, igdbID, platformIGDBID, dlcIGDBID, owned)
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
-			http.Error(w, "Game not in library", http.StatusNotFound)
+			server.renderError(w, r, http.StatusNotFound, "Game not in library")
 		} else if errors.Is(err, database.ErrDLCNotOnCopy) {
-			http.Error(w, "DLC not available for this copy", http.StatusNotFound)
+			server.renderError(w, r, http.StatusNotFound, "DLC not available for this copy")
 		} else {
 			server.logger.Error("failed to set dlc owned status", "error", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			server.renderServerError(w, r)
 		}
 		return
 	}

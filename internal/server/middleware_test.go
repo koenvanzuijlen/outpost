@@ -45,6 +45,9 @@ func TestRecoverPanic(t *testing.T) {
 	if status != http.StatusInternalServerError {
 		t.Errorf("recoverPanic() status = %d, want %d", status, http.StatusInternalServerError)
 	}
+	if got := w.Header().Get("Content-Type"); got != "text/html; charset=utf-8" {
+		t.Errorf("recoverPanic() Content-Type = %q, want %q", got, "text/html; charset=utf-8")
+	}
 }
 
 func TestContentSecurityPolicy(t *testing.T) {
