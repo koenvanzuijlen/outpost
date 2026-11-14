@@ -31,7 +31,7 @@ func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 		sort = wishlistSortReleased
 	}
 	if !sort.Valid() {
-		http.Error(w, "Invalid sort", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid sort")
 		return
 	}
 
@@ -40,14 +40,14 @@ func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 		order = sort.DefaultOrder()
 	}
 	if !order.Valid() {
-		http.Error(w, "Invalid order", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid order")
 		return
 	}
 
 	wishlistedGames, err := server.store.ListWishlist(ctx, defaultUserID)
 	if err != nil {
 		server.logger.Error("failed to list wishlisted games", "error", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		server.renderServerError(w, r)
 		return
 	}
 
@@ -58,7 +58,7 @@ func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 
 	wishlistedGames = sortWishlist(wishlistedGames, sort, order)
 
-	server.renderComponent(w, r, wishlistView(wishlistPage{
+	server.renderComponent(w, r, http.StatusOK, wishlistView(wishlistPage{
 		Games:          wishlistedGames,
 		Sort:           sort,
 		SortOptions:    wishlistSortOptions(),
@@ -72,23 +72,23 @@ func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
-		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
 		return
 	}
 
 	game, err := server.igdbClient.GameByID(r.Context(), int(igdbID))
 	if err != nil {
 		if errors.Is(err, igdb.ErrGameNotFound) {
-			http.Error(w, "Game not found", http.StatusNotFound)
+			server.renderError(w, r, http.StatusNotFound, "Game not found")
 		} else {
 			server.logger.Error("failed to fetch game", "error", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			server.renderServerError(w, r)
 		}
 		return
 	}
 
 	if !game.GameType.Standalone() {
-		http.Error(w, "This game type can't be added to the library", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "This game type can't be added to the library")
 		return
 	}
 
@@ -96,7 +96,7 @@ func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request
 	err = server.store.AddToWishlist(r.Context(), upsertGameParamsFromIGDB(game, now), defaultUserID, now)
 	if err != nil && !errors.Is(err, database.ErrAlreadyAdded) {
 		server.logger.Error("failed to add to wishlist", "error", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		server.renderServerError(w, r)
 		return
 	}
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)

@@ -97,6 +97,7 @@ func TestHandleAddToLibraryDLC(t *testing.T) {
 	w := getGamePage(t, server, 12503)
 	fake.game = previous
 	assertBodyContains(t, w, `action="`+testAddDLCPath+`"`)
+	assertBodyNotContains(t, w, "Not in your library.")
 
 	w = postAddTestDLC(t, server, fake)
 	if w.Code != http.StatusSeeOther {

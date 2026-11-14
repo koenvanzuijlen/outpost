@@ -56,13 +56,13 @@ func (server *Server) requestLogging(next http.Handler) http.Handler {
 	})
 }
 
-// recoverPanic middleware recovers from panics in HTTP handlers and returns a 500.
+// recoverPanic middleware recovers from panics in HTTP handlers, logs them, and renders the error page with a 500.
 func (server *Server) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
 				server.logger.Error("panic recovered", "error", rec, "path", r.URL.Path, "stack", string(debug.Stack()))
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				server.renderServerError(w, r)
 			}
 		}()
 		next.ServeHTTP(w, r)

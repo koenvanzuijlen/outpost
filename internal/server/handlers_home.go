@@ -27,13 +27,13 @@ func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	games, err := server.store.ListLibrary(ctx, defaultUserID)
 	if err != nil {
 		server.logger.Error("failed to list library", "error", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		server.renderServerError(w, r)
 		return
 	}
 	wishlistedGames, err := server.store.ListWishlist(ctx, defaultUserID)
 	if err != nil {
 		server.logger.Error("failed to list wishlisted games", "error", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		server.renderServerError(w, r)
 		return
 	}
 
@@ -50,7 +50,7 @@ func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	wishlistCount := len(wishlistedGames)
 	wishlistedGames = randomSample(wishlistedGames, homeSampleSize)
 
-	server.renderComponent(w, r, homeView(homePage{
+	server.renderComponent(w, r, http.StatusOK, homeView(homePage{
 		PlayingGames:  playing,
 		BacklogGames:  backlog,
 		BacklogCount:  backlogCount,

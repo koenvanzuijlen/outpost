@@ -14,27 +14,27 @@ import (
 func (server *Server) handleAddOwnedCopy(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
-		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
 		return
 	}
 
 	platformIGDBID, ok := formOptionalPositiveInt(r, "platform_id")
 	if !ok || platformIGDBID == nil {
-		http.Error(w, "Invalid platform", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid platform")
 		return
 	}
 
 	err := server.store.AddOwnedCopy(r.Context(), defaultUserID, igdbID, *platformIGDBID)
 	if err != nil && !errors.Is(err, database.ErrAlreadyOwnedOnPlatform) {
 		if errors.Is(err, database.ErrUserGameNotFound) {
-			http.Error(w, "Game not in library", http.StatusNotFound)
+			server.renderError(w, r, http.StatusNotFound, "Game not in library")
 		} else if errors.Is(err, database.ErrPlatformNotFound) {
-			http.Error(w, "Platform not found", http.StatusBadRequest)
+			server.renderError(w, r, http.StatusBadRequest, "Platform not found")
 		} else if errors.Is(err, database.ErrPlatformNotForGame) {
-			http.Error(w, "Game not available on this platform", http.StatusBadRequest)
+			server.renderError(w, r, http.StatusBadRequest, "Game not available on this platform")
 		} else {
 			server.logger.Error("failed to add owned copy", "error", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			server.renderServerError(w, r)
 		}
 		return
 	}
@@ -47,23 +47,23 @@ func (server *Server) handleAddOwnedCopy(w http.ResponseWriter, r *http.Request)
 func (server *Server) handleRemoveOwnedCopy(w http.ResponseWriter, r *http.Request) {
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
-		http.Error(w, "Invalid IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
 		return
 	}
 
 	platformIGDBID, ok := pathID(r, "platformIGDBID")
 	if !ok {
-		http.Error(w, "Invalid platform IGDB ID", http.StatusBadRequest)
+		server.renderError(w, r, http.StatusBadRequest, "Invalid platform IGDB ID")
 		return
 	}
 
 	err := server.store.RemoveOwnedCopy(r.Context(), defaultUserID, igdbID, platformIGDBID)
 	if err != nil && !errors.Is(err, database.ErrOwnedCopyNotFound) {
 		if errors.Is(err, database.ErrUserGameNotFound) {
-			http.Error(w, "Game not in library", http.StatusNotFound)
+			server.renderError(w, r, http.StatusNotFound, "Game not in library")
 		} else {
 			server.logger.Error("failed to remove owned copy", "error", err)
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			server.renderServerError(w, r)
 		}
 		return
 	}
