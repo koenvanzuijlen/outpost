@@ -58,7 +58,7 @@ func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 
 	wishlistedGames = sortWishlist(wishlistedGames, sort, order)
 
-	server.renderComponent(w, r, wishlistView(wishlistPage{
+	server.renderComponent(w, r, http.StatusOK, wishlistView(wishlistPage{
 		Games:          wishlistedGames,
 		Sort:           sort,
 		SortOptions:    wishlistSortOptions(),

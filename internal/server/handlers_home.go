@@ -50,7 +50,7 @@ func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	wishlistCount := len(wishlistedGames)
 	wishlistedGames = randomSample(wishlistedGames, homeSampleSize)
 
-	server.renderComponent(w, r, homeView(homePage{
+	server.renderComponent(w, r, http.StatusOK, homeView(homePage{
 		PlayingGames:  playing,
 		BacklogGames:  backlog,
 		BacklogCount:  backlogCount,

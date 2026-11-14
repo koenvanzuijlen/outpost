@@ -78,7 +78,7 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	games = filterLibrary(games, selectedStatus)
 	games = sortLibrary(games, sort, order)
 
-	server.renderComponent(w, r, libraryView(libraryPage{
+	server.renderComponent(w, r, http.StatusOK, libraryView(libraryPage{
 		Games:          games,
 		Statuses:       selectedStatus,
 		StatusToggles:  query.StatusToggles(),
