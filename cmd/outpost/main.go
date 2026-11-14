@@ -24,7 +24,17 @@ import (
 // -ldflags "-X main.version=…". A build without that flag reports "dev".
 var version = "dev"
 
+// main runs the server. With the argument "healthcheck", main checks a running server instead and exits with 1 if the
+// server is not healthy.
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		if err := runHealthcheck(); err != nil {
+			fmt.Fprintln(os.Stderr, "Healthcheck failed:", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
