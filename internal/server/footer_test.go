@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// TestFooterShowsVersion checks that a rendered page shows the version and the source URL in the footer.
+// TestFooterShowsVersion checks that a rendered page shows the version, the source URL and the IGDB URL in the footer.
 func TestFooterShowsVersion(t *testing.T) {
 	server := newTestServer(t)
 
@@ -18,7 +18,7 @@ func TestFooterShowsVersion(t *testing.T) {
 		t.Fatalf("GET /library status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	body := rec.Body.String()
-	for _, want := range []string{testVersion, sourceURL} {
+	for _, want := range []string{testVersion, sourceURL, igdbURL} {
 		if !strings.Contains(body, want) {
 			t.Errorf("body does not contain %q", want)
 		}
