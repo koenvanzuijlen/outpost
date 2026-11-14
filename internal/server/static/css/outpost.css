@@ -366,9 +366,12 @@
     background: var(--color-surface);
   }
 
+  /* Browsers ignore line-height on a select, so a select is lower than a button with the same padding. The minimum
+     height is the height of a button with 1rem text: one line, the padding and the border. */
   .sort-form__select,
   .game-playthrough-form__input,
   .add-form__input {
+    min-block-size: calc(1.5rem + 0.75rem + 2px);
     padding: 0.375rem 0.5rem;
     color: var(--color-text);
     cursor: pointer;
