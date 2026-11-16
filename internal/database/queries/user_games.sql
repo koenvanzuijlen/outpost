@@ -1,3 +1,16 @@
+-- name: ListUserGamesForUserID :many
+SELECT
+    sqlc.embed(ug),
+    sqlc.embed(g)
+FROM
+    user_games ug
+    JOIN games g ON ug.game_id = g.id
+WHERE
+    ug.user_id = ?
+ORDER BY
+    g.title,
+    g.igdb_id;
+
 -- name: ListWishlistedUserGames :many
 SELECT
     sqlc.embed(ug),

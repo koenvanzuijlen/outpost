@@ -174,3 +174,59 @@ func (q *Queries) ListOwnedCopyDLCs(ctx context.Context, arg ListOwnedCopyDLCsPa
 	}
 	return items, nil
 }
+
+const listOwnedDLCForUserID = `-- name: ListOwnedDLCForUserID :many
+SELECT
+    od.owned_copy_id,
+    g.id, g.igdb_id, g.fetched_at, g.dlcs_fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary
+FROM
+    owned_dlc od
+    JOIN owned_copies oc ON oc.id = od.owned_copy_id
+    JOIN user_games ug ON ug.id = oc.user_game_id
+    JOIN games g ON g.id = od.dlc_game_id
+WHERE
+    ug.user_id = ?
+ORDER BY
+    g.title,
+    g.igdb_id
+`
+
+type ListOwnedDLCForUserIDRow struct {
+	OwnedCopyID int64
+	Game        Game
+}
+
+func (q *Queries) ListOwnedDLCForUserID(ctx context.Context, userID int64) ([]ListOwnedDLCForUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listOwnedDLCForUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOwnedDLCForUserIDRow
+	for rows.Next() {
+		var i ListOwnedDLCForUserIDRow
+		if err := rows.Scan(
+			&i.OwnedCopyID,
+			&i.Game.ID,
+			&i.Game.IgdbID,
+			&i.Game.FetchedAt,
+			&i.Game.DlcsFetchedAt,
+			&i.Game.ParentIgdbID,
+			&i.Game.Title,
+			&i.Game.GameType,
+			&i.Game.CoverUrl,
+			&i.Game.ReleasedAt,
+			&i.Game.Summary,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

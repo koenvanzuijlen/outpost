@@ -1,3 +1,18 @@
+-- name: ListPlaythroughsForUserID :many
+SELECT
+    sqlc.embed(pt),
+    p.name AS platform_name,
+    p.igdb_id AS platform_igdb_id
+FROM
+    playthroughs pt
+    JOIN user_games ug ON ug.id = pt.user_game_id
+    LEFT JOIN platforms p ON pt.platform_id = p.id
+WHERE
+    ug.user_id = ?
+ORDER BY
+    pt.started_at ASC NULLS LAST,
+    pt.id;
+
 -- name: ListPlaythroughsForUserGameID :many
 SELECT
     sqlc.embed(pt),

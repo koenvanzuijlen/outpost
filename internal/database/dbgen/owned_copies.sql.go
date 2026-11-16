@@ -52,3 +52,55 @@ func (q *Queries) DeleteOwnedCopy(ctx context.Context, arg DeleteOwnedCopyParams
 	}
 	return result.RowsAffected()
 }
+
+const listOwnedCopiesForUserID = `-- name: ListOwnedCopiesForUserID :many
+SELECT
+    oc.id,
+    oc.user_game_id,
+    p.id, p.igdb_id, p.fetched_at, p.name
+FROM
+    owned_copies oc
+    JOIN user_games ug ON ug.id = oc.user_game_id
+    JOIN platforms p ON p.id = oc.platform_id
+WHERE
+    ug.user_id = ?
+ORDER BY
+    p.name,
+    p.igdb_id
+`
+
+type ListOwnedCopiesForUserIDRow struct {
+	ID         int64
+	UserGameID int64
+	Platform   Platform
+}
+
+func (q *Queries) ListOwnedCopiesForUserID(ctx context.Context, userID int64) ([]ListOwnedCopiesForUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listOwnedCopiesForUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOwnedCopiesForUserIDRow
+	for rows.Next() {
+		var i ListOwnedCopiesForUserIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserGameID,
+			&i.Platform.ID,
+			&i.Platform.IgdbID,
+			&i.Platform.FetchedAt,
+			&i.Platform.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
