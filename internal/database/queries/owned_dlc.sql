@@ -1,3 +1,18 @@
+-- name: ListOwnedDLCForUserID :many
+SELECT
+    od.owned_copy_id,
+    sqlc.embed(g)
+FROM
+    owned_dlc od
+    JOIN owned_copies oc ON oc.id = od.owned_copy_id
+    JOIN user_games ug ON ug.id = oc.user_game_id
+    JOIN games g ON g.id = od.dlc_game_id
+WHERE
+    ug.user_id = ?
+ORDER BY
+    g.title,
+    g.igdb_id;
+
 -- name: ListOwnedCopyDLCs :many
 SELECT
     p.igdb_id AS platform_igdb_id,

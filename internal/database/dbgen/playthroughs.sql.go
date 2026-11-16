@@ -205,6 +205,61 @@ func (q *Queries) ListPlaythroughsForUserGameID(ctx context.Context, userGameID 
 	return items, nil
 }
 
+const listPlaythroughsForUserID = `-- name: ListPlaythroughsForUserID :many
+SELECT
+    pt.id, pt.user_game_id, pt.platform_id, pt.name, pt.outcome, pt.started_at, pt.finished_at,
+    p.name AS platform_name,
+    p.igdb_id AS platform_igdb_id
+FROM
+    playthroughs pt
+    JOIN user_games ug ON ug.id = pt.user_game_id
+    LEFT JOIN platforms p ON pt.platform_id = p.id
+WHERE
+    ug.user_id = ?
+ORDER BY
+    pt.started_at ASC NULLS LAST,
+    pt.id
+`
+
+type ListPlaythroughsForUserIDRow struct {
+	Playthrough    Playthrough
+	PlatformName   *string
+	PlatformIgdbID *int64
+}
+
+func (q *Queries) ListPlaythroughsForUserID(ctx context.Context, userID int64) ([]ListPlaythroughsForUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPlaythroughsForUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListPlaythroughsForUserIDRow
+	for rows.Next() {
+		var i ListPlaythroughsForUserIDRow
+		if err := rows.Scan(
+			&i.Playthrough.ID,
+			&i.Playthrough.UserGameID,
+			&i.Playthrough.PlatformID,
+			&i.Playthrough.Name,
+			&i.Playthrough.Outcome,
+			&i.Playthrough.StartedAt,
+			&i.Playthrough.FinishedAt,
+			&i.PlatformName,
+			&i.PlatformIgdbID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updatePlaythroughDetails = `-- name: UpdatePlaythroughDetails :exec
 UPDATE
     playthroughs

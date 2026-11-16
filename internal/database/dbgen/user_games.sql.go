@@ -351,6 +351,67 @@ func (q *Queries) ListLibraryGames(ctx context.Context, arg ListLibraryGamesPara
 	return items, nil
 }
 
+const listUserGamesForUserID = `-- name: ListUserGamesForUserID :many
+SELECT
+    ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
+    g.id, g.igdb_id, g.fetched_at, g.dlcs_fetched_at, g.parent_igdb_id, g.title, g.game_type, g.cover_url, g.released_at, g.summary
+FROM
+    user_games ug
+    JOIN games g ON ug.game_id = g.id
+WHERE
+    ug.user_id = ?
+ORDER BY
+    g.title,
+    g.igdb_id
+`
+
+type ListUserGamesForUserIDRow struct {
+	UserGame UserGame
+	Game     Game
+}
+
+func (q *Queries) ListUserGamesForUserID(ctx context.Context, userID int64) ([]ListUserGamesForUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserGamesForUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserGamesForUserIDRow
+	for rows.Next() {
+		var i ListUserGamesForUserIDRow
+		if err := rows.Scan(
+			&i.UserGame.ID,
+			&i.UserGame.UserID,
+			&i.UserGame.GameID,
+			&i.UserGame.Status,
+			&i.UserGame.Rating,
+			&i.UserGame.Wishlisted,
+			&i.UserGame.Notes,
+			&i.UserGame.AddedAt,
+			&i.Game.ID,
+			&i.Game.IgdbID,
+			&i.Game.FetchedAt,
+			&i.Game.DlcsFetchedAt,
+			&i.Game.ParentIgdbID,
+			&i.Game.Title,
+			&i.Game.GameType,
+			&i.Game.CoverUrl,
+			&i.Game.ReleasedAt,
+			&i.Game.Summary,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWishlistedUserGames = `-- name: ListWishlistedUserGames :many
 SELECT
     ug.id, ug.user_id, ug.game_id, ug.status, ug.rating, ug.wishlisted, ug.notes, ug.added_at,
