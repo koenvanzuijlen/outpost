@@ -10,7 +10,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // menuBar is the navigation bar shown at the top of every page: the logo, the search box prefilled with query, and
-// links to the library and the wishlist.
+// links to the library, the wishlist and the export.
 func menuBar(query string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -36,7 +36,7 @@ func menuBar(query string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</li><li><a href=\"/library\">Library</a></li><li><a href=\"/wishlist\">Wishlist</a></li></ul></nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</li><li><a href=\"/library\">Library</a></li><li><a href=\"/wishlist\">Wishlist</a></li><li><a href=\"/export.json\">Export</a></li></ul></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
