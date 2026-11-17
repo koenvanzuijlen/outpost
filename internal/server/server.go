@@ -10,9 +10,6 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
-// defaultUserID is a hardcoded user ID until user management is implemented.
-const defaultUserID = 1
-
 // IGDBClient is the subset of the IGDB API the server uses. *igdb.Client implements it.
 type IGDBClient interface {
 	SearchGames(ctx context.Context, query string) ([]igdb.Game, error)

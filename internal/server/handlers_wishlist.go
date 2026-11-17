@@ -44,7 +44,7 @@ func (server *Server) handleWishlist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wishlistedGames, err := server.store.ListWishlist(ctx, defaultUserID)
+	wishlistedGames, err := server.store.ListWishlist(ctx, currentUser(r).ID)
 	if err != nil {
 		server.logger.Error("failed to list wishlisted games", "error", err)
 		server.renderServerError(w, r)
@@ -93,7 +93,7 @@ func (server *Server) handleAddToWishlist(w http.ResponseWriter, r *http.Request
 	}
 
 	now := time.Now().UTC()
-	err = server.store.AddToWishlist(r.Context(), upsertGameParamsFromIGDB(game, now), defaultUserID, now)
+	err = server.store.AddToWishlist(r.Context(), upsertGameParamsFromIGDB(game, now), currentUser(r).ID, now)
 	if err != nil && !errors.Is(err, database.ErrAlreadyAdded) {
 		server.logger.Error("failed to add to wishlist", "error", err)
 		server.renderServerError(w, r)

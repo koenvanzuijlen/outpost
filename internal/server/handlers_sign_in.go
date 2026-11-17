@@ -173,3 +173,19 @@ func (server *Server) handleSignOut(w http.ResponseWriter, r *http.Request) {
 	server.clearSessionCookie(w)
 	http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
 }
+
+// redirectToSignIn redirects with 303 to the setup page when setup is not done, and to the sign-in page otherwise. It
+// renders the server error page if the setup check fails.
+func (server *Server) redirectToSignIn(w http.ResponseWriter, r *http.Request) {
+	needed, err := server.store.SetupNeeded(r.Context())
+	if err != nil {
+		server.logger.Error("setup needed check failed", "error", err)
+		server.renderServerError(w, r)
+		return
+	}
+	if needed {
+		http.Redirect(w, r, "/setup", http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
+}

@@ -6,6 +6,9 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/koenvanzuijlen/outpost/internal/auth"
 )
 
 func TestChainMiddleware(t *testing.T) {
@@ -102,6 +105,92 @@ func TestCSRFProtection(t *testing.T) {
 
 			if (w.Code == http.StatusForbidden) != tt.wantForbidden {
 				t.Errorf("status = %d, want forbidden: %t", w.Code, tt.wantForbidden)
+			}
+		})
+	}
+}
+
+// TestRequireUser tests which requests reach the page.
+func TestRequireUser(t *testing.T) {
+	tests := []struct {
+		name         string
+		newServer    func(*testing.T) *Server
+		cookie       *http.Cookie
+		method       string
+		path         string
+		wantStatus   int
+		wantLocation string
+	}{
+		{"no admin", newServerWithoutSetup, nil, http.MethodGet, "/library", http.StatusSeeOther, "/setup"},
+		{"no cookie", newSignedOutTestServer, nil, http.MethodGet, "/library", http.StatusSeeOther, "/sign-in"},
+		{
+			"unknown session", newSignedOutTestServer, &http.Cookie{Name: sessionCookieName, Value: "bogus"},
+			http.MethodGet, "/library", http.StatusSeeOther, "/sign-in",
+		},
+		{
+			"post without cookie", newSignedOutTestServer, nil,
+			http.MethodPost, "/games/1942/library", http.StatusSeeOther, "/sign-in",
+		},
+		{"signed in", newTestServer, nil, http.MethodGet, "/library", http.StatusOK, ""},
+		{"health is public", newSignedOutTestServer, nil, http.MethodGet, "/health", http.StatusOK, ""},
+		{
+			"static is public", newSignedOutTestServer, nil,
+			http.MethodGet, "/static/css/outpost.css", http.StatusOK, "",
+		},
+		{"unknown URL", newSignedOutTestServer, nil, http.MethodGet, "/nonexistent", http.StatusNotFound, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := tt.newServer(t)
+			w := serveWithCookie(t, server, tt.method, tt.path, "", tt.cookie)
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertLocation(t, w, tt.wantLocation)
+			if tt.name != "unknown session" {
+				return
+			}
+			cookie := sessionCookie(w)
+			if cookie == nil || cookie.MaxAge >= 0 {
+				t.Errorf("session cookie = %v, want a cookie with MaxAge < 0", cookie)
+			}
+		})
+	}
+}
+
+// TestRequireUserRenewsSession tests when the response sends the session cookie again.
+func TestRequireUserRenewsSession(t *testing.T) {
+	tests := []struct {
+		name        string
+		createdAt   time.Time
+		wantRenewed bool
+	}{
+		{"young session", time.Now().Add(-time.Hour), false},
+		{"old session", time.Now().Add(-25 * time.Hour), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newSignedOutTestServer(t)
+			_, err := server.store.CreateSession(
+				t.Context(), testUserID, auth.HashSessionToken("renew-token"), tt.createdAt,
+			)
+			if err != nil {
+				t.Fatalf("CreateSession() failed: %v", err)
+			}
+			cookie := &http.Cookie{Name: sessionCookieName, Value: "renew-token"}
+			w := serveWithCookie(t, server, http.MethodGet, "/library", "", cookie)
+			if w.Code != http.StatusOK {
+				t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
+			}
+			got := sessionCookie(w)
+			if !tt.wantRenewed {
+				if got != nil {
+					t.Errorf("session cookie = %v, want nil", got)
+				}
+				return
+			}
+			if got == nil || got.Value != "renew-token" {
+				t.Errorf("session cookie = %v, want value %q", got, "renew-token")
 			}
 		})
 	}

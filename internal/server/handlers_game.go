@@ -81,6 +81,7 @@ func (server *Server) fetchGame(ctx context.Context, igdbID int64) error {
 // error is logged and the page renders without DLC.
 func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	userID := currentUser(r).ID
 
 	igdbID, ok := pathID(r, "igdbID")
 	if !ok {
@@ -88,7 +89,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	details, err := server.store.GetGame(ctx, defaultUserID, igdbID)
+	details, err := server.store.GetGame(ctx, userID, igdbID)
 	if err != nil && !errors.Is(err, database.ErrGameNotInCatalog) {
 		server.logger.Error("failed to get game", "error", err)
 		server.renderServerError(w, r)
@@ -99,7 +100,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 	fetchErr := server.fetchGame(ctx, igdbID)
 	switch {
 	case fetchErr == nil:
-		details, err = server.store.GetGame(ctx, defaultUserID, igdbID)
+		details, err = server.store.GetGame(ctx, userID, igdbID)
 		if err != nil {
 			server.logger.Error("failed to get game", "error", err)
 			server.renderServerError(w, r)
@@ -121,7 +122,7 @@ func (server *Server) handleGame(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			server.logger.Warn("failed to fetch DLCs", "igdb_id", igdbID, "error", err)
 		} else {
-			details, err = server.store.GetGame(ctx, defaultUserID, igdbID)
+			details, err = server.store.GetGame(ctx, userID, igdbID)
 			if err != nil {
 				server.logger.Error("failed to get game", "error", err)
 				server.renderServerError(w, r)
@@ -189,7 +190,7 @@ func (server *Server) handleUpdateGameDetails(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err := server.store.UpdateGameDetails(r.Context(), defaultUserID, igdbID, database.GameDetails{
+	err := server.store.UpdateGameDetails(r.Context(), currentUser(r).ID, igdbID, database.GameDetails{
 		Status: status,
 		Rating: rating,
 		Notes:  ptrIfNonZero(notes),

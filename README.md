@@ -2,9 +2,6 @@
 
 A self-hosted game tracker: log the games you play, rate them, record playthroughs, and keep track of what you own on which platform. Game data comes from [IGDB](https://www.igdb.com/).
 
-> [!WARNING]
-> Outpost has no login. Anyone who can reach it can see and change your data. Run it only on your local network or behind a VPN, and do not make it reachable from the internet.
-
 ## Running with Docker
 
 You need a Twitch app for access to IGDB. Create one in the [Twitch developer console](https://dev.twitch.tv/console/apps) with the client type "Confidential", and copy its client ID and a client secret.
@@ -16,6 +13,10 @@ docker run -d --name outpost -p 8080:8080 --env-file .env -v outpost-data:/data 
 `.env` holds the settings below; start from [`.env.example`](.env.example). The database lives in the `outpost-data` volume. The container runs as a non-root user.
 
 Images are published to [Docker Hub](https://hub.docker.com/r/koenvanzuijlen/outpost) for every release. Use `:1` to get updates without breaking changes.
+
+### First start
+
+On the first start, Outpost asks you to create the admin account. On an existing installation, your library and wishlist move to this account. After that, every page needs a signed-in user. If Outpost is reachable from the internet, serve it over HTTPS and set `SECURE_COOKIES=true`.
 
 ### Backups
 

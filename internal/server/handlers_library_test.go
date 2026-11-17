@@ -64,7 +64,7 @@ func TestHandleAddToLibrary(t *testing.T) {
 			}
 			assertLocation(t, w, tt.wantLocation)
 
-			games, err := server.store.ListLibrary(t.Context(), defaultUserID)
+			games, err := server.store.ListLibrary(t.Context(), testUserID)
 			if err != nil {
 				t.Fatalf("ListLibrary() failed: %v", err)
 			}
@@ -177,7 +177,7 @@ func TestHandleAddToLibraryTwice(t *testing.T) {
 		}
 	}
 
-	games, err := server.store.ListLibrary(t.Context(), defaultUserID)
+	games, err := server.store.ListLibrary(t.Context(), testUserID)
 	if err != nil {
 		t.Fatalf("ListLibrary() failed: %v", err)
 	}
