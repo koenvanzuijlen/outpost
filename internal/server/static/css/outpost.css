@@ -112,7 +112,7 @@
     border-bottom: 1px solid var(--color-border);
   }
 
-  .menu-bar ul {
+  .menu-bar > ul {
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -143,6 +143,73 @@
   .menu-bar__brand span {
     font-size: 1.5rem;
     font-weight: 700;
+  }
+
+  .menu-bar__account {
+    margin-inline-start: auto;
+  }
+
+  /* The button is the anchor of the account menu. */
+  .menu-bar__account-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: none;
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+    anchor-name: --account-menu;
+  }
+
+  .menu-bar__account-toggle:hover,
+  .menu-bar__account-toggle[aria-expanded="true"] {
+    border-color: var(--color-border);
+    background: var(--color-bg);
+  }
+
+  .menu-bar__account-toggle > .icon {
+    font-size: 1.25rem;
+  }
+
+  /* The popover opens below the button, aligned to its right edge. A browser without anchor positioning shows it in
+     the center of the window. */
+  .account-menu {
+    position-anchor: --account-menu;
+    position-area: block-end span-inline-start;
+    min-inline-size: 10rem;
+    margin: 0.25rem 0 0;
+    padding: 0.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    box-shadow: 0 0.5rem 1.5rem oklch(0 0 0 / 0.12);
+  }
+
+  .account-menu__list {
+    display: grid;
+  }
+
+  /* Links and buttons in the menu look the same. */
+  .account-menu__item {
+    display: block;
+    inline-size: 100%;
+    padding: 0.375rem 0.75rem;
+    border: 0;
+    border-radius: 0.375rem;
+    background: none;
+    color: var(--color-text);
+    font: inherit;
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .account-menu__item:hover {
+    background: var(--color-bg);
+    color: var(--color-accent-hover);
   }
 
   .icon {

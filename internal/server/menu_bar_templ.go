@@ -9,8 +9,9 @@ package server
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// menuBar is the navigation bar shown at the top of every page: the logo, the search box prefilled with query, and
-// links to the library, the wishlist and the export.
+// menuBar is the navigation bar at the top of every page. It always shows the logo. For a signed-in user, it also shows
+// the search box prefilled with query, the links to the library, the wishlist and the export, and the account menu
+// with the username and "Sign out".
 func menuBar(query string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -28,15 +29,47 @@ func menuBar(query string) templ.Component {
 		}
 		ctx = templ.InitializeContext(ctx)
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav class=\"menu-bar\"><ul><li><a href=\"/\" class=\"menu-bar__brand\"><span class=\"menu-bar__logo\" aria-hidden=\"true\"></span> <span>Outpost</span></a></li><li>")
+		user, signedIn := userFromContext(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav class=\"menu-bar\"><ul><li><a href=\"/\" class=\"menu-bar__brand\"><span class=\"menu-bar__logo\" aria-hidden=\"true\"></span> <span>Outpost</span></a></li>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = searchForm(query).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
+		if signedIn {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<li>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = searchForm(query).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</li><li><a href=\"/library\">Library</a></li><li><a href=\"/wishlist\">Wishlist</a></li><li><a href=\"/export.json\">Export</a></li><li class=\"menu-bar__account\"><button class=\"menu-bar__account-toggle\" type=\"button\" popovertarget=\"account-menu\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = icon("circle-user").Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<span>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var2 string
+			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(user.Username)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/menu_bar.templ`, Line: 26, Col: 27}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></button><div id=\"account-menu\" class=\"account-menu\" popover><ul class=\"account-menu__list\"><li><form method=\"POST\" action=\"/sign-out\"><button class=\"account-menu__item\" type=\"submit\">Sign out</button></form></li></ul></div></li>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</li><li><a href=\"/library\">Library</a></li><li><a href=\"/wishlist\">Wishlist</a></li><li><a href=\"/export.json\">Export</a></li></ul></nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</ul></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

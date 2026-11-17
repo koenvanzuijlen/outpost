@@ -1,8 +1,10 @@
 package server
 
-// menuBar is the navigation bar shown at the top of every page: the logo, the search box prefilled with query, and
-// links to the library, the wishlist and the export.
+// menuBar is the navigation bar at the top of every page. It always shows the logo. For a signed-in user, it also shows
+// the search box prefilled with query, the links to the library, the wishlist and the export, and the account menu
+// with the username and "Sign out".
 templ menuBar(query string) {
+	{{ user, signedIn := userFromContext(ctx) }}
 	<nav class="menu-bar">
 		<ul>
 			<li>
@@ -11,12 +13,29 @@ templ menuBar(query string) {
 					<span>Outpost</span>
 				</a>
 			</li>
-			<li>
-				@searchForm(query)
-			</li>
-			<li><a href="/library">Library</a></li>
-			<li><a href="/wishlist">Wishlist</a></li>
-			<li><a href="/export.json">Export</a></li>
+			if signedIn {
+				<li>
+					@searchForm(query)
+				</li>
+				<li><a href="/library">Library</a></li>
+				<li><a href="/wishlist">Wishlist</a></li>
+				<li><a href="/export.json">Export</a></li>
+				<li class="menu-bar__account">
+					<button class="menu-bar__account-toggle" type="button" popovertarget="account-menu">
+						@icon("circle-user")
+						<span>{ user.Username }</span>
+					</button>
+					<div id="account-menu" class="account-menu" popover>
+						<ul class="account-menu__list">
+							<li>
+								<form method="POST" action="/sign-out">
+									<button class="account-menu__item" type="submit">Sign out</button>
+								</form>
+							</li>
+						</ul>
+					</div>
+				</li>
+			}
 		</ul>
 	</nav>
 }
