@@ -44,7 +44,7 @@ CI runs the tests, lint, `templ generate`, `templ fmt`, `sqlc diff` and Prettier
 
 - Each pull request is one change that is useful on its own. A large feature is split into several pull requests.
 - Pull requests are squash merged. The pull request title becomes the commit message on `main` and the changelog line, so it must be a [Conventional Commit](https://www.conventionalcommits.org/): `feat(library): …`, `fix: …`.
-- Use a feature as the scope (`library`, `wishlist`, `game`, `search`, `home`), not a Go package. Leave the scope out when no feature fits.
+- Use a feature as the scope (`library`, `wishlist`, `game`, `search`, `home`, `dlc`, `account`, `admin`), not a Go package. Leave the scope out when no feature fits.
 - Use a specific type instead of `chore`: `build`, `ci`, `docs`, `refactor`, `style` or `test`. Only `feat`, `fix`, `perf`, `revert` and `deps` appear in the changelog.
 
 ## Migrations
@@ -62,20 +62,25 @@ The icons come from the npm package [`lucide-static`](https://lucide.dev/guide/p
 
 These terms are used the same way in the UI, the code and the database.
 
-| Term            | Meaning                                                                             | Schema / code                             |
-| --------------- | ----------------------------------------------------------------------------------- | ----------------------------------------- |
-| **catalog**     | Game and platform data cached from IGDB. Never shown as such.                       | `games`, `platforms`, `game_platforms`    |
-| **library**     | Games and DLC you log: status, rating, notes, playthroughs. Owned or not.           | `user_games` where `NOT wishlisted`       |
-| **wishlist**    | Games you want. No status, no copies.                                               | `user_games` where `wishlisted`           |
-| **user game**   | Code only: an entry in either the library or the wishlist.                          | `user_games`, `GetGame`, `RemoveUserGame` |
-| **owned on**    | The platforms you own a game on. A property of a library game, not a separate list. | derived from the tables below             |
-| **owned copy**  | One platform you own a game on.                                                     | `owned_copies`                            |
-| **owned DLC**   | A DLC you own on one of your copies of the base game.                               | `owned_dlc`                               |
-| **playthrough** | One attempt at playing a game, with an outcome.                                     | `playthroughs`                            |
+| Term                  | Meaning                                                                                                   | Schema / code                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| **catalog**           | Game and platform data cached from IGDB. Never shown as such.                                             | `games`, `platforms`, `game_platforms`    |
+| **library**           | Games and DLC you log: status, rating, notes, playthroughs. Owned or not.                                 | `user_games` where `NOT wishlisted`       |
+| **wishlist**          | Games you want. No status, no copies.                                                                     | `user_games` where `wishlisted`           |
+| **user game**         | Code only: an entry in either the library or the wishlist.                                                | `user_games`, `GetGame`, `RemoveUserGame` |
+| **owned on**          | The platforms you own a game on. A property of a library game, not a separate list.                       | derived from the tables below             |
+| **owned copy**        | One platform you own a game on.                                                                           | `owned_copies`                            |
+| **owned DLC**         | A DLC you own on one of your copies of the base game.                                                     | `owned_dlc`                               |
+| **playthrough**       | One attempt at playing a game, with an outcome.                                                           | `playthroughs`                            |
+| **account**           | A person who uses Outpost, with a username and a password. Each account has its own library and wishlist. | `users`                                   |
+| **admin**             | An account with the role `admin`. The first account is an admin.                                          | `users.role`                              |
+| **sign in, sign out** | Start and end a session. The UI never says "log in" or "log out".                                         | `/sign-in`, `/sign-out`                   |
+| **session**           | The period in which a browser stays signed in. It lasts 30 days after its last use.                       | `sessions`                                |
 
 Rules that follow from it:
 
 - **Ownership and the library are separate.** Adding a game to the library asks where you own it, with "Not owned" as an option. DLC can be owned per copy without being in the library, and added to the library without being owned.
 - **Remove vs delete.** _Remove_ takes something out of a set: a game from the library or wishlist, a copy from a game. _Delete_ destroys a record: a playthrough.
 - **Status vs outcome.** A library entry has a _status_ (backlog, playing, completed, shelved, abandoned, retired). A playthrough has an _outcome_ (playing, completed, abandoned, retired); `playing` is shown as "in progress".
+- **Account and user.** The UI says "account". The code and the database say "user" (`users`, `user_id`, `currentUser`).
 - **UI text** uses sentence case and "DLC" for both singular and plural.
