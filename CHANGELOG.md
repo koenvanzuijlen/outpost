@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/koenvanzuijlen/outpost/compare/v1.0.0...v1.1.0) (2026-11-17)
+
+
+### Features
+
+* **account:** sign in with a password ([#48](https://github.com/koenvanzuijlen/outpost/issues/48)) ([77f072f](https://github.com/koenvanzuijlen/outpost/commit/77f072f0d19a7303dfe31deb32e2e136a3531f31))
+* **export:** download the library and wishlist as JSON ([#46](https://github.com/koenvanzuijlen/outpost/issues/46)) ([6efbf4a](https://github.com/koenvanzuijlen/outpost/commit/6efbf4a705060bb598919de0217bfff39a60cfa1))
+
 ## [1.0.0](https://github.com/koenvanzuijlen/outpost/compare/v0.0.4...v1.0.0) (2026-11-14)
 
 
