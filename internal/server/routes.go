@@ -4,6 +4,8 @@ package server
 // that is already serving.
 func (server *Server) routes() {
 	server.mux.HandleFunc("GET /{$}", server.handleHome)
+	server.mux.HandleFunc("GET /sign-in", server.handleSignInPage)
+	server.mux.HandleFunc("GET /setup", server.handleSetupPage)
 	server.mux.HandleFunc("GET /search", server.handleSearch)
 	server.mux.HandleFunc("GET /library", server.handleLibrary)
 	server.mux.HandleFunc("GET /wishlist", server.handleWishlist)
@@ -13,6 +15,9 @@ func (server *Server) routes() {
 	server.mux.HandleFunc("GET /health", server.handleHealth)
 	server.mux.HandleFunc("GET /", server.handleNotFound)
 
+	server.mux.HandleFunc("POST /sign-in", server.handleSignIn)
+	server.mux.HandleFunc("POST /sign-out", server.handleSignOut)
+	server.mux.HandleFunc("POST /setup", server.handleSetup)
 	server.mux.HandleFunc("POST /games/{igdbID}/wishlist", server.handleAddToWishlist)
 	server.mux.HandleFunc("POST /games/{igdbID}/wishlist/remove", server.handleRemoveFromWishlist)
 	server.mux.HandleFunc("POST /games/{igdbID}/library", server.handleAddToLibrary)

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -70,7 +71,15 @@ func run(logger *slog.Logger) error {
 	}
 	client := igdb.New(clientID, clientSecret)
 
-	app := server.New(logger, store, client, version)
+	secureCookies, err := envBool("SECURE_COOKIES", false)
+	if err != nil {
+		return err
+	}
+
+	app := server.New(logger, store, client, server.Config{
+		Version:       version,
+		SecureCookies: secureCookies,
+	})
 	port := envOrDefault("PORT", "8080")
 	srv := &http.Server{
 		Addr:              ":" + port,
@@ -117,4 +126,20 @@ func envOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// envBool returns the environment variable key as a boolean, or defaultValue if the variable is not set.
+// It accepts the values of strconv.ParseBool, such as true, false, 1 and 0.
+// Returns an error if the value is not a boolean.
+func envBool(key string, defaultValue bool) (bool, error) {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return defaultValue, nil
+	}
+
+	b, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("%s must be true or false: %w", key, err)
+	}
+	return b, nil
 }

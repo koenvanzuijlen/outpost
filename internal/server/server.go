@@ -20,25 +20,34 @@ type IGDBClient interface {
 	DLCs(ctx context.Context, parentID int) ([]igdb.Game, error)
 }
 
-// Server holds the dependencies shared by all HTTP handlers and routes requests to them. It implements http.Handler.
-type Server struct {
-	mux        *http.ServeMux
-	handler    http.Handler
-	logger     *slog.Logger
-	store      *database.Store
-	igdbClient IGDBClient
-	version    string
+// Config holds the settings of a Server. Version is shown in the footer of every page. SecureCookies sets the Secure
+// flag on the session cookie, so the browser sends it only over HTTPS.
+type Config struct {
+	Version       string
+	SecureCookies bool
 }
 
-// New creates a Server with the given logger, store and IGDB client. Every page shows version in the footer. New
-// registers the routes and the middleware.
-func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient, version string) *Server {
+// Server holds the dependencies shared by all HTTP handlers and routes requests to them. It implements http.Handler.
+type Server struct {
+	mux           *http.ServeMux
+	handler       http.Handler
+	logger        *slog.Logger
+	store         *database.Store
+	igdbClient    IGDBClient
+	version       string
+	secureCookies bool
+}
+
+// New creates a Server with the given logger, store, IGDB client and config. New registers the routes and the
+// middleware.
+func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient, config Config) *Server {
 	server := &Server{
-		version:    version,
-		mux:        http.NewServeMux(),
-		logger:     logger,
-		store:      store,
-		igdbClient: igdbClient,
+		mux:           http.NewServeMux(),
+		logger:        logger,
+		store:         store,
+		igdbClient:    igdbClient,
+		version:       config.Version,
+		secureCookies: config.SecureCookies,
 	}
 	server.routes()
 
