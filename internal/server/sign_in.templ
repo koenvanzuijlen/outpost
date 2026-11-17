@@ -1,0 +1,104 @@
+package server
+
+// setupView is the page that creates the first admin account: a username, a password and the password again.
+// page.Error shows above the fields after a failed attempt.
+templ setupView(page setupPage) {
+	@layout("") {
+		<section class="account-page">
+			<h1>Set up Outpost</h1>
+			<p class="account-page__intro">
+				Create the admin account. Your library and wishlist stay with this account.
+			</p>
+			<form class="account-form" method="post">
+				if page.Error != "" {
+					@accountFormError(page.Error)
+				}
+				<label class="account-form__field">
+					Username
+					<input
+						class="account-form__input"
+						type="text"
+						name="username"
+						autocomplete="username"
+						value={ page.Username }
+						autofocus
+						required
+					/>
+					<span class="account-form__hint">{ usernameRule }</span>
+				</label>
+				<label class="account-form__field">
+					Password
+					<input
+						class="account-form__input"
+						type="password"
+						name="password"
+						autocomplete="new-password"
+						minlength="12"
+						required
+					/>
+				</label>
+				<label class="account-form__field">
+					Repeat password
+					<input
+						class="account-form__input"
+						type="password"
+						name="password_confirm"
+						autocomplete="new-password"
+						minlength="12"
+						required
+					/>
+				</label>
+				<button class="account-form__submit" type="submit">
+					Create account
+				</button>
+			</form>
+		</section>
+	}
+}
+
+// signInView is the sign-in page with a username and a password. page.Error shows above the fields after a failed
+// attempt.
+templ signInView(page signInPage) {
+	@layout("") {
+		<section class="account-page">
+			<h1>Sign in</h1>
+			<form class="account-form" method="post">
+				if page.Error != "" {
+					@accountFormError(page.Error)
+				}
+				<label class="account-form__field">
+					Username
+					<input
+						class="account-form__input"
+						type="text"
+						name="username"
+						autocomplete="username"
+						value={ page.Username }
+						autofocus
+						required
+					/>
+				</label>
+				<label class="account-form__field">
+					Password
+					<input
+						class="account-form__input"
+						type="password"
+						name="password"
+						autocomplete="current-password"
+						required
+					/>
+				</label>
+				<button class="account-form__submit" type="submit">
+					Sign in
+				</button>
+			</form>
+		</section>
+	}
+}
+
+// accountFormError shows message above the fields of an account form. Screen readers read it when the page loads.
+templ accountFormError(message string) {
+	<p class="account-form__error" role="alert">
+		{ message }
+	</p>
+}

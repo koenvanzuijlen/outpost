@@ -26,7 +26,7 @@ func (server *Server) handleStartPlaythrough(w http.ResponseWriter, r *http.Requ
 
 	name := ptrIfNonZero(strings.TrimSpace(r.PostFormValue("name")))
 
-	playthrough, err := server.store.StartPlaythrough(r.Context(), defaultUserID, igdbID, platformIGDBID, name, time.Now())
+	playthrough, err := server.store.StartPlaythrough(r.Context(), currentUser(r).ID, igdbID, platformIGDBID, name, time.Now())
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			server.renderError(w, r, http.StatusNotFound, "Game not in library")
@@ -59,7 +59,7 @@ func (server *Server) handleSetPlaythroughOutcome(w http.ResponseWriter, r *http
 
 	outcome := database.PlaythroughOutcome(r.PostFormValue("outcome"))
 
-	err := server.store.SetPlaythroughOutcome(r.Context(), defaultUserID, igdbID, playthroughID, outcome, time.Now())
+	err := server.store.SetPlaythroughOutcome(r.Context(), currentUser(r).ID, igdbID, playthroughID, outcome, time.Now())
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			server.renderError(w, r, http.StatusNotFound, "Game not in library")
@@ -112,7 +112,7 @@ func (server *Server) handleUpdatePlaythrough(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err := server.store.UpdatePlaythroughDetails(r.Context(), defaultUserID, igdbID, playthroughID, database.PlaythroughDetails{
+	err := server.store.UpdatePlaythroughDetails(r.Context(), currentUser(r).ID, igdbID, playthroughID, database.PlaythroughDetails{
 		PlatformIGDBID: platformIGDBID,
 		Name:           name,
 		StartedAt:      startedAt,
@@ -152,7 +152,7 @@ func (server *Server) handleDeletePlaythrough(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err := server.store.DeletePlaythrough(r.Context(), defaultUserID, igdbID, playthroughID)
+	err := server.store.DeletePlaythrough(r.Context(), currentUser(r).ID, igdbID, playthroughID)
 	if err != nil && !errors.Is(err, database.ErrPlaythroughNotFound) {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			server.renderError(w, r, http.StatusNotFound, "Game not in library")

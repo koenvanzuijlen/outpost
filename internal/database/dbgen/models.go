@@ -54,10 +54,18 @@ type Playthrough struct {
 	FinishedAt *time.Time
 }
 
+type Session struct {
+	TokenHash string
+	UserID    int64
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
 type User struct {
 	ID           int64
 	Username     string
 	PasswordHash string
+	Role         string
 }
 
 type UserGame struct {

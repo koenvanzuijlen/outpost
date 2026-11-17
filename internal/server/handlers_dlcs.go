@@ -63,7 +63,7 @@ func (server *Server) handleSetDLCOwned(w http.ResponseWriter, r *http.Request) 
 	}
 	owned := value == "true"
 
-	err := server.store.SetDLCOwned(r.Context(), defaultUserID, igdbID, platformIGDBID, dlcIGDBID, owned)
+	err := server.store.SetDLCOwned(r.Context(), currentUser(r).ID, igdbID, platformIGDBID, dlcIGDBID, owned)
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			server.renderError(w, r, http.StatusNotFound, "Game not in library")

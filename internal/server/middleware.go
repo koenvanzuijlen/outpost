@@ -1,9 +1,13 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 	"runtime/debug"
 	"time"
+
+	"github.com/koenvanzuijlen/outpost/internal/auth"
+	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
 // contentSecurityPolicyValue is the Content-Security-Policy of every response. Scripts, styles and fonts load only
@@ -66,5 +70,41 @@ func (server *Server) recoverPanic(next http.Handler) http.Handler {
 			}
 		}()
 		next.ServeHTTP(w, r)
+	})
+}
+
+// requireUser returns a handler that calls next only for a request with a valid session. It reads the session cookie
+// and stores the user in the request context. It sends the session cookie again when the session was renewed. A
+// request without a valid session redirects to the sign-in page, or to the setup page when setup is not done. An
+// unknown session also clears the cookie. A failed session lookup renders the server error page.
+func (server *Server) requireUser(next http.HandlerFunc) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie(sessionCookieName)
+		if err != nil {
+			server.redirectToSignIn(w, r)
+			return
+		}
+
+		session, err := server.store.SessionUser(
+			r.Context(),
+			auth.HashSessionToken(cookie.Value),
+			time.Now().UTC(),
+		)
+		if err != nil {
+			if errors.Is(err, database.ErrSessionNotFound) {
+				server.clearSessionCookie(w)
+				server.redirectToSignIn(w, r)
+				return
+			}
+			server.logger.Error("failed to get session", "error", err)
+			server.renderServerError(w, r)
+			return
+		}
+
+		if session.Renewed {
+			server.setSessionCookie(w, cookie.Value, session.ExpiresAt)
+		}
+
+		next.ServeHTTP(w, r.WithContext(withUser(r.Context(), session.User)))
 	})
 }

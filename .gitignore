@@ -11,6 +11,7 @@
 *.db
 *.db-shm
 *.db-wal
+*.db.*.bak
 
 # Locally built dev tools
 /.tools/

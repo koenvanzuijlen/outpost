@@ -98,7 +98,7 @@ func TestHandleStartPlaythroughDLC(t *testing.T) {
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	dlc, err := server.store.GetGame(t.Context(), defaultUserID, 12503)
+	dlc, err := server.store.GetGame(t.Context(), testUserID, 12503)
 	if err != nil {
 		t.Fatalf("GetGame(12503) failed: %v", err)
 	}

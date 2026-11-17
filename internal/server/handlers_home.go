@@ -24,13 +24,14 @@ type homePage struct {
 // handleHome renders the home page: playing games by last started, and a random sample of the backlog and wishlist.
 func (server *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	games, err := server.store.ListLibrary(ctx, defaultUserID)
+	userID := currentUser(r).ID
+	games, err := server.store.ListLibrary(ctx, userID)
 	if err != nil {
 		server.logger.Error("failed to list library", "error", err)
 		server.renderServerError(w, r)
 		return
 	}
-	wishlistedGames, err := server.store.ListWishlist(ctx, defaultUserID)
+	wishlistedGames, err := server.store.ListWishlist(ctx, userID)
 	if err != nil {
 		server.logger.Error("failed to list wishlisted games", "error", err)
 		server.renderServerError(w, r)

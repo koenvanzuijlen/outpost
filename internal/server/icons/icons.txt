@@ -2,6 +2,7 @@ archive
 arrow-down-narrow-wide
 arrow-down-wide-narrow
 chevron-down
+circle-user
 circle-x
 gamepad-2
 git-branch

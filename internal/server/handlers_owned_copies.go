@@ -24,7 +24,7 @@ func (server *Server) handleAddOwnedCopy(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err := server.store.AddOwnedCopy(r.Context(), defaultUserID, igdbID, *platformIGDBID)
+	err := server.store.AddOwnedCopy(r.Context(), currentUser(r).ID, igdbID, *platformIGDBID)
 	if err != nil && !errors.Is(err, database.ErrAlreadyOwnedOnPlatform) {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			server.renderError(w, r, http.StatusNotFound, "Game not in library")
@@ -57,7 +57,7 @@ func (server *Server) handleRemoveOwnedCopy(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err := server.store.RemoveOwnedCopy(r.Context(), defaultUserID, igdbID, platformIGDBID)
+	err := server.store.RemoveOwnedCopy(r.Context(), currentUser(r).ID, igdbID, platformIGDBID)
 	if err != nil && !errors.Is(err, database.ErrOwnedCopyNotFound) {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			server.renderError(w, r, http.StatusNotFound, "Game not in library")

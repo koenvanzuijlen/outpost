@@ -174,7 +174,7 @@ func TestHandleAddToWishlistDLC(t *testing.T) {
 	}
 	assertLocation(t, w, "")
 
-	wishlist, err := server.store.ListWishlist(t.Context(), defaultUserID)
+	wishlist, err := server.store.ListWishlist(t.Context(), testUserID)
 	if err != nil {
 		t.Fatalf("ListWishlist() failed: %v", err)
 	}

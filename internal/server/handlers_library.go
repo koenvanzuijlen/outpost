@@ -62,7 +62,7 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	games, err := server.store.ListLibrary(ctx, defaultUserID)
+	games, err := server.store.ListLibrary(ctx, currentUser(r).ID)
 	if err != nil {
 		server.logger.Error("failed to list library", "error", err)
 		server.renderServerError(w, r)
@@ -136,7 +136,7 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 			platform = new(upsertPlatformParamsFromIGDB(game.Platforms[i], now))
 		}
 
-		err = server.store.AddToLibrary(r.Context(), upsertGameParamsFromIGDB(game, now), platform, defaultUserID, now)
+		err = server.store.AddToLibrary(r.Context(), upsertGameParamsFromIGDB(game, now), platform, currentUser(r).ID, now)
 		if err != nil && !errors.Is(err, database.ErrAlreadyOwnedOnPlatform) {
 			server.logger.Error("failed to add to library", "error", err)
 			server.renderServerError(w, r)
@@ -152,7 +152,7 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		err := server.store.AddDLCToLibrary(r.Context(), defaultUserID, int64(game.ParentGameID), int64(game.ID), now)
+		err := server.store.AddDLCToLibrary(r.Context(), currentUser(r).ID, int64(game.ParentGameID), int64(game.ID), now)
 		if err != nil {
 			if errors.Is(err, database.ErrUserGameNotFound) {
 				server.renderError(w, r, http.StatusNotFound, "Base game not in library")
@@ -178,7 +178,7 @@ func (server *Server) handleRemoveFromWishlist(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	err := server.store.RemoveUserGame(r.Context(), defaultUserID, igdbID, true)
+	err := server.store.RemoveUserGame(r.Context(), currentUser(r).ID, igdbID, true)
 	if err != nil && !errors.Is(err, database.ErrUserGameNotFound) {
 		server.logger.Error("failed to remove from wishlist", "error", err)
 		server.renderServerError(w, r)
@@ -198,7 +198,7 @@ func (server *Server) handleRemoveFromLibrary(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err := server.store.RemoveUserGame(r.Context(), defaultUserID, igdbID, false)
+	err := server.store.RemoveUserGame(r.Context(), currentUser(r).ID, igdbID, false)
 	if err != nil && !errors.Is(err, database.ErrUserGameNotFound) {
 		server.logger.Error("failed to remove from library", "error", err)
 		server.renderServerError(w, r)

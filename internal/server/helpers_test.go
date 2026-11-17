@@ -12,8 +12,11 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
+	"github.com/koenvanzuijlen/outpost/internal/auth"
 	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
@@ -73,9 +76,42 @@ func loadIGDBGame(t *testing.T, name string) igdb.Game {
 	return games[0]
 }
 
-// newTestServer returns a Server with a fresh database in a temporary directory and no IGDB client. Tests that call
-// IGDB set server.igdbClient to a fakeIGDB.
+// testPassword is the password of the admin that newSignedOutTestServer creates.
+const testPassword = "correct horse battery"
+
+// testPasswordHash returns the hash of testPassword. It computes the hash once per test run.
+var testPasswordHash = sync.OnceValue(func() string { return auth.HashPassword(testPassword) })
+
+// testUserID is the ID of the admin that newSignedOutTestServer creates.
+const testUserID = 1
+
+// testSessionToken is the session token that newTestServer adds to requests without a session cookie.
+const testSessionToken = "test-session-token"
+
+// newTestServer returns a signed-in Server with a fresh database in a temporary directory and no IGDB client. The
+// server adds a session cookie to each request that has none. Tests that call IGDB set server.igdbClient to a
+// fakeIGDB.
 func newTestServer(t *testing.T) *Server {
+	t.Helper()
+	server := newSignedOutTestServer(t)
+	_, err := server.store.CreateSession(
+		t.Context(), testUserID, auth.HashSessionToken(testSessionToken), time.Now().UTC(),
+	)
+	if err != nil {
+		t.Fatalf("CreateSession() failed: %v", err)
+	}
+	next := server.handler
+	server.handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := r.Cookie(sessionCookieName); err != nil {
+			r.AddCookie(&http.Cookie{Name: sessionCookieName, Value: testSessionToken})
+		}
+		next.ServeHTTP(w, r)
+	})
+	return server
+}
+
+// newServerWithoutSetup returns a Server whose setup is not done. The database has no admin.
+func newServerWithoutSetup(t *testing.T) *Server {
 	t.Helper()
 	logger := slog.New(slog.DiscardHandler)
 
@@ -89,7 +125,46 @@ func newTestServer(t *testing.T) *Server {
 		_ = store.Close()
 	})
 
-	return New(logger, store, nil, testVersion)
+	return New(logger, store, nil, Config{Version: testVersion})
+}
+
+// newSignedOutTestServer returns a Server whose setup is done with the admin "admin" and testPassword. No session
+// exists.
+func newSignedOutTestServer(t *testing.T) *Server {
+	t.Helper()
+	server := newServerWithoutSetup(t)
+	if _, err := server.store.CompleteSetup(t.Context(), "admin", testPasswordHash()); err != nil {
+		t.Fatalf("CompleteSetup() failed: %v", err)
+	}
+	return server
+}
+
+// serveWithCookie sends a request through server.ServeHTTP. It sets the form content type when body is not empty.
+// A nil cookie sends no cookie.
+func serveWithCookie(
+	t *testing.T, server *Server, method, path, body string, cookie *http.Cookie,
+) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	if body != "" {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
+	if cookie != nil {
+		req.AddCookie(cookie)
+	}
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	return w
+}
+
+// sessionCookie returns the session cookie set by w, or nil if w sets none.
+func sessionCookie(w *httptest.ResponseRecorder) *http.Cookie {
+	for _, c := range w.Result().Cookies() {
+		if c.Name == sessionCookieName {
+			return c
+		}
+	}
+	return nil
 }
 
 // addTestGame adds The Witcher 3 (1942) to the library, owned on PC (6), and returns the fake IGDB client.
@@ -142,7 +217,7 @@ func getPage(t *testing.T, server *Server, path string) *httptest.ResponseRecord
 // getTestGame returns The Witcher 3 (1942) from the library or wishlist. It fails the test if it isn't there.
 func getTestGame(t *testing.T, server *Server) database.GameOverview {
 	t.Helper()
-	details, err := server.store.GetGame(t.Context(), defaultUserID, 1942)
+	details, err := server.store.GetGame(t.Context(), testUserID, 1942)
 	if err != nil {
 		t.Fatalf("GetGame() failed: %v", err)
 	}

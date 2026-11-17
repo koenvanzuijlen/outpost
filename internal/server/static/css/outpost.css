@@ -112,7 +112,7 @@
     border-bottom: 1px solid var(--color-border);
   }
 
-  .menu-bar ul {
+  .menu-bar > ul {
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -143,6 +143,73 @@
   .menu-bar__brand span {
     font-size: 1.5rem;
     font-weight: 700;
+  }
+
+  .menu-bar__account {
+    margin-inline-start: auto;
+  }
+
+  /* The button is the anchor of the account menu. */
+  .menu-bar__account-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: none;
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+    anchor-name: --account-menu;
+  }
+
+  .menu-bar__account-toggle:hover,
+  .menu-bar__account-toggle[aria-expanded="true"] {
+    border-color: var(--color-border);
+    background: var(--color-bg);
+  }
+
+  .menu-bar__account-toggle > .icon {
+    font-size: 1.25rem;
+  }
+
+  /* The popover opens below the button, aligned to its right edge. A browser without anchor positioning shows it in
+     the center of the window. */
+  .account-menu {
+    position-anchor: --account-menu;
+    position-area: block-end span-inline-start;
+    min-inline-size: 10rem;
+    margin: 0.25rem 0 0;
+    padding: 0.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    box-shadow: 0 0.5rem 1.5rem oklch(0 0 0 / 0.12);
+  }
+
+  .account-menu__list {
+    display: grid;
+  }
+
+  /* Links and buttons in the menu look the same. */
+  .account-menu__item {
+    display: block;
+    inline-size: 100%;
+    padding: 0.375rem 0.75rem;
+    border: 0;
+    border-radius: 0.375rem;
+    background: none;
+    color: var(--color-text);
+    font: inherit;
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .account-menu__item:hover {
+    background: var(--color-bg);
+    color: var(--color-accent-hover);
   }
 
   .icon {
@@ -360,7 +427,9 @@
   .game-playthrough-form__input,
   .game-playthrough-form__submit,
   .add-form__input,
-  .add-form__submit {
+  .add-form__submit,
+  .account-form__input,
+  .account-form__submit {
     border: 1px solid var(--color-border-strong);
     border-radius: 0.5rem;
     background: var(--color-surface);
@@ -370,7 +439,8 @@
      height is the height of a button with 1rem text: one line, the padding and the border. */
   .sort-form__select,
   .game-playthrough-form__input,
-  .add-form__input {
+  .add-form__input,
+  .account-form__input {
     min-block-size: calc(1.5rem + 0.75rem + 2px);
     padding: 0.375rem 0.5rem;
     color: var(--color-text);
@@ -379,7 +449,8 @@
 
   .sort-form__select:hover,
   .game-playthrough-form__input:hover,
-  .add-form__input:hover {
+  .add-form__input:hover,
+  .account-form__input:hover {
     border-color: var(--color-text-muted);
   }
 
@@ -401,7 +472,8 @@
   .sort-form__apply,
   .game-details__save,
   .game-playthrough-form__submit,
-  .add-form__submit {
+  .add-form__submit,
+  .account-form__submit {
     padding: 0.375rem 0.75rem;
     color: var(--color-accent);
     font-weight: 500;
@@ -411,7 +483,8 @@
   .sort-form__apply:hover,
   .game-details__save:hover,
   .game-playthrough-form__submit:hover,
-  .add-form__submit:hover {
+  .add-form__submit:hover,
+  .account-form__submit:hover {
     background: var(--color-bg);
     color: var(--color-accent-hover);
   }
@@ -1102,6 +1175,56 @@
   .add-form__input {
     font-size: 1rem;
     font-weight: 400;
+  }
+
+  /* A narrow column in the center of the page for the setup and sign-in forms. */
+  .account-page {
+    display: grid;
+    gap: 1.5rem;
+    inline-size: 100%;
+    max-inline-size: 24rem;
+    margin-inline: auto;
+  }
+
+  .account-page__intro {
+    color: var(--color-text-muted);
+  }
+
+  /* The fields stack, and each field shows its label text above its control. */
+  .account-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .account-form__field {
+    display: grid;
+    gap: 0.25rem;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  /* The control resets the text style that it inherits from the label. A text field shows the text cursor. */
+  .account-form__input {
+    font-size: 1rem;
+    font-weight: 400;
+    cursor: text;
+  }
+
+  .account-form__hint {
+    font-weight: 400;
+  }
+
+  .account-form__submit {
+    justify-self: start;
+  }
+
+  .account-form__error {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-danger);
+    border-radius: 0.5rem;
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
   }
 
   /* A result has the layout of the game page header at a smaller size. The minmax column cannot grow wider than the
