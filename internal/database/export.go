@@ -30,6 +30,12 @@ type ExportData struct {
 	Wishlist []ExportGame
 }
 
+// UserExportData is the export data of one user, with the user.
+type UserExportData struct {
+	User User
+	Data ExportData
+}
+
 // Export returns all library and wishlist entries of the user, with their copies, the DLC owned on each copy and
 // their playthroughs.
 func (s *Store) Export(ctx context.Context, userID int64) (ExportData, error) {
@@ -91,4 +97,27 @@ func (s *Store) Export(ctx context.Context, userID int64) (ExportData, error) {
 		Library:  library,
 		Wishlist: wishlist,
 	}, nil
+}
+
+// ExportAll returns the export data of every user, sorted by username. It reads each user separately, so a change
+// during the export can show in one user and not in another.
+func (s *Store) ExportAll(ctx context.Context) ([]UserExportData, error) {
+	users, err := s.ListUsers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("read users: %w", err)
+	}
+
+	result := make([]UserExportData, 0, len(users))
+	for _, user := range users {
+		data, err := s.Export(ctx, user.ID)
+		if err != nil {
+			return nil, fmt.Errorf("export user %d: %w", user.ID, err)
+		}
+		result = append(result, UserExportData{
+			User: user,
+			Data: data,
+		})
+	}
+
+	return result, nil
 }

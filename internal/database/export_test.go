@@ -157,3 +157,62 @@ func TestExportPlaythroughs(t *testing.T) {
 		t.Errorf("len(Export() game 300 playthroughs) = %d, want 0", len(got))
 	}
 }
+
+// exportTitles returns the titles of games, in order.
+func exportTitles(games []ExportGame) []string {
+	titles := make([]string, 0, len(games))
+	for _, g := range games {
+		titles = append(titles, g.Game.Title)
+	}
+	return titles
+}
+
+// TestExportAll checks that each user gets the own library and wishlist, and that the users are sorted by username.
+func TestExportAll(t *testing.T) {
+	store := newTestStore(t)
+	ctx := t.Context()
+	now := time.Now().UTC()
+
+	koen, err := store.CompleteSetup(ctx, "koen", "hash")
+	if err != nil {
+		t.Fatalf("CompleteSetup() failed: %v", err)
+	}
+	anna, err := store.CreateUser(ctx, "anna", "hash", UserRoleUser)
+	if err != nil {
+		t.Fatalf("CreateUser() failed: %v", err)
+	}
+	if err := store.AddToLibrary(ctx, newGameParams(100, "Koen Game"), nil, koen.ID, now); err != nil {
+		t.Fatalf("AddToLibrary() failed: %v", err)
+	}
+	if err := store.AddToWishlist(ctx, newGameParams(200, "Anna Game"), anna.ID, now); err != nil {
+		t.Fatalf("AddToWishlist() failed: %v", err)
+	}
+
+	got, err := store.ExportAll(ctx)
+	if err != nil {
+		t.Fatalf("ExportAll() failed: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("len(ExportAll()) = %d, want %d", len(got), 2)
+	}
+
+	wants := []struct {
+		username string
+		library  []string
+		wishlist []string
+	}{
+		{"anna", []string{}, []string{"Anna Game"}},
+		{"koen", []string{"Koen Game"}, []string{}},
+	}
+	for i, want := range wants {
+		if got[i].User.Username != want.username {
+			t.Errorf("ExportAll()[%d] username = %q, want %q", i, got[i].User.Username, want.username)
+		}
+		if titles := exportTitles(got[i].Data.Library); !slices.Equal(titles, want.library) {
+			t.Errorf("ExportAll()[%d] library titles = %v, want %v", i, titles, want.library)
+		}
+		if titles := exportTitles(got[i].Data.Wishlist); !slices.Equal(titles, want.wishlist) {
+			t.Errorf("ExportAll()[%d] wishlist titles = %v, want %v", i, titles, want.wishlist)
+		}
+	}
+}
