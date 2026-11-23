@@ -11,6 +11,7 @@ func (server *Server) routes() {
 	server.mux.Handle("GET /library", server.requireUser(server.handleLibrary))
 	server.mux.Handle("GET /wishlist", server.requireUser(server.handleWishlist))
 	server.mux.Handle("GET /games/{igdbID}", server.requireUser(server.handleGame))
+	server.mux.Handle("GET /settings", server.requireUser(server.handleSettings))
 	server.mux.Handle("GET /export.json", server.requireUser(server.handleExportJSON))
 	server.mux.Handle("GET /static/", server.staticHandler())
 	server.mux.HandleFunc("GET /health", server.handleHealth)
@@ -31,4 +32,6 @@ func (server *Server) routes() {
 	server.mux.Handle("POST /games/{igdbID}/playthroughs/{playthroughID}", server.requireUser(server.handleUpdatePlaythrough))
 	server.mux.Handle("POST /games/{igdbID}/playthroughs/{playthroughID}/outcome", server.requireUser(server.handleSetPlaythroughOutcome))
 	server.mux.Handle("POST /games/{igdbID}/playthroughs/{playthroughID}/delete", server.requireUser(server.handleDeletePlaythrough))
+	server.mux.Handle("POST /settings/username", server.requireUser(server.handleChangeUsername))
+	server.mux.Handle("POST /settings/password", server.requireUser(server.handleChangePassword))
 }

@@ -50,3 +50,13 @@ func (server *Server) startSession(ctx context.Context, w http.ResponseWriter, u
 	server.setSessionCookie(w, token, expiresAt)
 	return nil
 }
+
+// sessionTokenHash returns the hash of the session token in the cookie of r, or "" if r has no session cookie.
+// Behind requireUser, the cookie is always there.
+func sessionTokenHash(r *http.Request) string {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		return ""
+	}
+	return auth.HashSessionToken(cookie.Value)
+}

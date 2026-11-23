@@ -11,7 +11,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 // menuBar is the navigation bar at the top of every page. It always shows the logo. For a signed-in user, it also shows
 // the search box prefilled with query, the links to the library, the wishlist and the export, and the account menu
-// with the username and "Sign out".
+// with the username, "Settings" and "Sign out".
 func menuBar(query string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -64,7 +64,7 @@ func menuBar(query string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></button><div id=\"account-menu\" class=\"account-menu\" popover><ul class=\"account-menu__list\"><li><form method=\"POST\" action=\"/sign-out\"><button class=\"account-menu__item\" type=\"submit\">Sign out</button></form></li></ul></div></li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></button><div id=\"account-menu\" class=\"account-menu\" popover><ul class=\"account-menu__list\"><li><a class=\"account-menu__item\" href=\"/settings\">Settings</a></li><li><form method=\"POST\" action=\"/sign-out\"><button class=\"account-menu__item\" type=\"submit\">Sign out</button></form></li></ul></div></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

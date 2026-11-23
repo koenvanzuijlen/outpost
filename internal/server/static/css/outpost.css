@@ -1227,6 +1227,32 @@
     color: var(--color-danger);
   }
 
+  /* The settings page has wider sections than the sign-in page. This rule comes after .account-page, so its width
+     wins. */
+  .settings {
+    max-inline-size: 36rem;
+  }
+
+  .settings__section {
+    display: grid;
+    gap: 1rem;
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
+  }
+
+  .settings__saved {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-accent);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+  }
+
+  .settings__link {
+    justify-self: start;
+  }
+
   /* A result has the layout of the game page header at a smaller size. The minmax column cannot grow wider than the
      page, so a long title or a long select wraps or shrinks. */
   .search-result {
