@@ -1253,6 +1253,54 @@
     justify-self: start;
   }
 
+  /* A select is a choice, not a text field, so it shows the pointer instead of the text cursor of the input rule. */
+  select.account-form__input {
+    cursor: pointer;
+  }
+
+  .admin {
+    display: grid;
+    gap: 1.5rem;
+    max-inline-size: 48rem;
+  }
+
+  .admin-users {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .admin-user {
+    display: grid;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    background: var(--color-surface);
+  }
+
+  /* The name and the role share one baseline, so the smaller role text lines up with the name. */
+  .admin-user__header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+
+  .admin-user__name {
+    font-weight: 600;
+  }
+
+  .admin-user__role {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* The form column is as narrow as the sign-in form, so the fields do not stretch over the full page width. */
+  .admin__create {
+    display: grid;
+    gap: 1rem;
+    max-inline-size: 24rem;
+  }
+
   /* A result has the layout of the game page header at a smaller size. The minmax column cannot grow wider than the
      page, so a long title or a long select wraps or shrinks. */
   .search-result {
