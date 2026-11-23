@@ -19,6 +19,9 @@ var ErrUserNotFound = errors.New("user not found")
 // ErrSetupDone is returned when the setup runs while an admin already exists.
 var ErrSetupDone = errors.New("setup already done")
 
+// ErrUsernameTaken is returned when another user already has the username.
+var ErrUsernameTaken = errors.New("username taken")
+
 // UserRole is the role of a user, one of the UserRole constants. Values are stored as text and validated in Go.
 type UserRole string
 
@@ -107,4 +110,71 @@ func (s *Store) UserByUsername(ctx context.Context, username string) (User, stri
 		return User{}, "", fmt.Errorf("get user: %w", err)
 	}
 	return userFrom(row), row.PasswordHash, nil
+}
+
+// RenameUser changes the username of the user.
+// Returns ErrUsernameTaken if another user has username, or ErrUserNotFound if the user does not exist.
+func (s *Store) RenameUser(ctx context.Context, userID int64, username string) error {
+	rows, err := s.queries.UpdateUsername(ctx, dbgen.UpdateUsernameParams{
+		ID:       userID,
+		Username: username,
+	})
+	if err != nil {
+		if isUniqueViolation(err) {
+			return ErrUsernameTaken
+		}
+		return fmt.Errorf("update username: %w", err)
+	}
+	if rows == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+// PasswordHash returns the password hash of the user. Returns ErrUserNotFound if the user does not exist.
+func (s *Store) PasswordHash(ctx context.Context, userID int64) (string, error) {
+	user, err := s.queries.GetUserByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrUserNotFound
+		}
+		return "", fmt.Errorf("get user: %w", err)
+	}
+	return user.PasswordHash, nil
+}
+
+// ChangePassword stores passwordHash as the password of the user and deletes all sessions of the user except the
+// session with keepTokenHash. An empty keepTokenHash deletes all sessions of the user.
+// Returns ErrUserNotFound if the user does not exist.
+func (s *Store) ChangePassword(ctx context.Context, userID int64, passwordHash, keepTokenHash string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := dbgen.New(tx)
+
+	rows, err := q.UpdatePasswordHash(ctx, dbgen.UpdatePasswordHashParams{
+		ID:           userID,
+		PasswordHash: passwordHash,
+	})
+	if err != nil {
+		return fmt.Errorf("update password hash: %w", err)
+	}
+	if rows == 0 {
+		return ErrUserNotFound
+	}
+
+	err = q.DeleteOtherSessions(ctx, dbgen.DeleteOtherSessionsParams{
+		UserID:        userID,
+		KeepTokenHash: keepTokenHash,
+	})
+	if err != nil {
+		return fmt.Errorf("delete other sessions: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
+	}
+	return nil
 }

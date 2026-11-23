@@ -25,6 +25,27 @@ func (q *Queries) CountUsersWithRole(ctx context.Context, role string) (int64, e
 	return count, err
 }
 
+const getUserByID = `-- name: GetUserByID :one
+SELECT
+    id, username, password_hash, role
+FROM
+    users
+WHERE
+    id = ?
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Role,
+	)
+	return i, err
+}
+
 const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT
     id, username, password_hash, role
@@ -44,6 +65,28 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Role,
 	)
 	return i, err
+}
+
+const updatePasswordHash = `-- name: UpdatePasswordHash :execrows
+UPDATE
+    users
+SET
+    password_hash = ?
+WHERE
+    id = ?
+`
+
+type UpdatePasswordHashParams struct {
+	PasswordHash string
+	ID           int64
+}
+
+func (q *Queries) UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updatePasswordHash, arg.PasswordHash, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateUserForSetup = `-- name: UpdateUserForSetup :execrows
@@ -71,6 +114,28 @@ func (q *Queries) UpdateUserForSetup(ctx context.Context, arg UpdateUserForSetup
 		arg.Role,
 		arg.ID,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUsername = `-- name: UpdateUsername :execrows
+UPDATE
+    users
+SET
+    username = ?
+WHERE
+    id = ?
+`
+
+type UpdateUsernameParams struct {
+	Username string
+	ID       int64
+}
+
+func (q *Queries) UpdateUsername(ctx context.Context, arg UpdateUsernameParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUsername, arg.Username, arg.ID)
 	if err != nil {
 		return 0, err
 	}
