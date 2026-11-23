@@ -37,4 +37,8 @@ func (server *Server) routes() {
 	server.mux.Handle("POST /settings/username", server.requireUser(server.handleChangeUsername))
 	server.mux.Handle("POST /settings/password", server.requireUser(server.handleChangePassword))
 	server.mux.Handle("POST /admin/users", server.requireAdmin(server.handleCreateUser))
+	server.mux.Handle("POST /admin/users/{userID}/username", server.requireAdmin(server.handleAdminRenameUser))
+	server.mux.Handle("POST /admin/users/{userID}/role", server.requireAdmin(server.handleSetUserRole))
+	server.mux.Handle("POST /admin/users/{userID}/password", server.requireAdmin(server.handleResetPassword))
+	server.mux.Handle("POST /admin/users/{userID}/delete", server.requireAdmin(server.handleDeleteUser))
 }

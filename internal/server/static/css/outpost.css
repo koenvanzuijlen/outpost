@@ -993,7 +993,8 @@
 
   .game-copy__remove > summary,
   .game-playthrough__delete > summary,
-  .game-remove > summary {
+  .game-remove > summary,
+  .admin-user__delete > summary {
     display: inline;
     color: var(--color-text-muted);
     font-size: 0.875rem;
@@ -1002,14 +1003,16 @@
 
   .game-copy__remove > summary:hover,
   .game-playthrough__delete > summary:hover,
-  .game-remove > summary:hover {
+  .game-remove > summary:hover,
+  .admin-user__delete > summary:hover {
     color: var(--color-text);
     text-decoration: underline;
   }
 
   .game-copy__remove > form,
   .game-playthrough__delete > form,
-  .game-remove > form {
+  .game-remove > form,
+  .admin-user__delete > form {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -1020,7 +1023,8 @@
   /* The confirm button destroys data, so it is red. It fills with red on hover. */
   .game-copy__remove button,
   .game-playthrough__delete button,
-  .game-remove button {
+  .game-remove button,
+  .admin-user__delete button {
     padding: 0.375rem 0.75rem;
     border: 1px solid var(--color-danger);
     border-radius: 0.5rem;
@@ -1032,7 +1036,8 @@
 
   .game-copy__remove button:hover,
   .game-playthrough__delete button:hover,
-  .game-remove button:hover {
+  .game-remove button:hover,
+  .admin-user__delete button:hover {
     border-color: var(--color-danger-hover);
     background: var(--color-danger-hover);
     color: var(--color-danger-text);
@@ -1292,6 +1297,91 @@
   .admin-user__role {
     color: var(--color-text-muted);
     font-size: 0.875rem;
+  }
+
+  /* The actions are a row of small links that wraps. The row has the font size of the links, so every item has a line
+     box of the same height and the links share one baseline. */
+  .admin-user__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  /* The summaries are text links without the default marker, so they look the same as the role button. */
+  .admin-user__action > summary {
+    list-style: none;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+
+  .admin-user__action > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .admin-user__action > summary:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+  }
+
+  /* The form is a flex box, so the button has no line box of its own and lines up with the summaries. */
+  .admin-user__role-form {
+    display: flex;
+  }
+
+  /* The role button looks like the summaries next to it. */
+  .admin-user__button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+
+  .admin-user__button:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+  }
+
+  /* The delete action is the last item and goes to the right end of the row, away from the other actions. */
+  .admin-user__delete {
+    margin-inline-start: auto;
+  }
+
+  /* An open action moves below the row of links and takes the full width, so the other links keep their place. The
+     open action is a panel, and its summary is the heading of the panel. */
+  .admin-user__action[open],
+  .admin-user__delete[open] {
+    display: grid;
+    flex-basis: 100%;
+    order: 1;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: var(--color-bg);
+    font-size: 1rem;
+  }
+
+  .admin-user__action[open] > summary,
+  .admin-user__delete[open] > summary {
+    color: var(--color-text);
+    font-weight: 500;
+  }
+
+  .admin-user__action > form {
+    max-inline-size: 24rem;
+  }
+
+  /* In the panel, the confirmation reads from the left like the other forms. The button keeps the red destructive
+     style. */
+  .admin-user__delete > form {
+    align-items: flex-start;
+    margin-top: 0;
   }
 
   /* The form column is as narrow as the sign-in form, so the fields do not stretch over the full page width. */
