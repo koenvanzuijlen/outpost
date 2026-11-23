@@ -108,3 +108,16 @@ func (server *Server) requireUser(next http.HandlerFunc) http.Handler {
 		next.ServeHTTP(w, r.WithContext(withUser(r.Context(), session.User)))
 	})
 }
+
+// requireAdmin lets only signed-in admins reach next. A signed-in user who is not an admin gets a 403 error page.
+// Requests without a valid session go where requireUser sends them.
+func (server *Server) requireAdmin(next http.HandlerFunc) http.Handler {
+	return server.requireUser(func(w http.ResponseWriter, r *http.Request) {
+		user := currentUser(r)
+		if !user.IsAdmin() {
+			server.renderError(w, r, http.StatusForbidden, "Only admins can open this page")
+			return
+		}
+		next(w, r)
+	})
+}

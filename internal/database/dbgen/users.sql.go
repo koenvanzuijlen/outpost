@@ -25,6 +25,19 @@ func (q *Queries) CountUsersWithRole(ctx context.Context, role string) (int64, e
 	return count, err
 }
 
+const deleteUser = `-- name: DeleteUser :execrows
+DELETE FROM users
+WHERE id = ?
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteUser, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getUserByID = `-- name: GetUserByID :one
 SELECT
     id, username, password_hash, role
@@ -65,6 +78,68 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Role,
 	)
 	return i, err
+}
+
+const insertUser = `-- name: InsertUser :one
+INSERT INTO users(username, password_hash, role)
+    VALUES (?, ?, ?)
+RETURNING
+    id, username, password_hash, role
+`
+
+type InsertUserParams struct {
+	Username     string
+	PasswordHash string
+	Role         string
+}
+
+func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, insertUser, arg.Username, arg.PasswordHash, arg.Role)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Role,
+	)
+	return i, err
+}
+
+const listUsers = `-- name: ListUsers :many
+SELECT
+    id, username, password_hash, role
+FROM
+    users
+ORDER BY
+    username ASC
+`
+
+func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, listUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.PasswordHash,
+			&i.Role,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updatePasswordHash = `-- name: UpdatePasswordHash :execrows
@@ -114,6 +189,28 @@ func (q *Queries) UpdateUserForSetup(ctx context.Context, arg UpdateUserForSetup
 		arg.Role,
 		arg.ID,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserRole = `-- name: UpdateUserRole :execrows
+UPDATE
+    users
+SET
+    role = ?
+WHERE
+    id = ?
+`
+
+type UpdateUserRoleParams struct {
+	Role string
+	ID   int64
+}
+
+func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserRole, arg.Role, arg.ID)
 	if err != nil {
 		return 0, err
 	}

@@ -1,0 +1,121 @@
+package server
+
+import (
+	"github.com/koenvanzuijlen/outpost/internal/database"
+	"strconv"
+)
+
+// userRoleLabel returns the UI text of role: "Admin" or "User".
+func userRoleLabel(role database.UserRole) string {
+	if role == database.UserRoleAdmin {
+		return "Admin"
+	}
+	return "User"
+}
+
+// adminUsersView is the admin page: all users with their role and actions, and the form that creates a user.
+// page.Error shows above the list after a failed action.
+templ adminUsersView(page adminUsersPage) {
+	@layout("") {
+		<section class="admin">
+			<h1>Users</h1>
+			if page.Error != "" {
+				@accountFormError(page.Error)
+			}
+			<ul class="admin-users">
+				for _, user := range page.Users {
+					@adminUser(user, user.ID == page.SelfID)
+				}
+			</ul>
+			<section class="admin__create">
+				<h2>Create user</h2>
+				@adminUserCreateForm(page)
+			</section>
+		</section>
+	}
+}
+
+// adminUser is one user on the admin page with the username, the role and the actions. self marks the account of the
+// signed-in admin, which only has the action "Rename".
+templ adminUser(user database.User, self bool) {
+	{{
+		base := "/admin/users/" + strconv.FormatInt(user.ID, 10)
+		group := "admin-user-" + strconv.FormatInt(user.ID, 10)
+	}}
+	<li class="admin-user">
+		<div class="admin-user__header">
+			<span class="admin-user__name">
+				{ user.Username }
+				if self {
+					(you)
+				}
+			</span>
+			<span class="admin-user__role">{ userRoleLabel(user.Role) }</span>
+		</div>
+		<div class="admin-user__actions">
+			<details class="admin-user__action" name={ group }>
+				<summary>Rename</summary>
+				<form class="account-form" method="post" action={ base + "/username" }>
+					<label class="account-form__field">
+						Username
+						<input class="account-form__input" type="text" name="username" autocomplete="off" required value={ user.Username }/>
+					</label>
+					<button class="account-form__submit" type="submit">Save</button>
+				</form>
+			</details>
+			if !self {
+				<form class="admin-user__role-form" method="post" action={ base + "/role" }>
+					if user.IsAdmin() {
+						<input type="hidden" name="role" value={ string(database.UserRoleUser) }/>
+						<button class="admin-user__button" type="submit">Make user</button>
+					} else {
+						<input type="hidden" name="role" value={ string(database.UserRoleAdmin) }/>
+						<button class="admin-user__button" type="submit">Make admin</button>
+					}
+				</form>
+				<details class="admin-user__action" name={ group }>
+					<summary>Reset password</summary>
+					<form class="account-form" method="post" action={ base + "/password" }>
+						<label class="account-form__field">
+							New password
+							<input class="account-form__input" type="password" name="password" autocomplete="new-password" required minlength="12"/>
+						</label>
+						<button class="account-form__submit" type="submit">Save password</button>
+					</form>
+				</details>
+				<details class="admin-user__delete" name={ group }>
+					<summary>Delete user</summary>
+					<form method="post" action={ base + "/delete" }>
+						<p>Deletes the account with its library, wishlist and playthroughs.</p>
+						<button type="submit">Really delete</button>
+					</form>
+				</details>
+			}
+		</div>
+	</li>
+}
+
+// adminUserCreateForm is the form that creates a user with a username, a password and a role. It is prefilled with
+// the values of a failed attempt, except the password.
+templ adminUserCreateForm(page adminUsersPage) {
+	<form class="account-form" method="post" action="/admin/users">
+		<label class="account-form__field">
+			Username
+			<input class="account-form__input" type="text" name="username" autocomplete="off" required value={ page.NewUsername }/>
+			<span class="account-form__hint">{ usernameRule }</span>
+		</label>
+		<label class="account-form__field">
+			Password
+			<input class="account-form__input" type="password" name="password" autocomplete="new-password" required minlength="12"/>
+		</label>
+		<label class="account-form__field">
+			Role
+			<select class="account-form__input" name="role">
+				for _, role := range database.UserRoles {
+					<option value={ string(role) } selected?={ role == page.NewRole }>{ userRoleLabel(role) }</option>
+				}
+			</select>
+		</label>
+		<button class="account-form__submit" type="submit">Create user</button>
+	</form>
+}

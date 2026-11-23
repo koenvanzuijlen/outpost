@@ -33,21 +33,27 @@ func TestHandleSettingsSaved(t *testing.T) {
 	}
 }
 
-// TestHandleChangeUsername checks the validation and the redirect of a username change.
+// TestHandleChangeUsername checks the validation and the redirect of a username change. The row "taken" creates the
+// user anna first.
 func TestHandleChangeUsername(t *testing.T) {
 	tests := []struct {
 		name         string
+		otherUser    string
 		body         string
 		wantStatus   int
 		wantLocation string
 	}{
-		{"valid", "username=Admin2", http.StatusSeeOther, "/settings?saved=username"},
-		{"same", "username=admin", http.StatusSeeOther, "/settings?saved=username"},
-		{"invalid", "username=a", http.StatusBadRequest, ""},
+		{"valid", "", "username=Admin2", http.StatusSeeOther, "/settings?saved=username"},
+		{"same", "", "username=admin", http.StatusSeeOther, "/settings?saved=username"},
+		{"invalid", "", "username=a", http.StatusBadRequest, ""},
+		{"taken", "anna", "username=anna", http.StatusBadRequest, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
+			if tt.otherUser != "" {
+				addSignedInUser(t, server, tt.otherUser)
+			}
 
 			w := postForm(t, server, "/settings/username", tt.body)
 			if w.Code != tt.wantStatus {

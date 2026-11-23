@@ -132,6 +132,7 @@ func TestRequireUser(t *testing.T) {
 			http.MethodPost, "/games/1942/library", http.StatusSeeOther, "/sign-in",
 		},
 		{"signed in", newTestServer, nil, http.MethodGet, "/library", http.StatusOK, ""},
+		{"admin page without cookie", newSignedOutTestServer, nil, http.MethodGet, "/admin/users", http.StatusSeeOther, "/sign-in"},
 		{"health is public", newSignedOutTestServer, nil, http.MethodGet, "/health", http.StatusOK, ""},
 		{
 			"static is public", newSignedOutTestServer, nil,
@@ -192,6 +193,33 @@ func TestRequireUserRenewsSession(t *testing.T) {
 			if got == nil || got.Value != "renew-token" {
 				t.Errorf("session cookie = %v, want value %q", got, "renew-token")
 			}
+		})
+	}
+}
+
+// TestRequireAdmin checks who can open an admin page: an admin can, a user who is not an admin gets a 403.
+func TestRequireAdmin(t *testing.T) {
+	tests := []struct {
+		name       string
+		asUser     bool
+		wantStatus int
+	}{
+		{name: "admin", asUser: false, wantStatus: http.StatusOK},
+		{name: "user", asUser: true, wantStatus: http.StatusForbidden},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			var cookie *http.Cookie
+			if tt.asUser {
+				_, cookie = addSignedInUser(t, server, "anna")
+			}
+
+			w := serveWithCookie(t, server, http.MethodGet, "/admin/users", "", cookie)
+			if w.Code != tt.wantStatus {
+				t.Errorf("GET /admin/users status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertLocation(t, w, "")
 		})
 	}
 }

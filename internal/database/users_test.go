@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"slices"
 	"testing"
 	"time"
 )
@@ -250,5 +251,178 @@ func TestPasswordHashUnknownUser(t *testing.T) {
 	_, err := store.PasswordHash(t.Context(), 99)
 	if !errors.Is(err, ErrUserNotFound) {
 		t.Errorf("PasswordHash() error = %v, want %v", err, ErrUserNotFound)
+	}
+}
+
+// TestCreateUser checks which users can be created. The rows run in order on one store.
+func TestCreateUser(t *testing.T) {
+	store := newTestStore(t)
+	ctx := t.Context()
+	if _, err := store.CompleteSetup(ctx, "koen", "hash"); err != nil {
+		t.Fatalf("CompleteSetup() error = %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		username string
+		role     UserRole
+		wantErr  error
+	}{
+		{name: "user", username: "anna", role: "user", wantErr: nil},
+		{name: "admin", username: "bram", role: "admin", wantErr: nil},
+		{name: "taken", username: "koen", role: "user", wantErr: ErrUsernameTaken},
+		{name: "invalid role", username: "carl", role: "owner", wantErr: ErrInvalidUserRole},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			created, err := store.CreateUser(ctx, tt.username, "hash2", tt.role)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("CreateUser() error = %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantErr != nil {
+				return
+			}
+
+			found, hash, err := store.UserByUsername(ctx, tt.username)
+			if err != nil {
+				t.Fatalf("UserByUsername() error = %v", err)
+			}
+			if found != created {
+				t.Errorf("UserByUsername() user = %v, want %v", found, created)
+			}
+			if found.Role != tt.role {
+				t.Errorf("UserByUsername() role = %q, want %q", found.Role, tt.role)
+			}
+			if hash != "hash2" {
+				t.Errorf("UserByUsername() hash = %q, want %q", hash, "hash2")
+			}
+		})
+	}
+}
+
+// TestListUsers checks that ListUsers returns all users, sorted by username.
+func TestListUsers(t *testing.T) {
+	store := newTestStore(t)
+	ctx := t.Context()
+	if _, err := store.CompleteSetup(ctx, "koen", "hash"); err != nil {
+		t.Fatalf("CompleteSetup() error = %v", err)
+	}
+	for _, username := range []string{"zoe", "anna"} {
+		if _, err := store.CreateUser(ctx, username, "hash2", UserRoleUser); err != nil {
+			t.Fatalf("CreateUser(%q) error = %v", username, err)
+		}
+	}
+
+	users, err := store.ListUsers(ctx)
+	if err != nil {
+		t.Fatalf("ListUsers() error = %v", err)
+	}
+	got := make([]string, 0, len(users))
+	for _, user := range users {
+		got = append(got, user.Username)
+	}
+	want := []string{"anna", "koen", "zoe"}
+	if !slices.Equal(got, want) {
+		t.Errorf("ListUsers() usernames = %v, want %v", got, want)
+	}
+}
+
+// TestSetUserRole checks which role changes succeed.
+func TestSetUserRole(t *testing.T) {
+	tests := []struct {
+		name    string
+		userID  int64
+		role    UserRole
+		wantErr error
+	}{
+		{name: "make admin", userID: 2, role: "admin", wantErr: nil},
+		{name: "same role", userID: 2, role: "user", wantErr: nil},
+		{name: "invalid", userID: 2, role: "owner", wantErr: ErrInvalidUserRole},
+		{name: "unknown", userID: 99, role: "user", wantErr: ErrUserNotFound},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newTwoUserStore(t)
+			ctx := t.Context()
+
+			err := store.SetUserRole(ctx, tt.userID, tt.role)
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("SetUserRole() error = %v, want %v", err, tt.wantErr)
+			}
+			if tt.wantErr != nil {
+				return
+			}
+
+			user, _, err := store.UserByUsername(ctx, "anna")
+			if err != nil {
+				t.Fatalf("UserByUsername() error = %v", err)
+			}
+			if user.Role != tt.role {
+				t.Errorf("UserByUsername() role = %q, want %q", user.Role, tt.role)
+			}
+		})
+	}
+}
+
+// TestDeleteUser checks that a delete removes all data of the user and keeps the data of the other users and the
+// catalog.
+func TestDeleteUser(t *testing.T) {
+	store := newTestStore(t)
+	ctx := t.Context()
+	now := time.Now().UTC()
+	if _, err := store.CompleteSetup(ctx, "koen", "hash"); err != nil {
+		t.Fatalf("CompleteSetup() error = %v", err)
+	}
+	anna, err := store.CreateUser(ctx, "anna", "hash2", UserRoleUser)
+	if err != nil {
+		t.Fatalf("CreateUser() error = %v", err)
+	}
+
+	err = store.AddToLibrary(ctx, newGameParams(100, "Test Game"), new(newPlatformParams(11, "Xbox")), anna.ID, now)
+	if err != nil {
+		t.Fatalf("AddToLibrary(anna) error = %v", err)
+	}
+	if err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), nil, 1, now); err != nil {
+		t.Fatalf("AddToLibrary(koen) error = %v", err)
+	}
+	if _, err := store.StartPlaythrough(ctx, anna.ID, 100, nil, nil, now); err != nil {
+		t.Fatalf("StartPlaythrough() error = %v", err)
+	}
+	if _, err := store.CreateSession(ctx, anna.ID, "anna-token", now); err != nil {
+		t.Fatalf("CreateSession() error = %v", err)
+	}
+
+	if err := store.DeleteUser(ctx, anna.ID); err != nil {
+		t.Fatalf("DeleteUser() error = %v", err)
+	}
+
+	tests := []struct {
+		query string
+		want  int
+	}{
+		{query: "SELECT COUNT(*) FROM users WHERE username = 'anna'", want: 0},
+		{query: "SELECT COUNT(*) FROM user_games", want: 1},
+		{query: "SELECT COUNT(*) FROM owned_copies", want: 0},
+		{query: "SELECT COUNT(*) FROM playthroughs", want: 0},
+		{query: "SELECT COUNT(*) FROM sessions", want: 0},
+		{query: "SELECT COUNT(*) FROM games WHERE igdb_id = 100", want: 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.query, func(t *testing.T) {
+			var got int
+			if err := store.db.QueryRowContext(ctx, tt.query).Scan(&got); err != nil {
+				t.Fatalf("QueryRowContext() error = %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("%s = %d, want %d", tt.query, got, tt.want)
+			}
+		})
+	}
+
+	err = store.DeleteUser(ctx, anna.ID)
+	if !errors.Is(err, ErrUserNotFound) {
+		t.Errorf("second DeleteUser() error = %v, want %v", err, ErrUserNotFound)
 	}
 }

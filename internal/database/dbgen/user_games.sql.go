@@ -102,6 +102,16 @@ func (q *Queries) DeleteUserGame(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteUserGamesForUser = `-- name: DeleteUserGamesForUser :exec
+DELETE FROM user_games
+WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUserGamesForUser(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUserGamesForUser, userID)
+	return err
+}
+
 const getUserGame = `-- name: GetUserGame :one
 SELECT
     id, user_id, game_id, status, rating, wishlisted, notes, added_at
