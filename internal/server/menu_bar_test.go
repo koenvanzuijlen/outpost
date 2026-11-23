@@ -12,6 +12,7 @@ func TestMenuBar(t *testing.T) {
 		assertBodyContains(t, w, `popovertarget="account-menu"`)
 		assertBodyContains(t, w, "admin")
 		assertBodyContains(t, w, `action="/sign-out"`)
+		assertBodyNotContains(t, w, `href="/export.json"`)
 	})
 
 	t.Run("signed out", func(t *testing.T) {
