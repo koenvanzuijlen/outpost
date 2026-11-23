@@ -146,3 +146,7 @@ WHERE user_id = sqlc.arg(user_id)
 DELETE FROM user_games
 WHERE id = ?;
 
+-- name: DeleteUserGamesForUser :exec
+DELETE FROM user_games
+WHERE user_id = ?;
+

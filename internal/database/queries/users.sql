@@ -22,6 +22,20 @@ FROM
 WHERE
     role = ?;
 
+-- name: ListUsers :many
+SELECT
+    *
+FROM
+    users
+ORDER BY
+    username ASC;
+
+-- name: InsertUser :one
+INSERT INTO users(username, password_hash, role)
+    VALUES (?, ?, ?)
+RETURNING
+    *;
+
 -- name: UpdateUsername :execrows
 UPDATE
     users
@@ -38,6 +52,14 @@ SET
 WHERE
     id = ?;
 
+-- name: UpdateUserRole :execrows
+UPDATE
+    users
+SET
+    role = ?
+WHERE
+    id = ?;
+
 -- name: UpdateUserForSetup :execrows
 UPDATE
     users
@@ -47,4 +69,8 @@ SET
     role = ?
 WHERE
     id = ?;
+
+-- name: DeleteUser :execrows
+DELETE FROM users
+WHERE id = ?;
 
