@@ -79,6 +79,20 @@ type exportPlaythrough struct {
 // newExportFile converts the user data of the store into the export file format. ExportedAt is exportedAt in UTC,
 // truncated to whole seconds. Every list in the result is non-nil, so it encodes as [] when it is empty.
 func newExportFile(data database.ExportData, version string, exportedAt time.Time) exportFile {
+	library, wishlist := newExportLists(data)
+
+	return exportFile{
+		FormatVersion:  exportFormatVersion,
+		OutpostVersion: version,
+		ExportedAt:     exportedAt.UTC().Truncate(time.Second),
+		Library:        library,
+		Wishlist:       wishlist,
+	}
+}
+
+// newExportLists converts the library and the wishlist of one user for the export. Both lists are non-nil, so they
+// encode as [] when they are empty.
+func newExportLists(data database.ExportData) ([]exportLibraryGame, []exportWishlistGame) {
 	library := make([]exportLibraryGame, 0, len(data.Library))
 	for _, entry := range data.Library {
 		library = append(library, newExportLibraryGame(entry))
@@ -89,13 +103,7 @@ func newExportFile(data database.ExportData, version string, exportedAt time.Tim
 		wishlist = append(wishlist, newExportWishlistGame(entry))
 	}
 
-	return exportFile{
-		FormatVersion:  exportFormatVersion,
-		OutpostVersion: version,
-		ExportedAt:     exportedAt.UTC().Truncate(time.Second),
-		Library:        library,
-		Wishlist:       wishlist,
-	}
+	return library, wishlist
 }
 
 // newExportGame returns the catalog fields of game for the export.
@@ -178,16 +186,16 @@ func exportDate(t *time.Time) *string {
 	return &s
 }
 
-// marshalExportFile encodes file as JSON with an indent of two spaces and a final newline. It does not escape HTML
-// characters, because the file is not HTML.
-func marshalExportFile(file exportFile) ([]byte, error) {
+// marshalExportJSON encodes v as JSON with an indent of two spaces and a final newline. It does not escape HTML
+// characters, because the export is not HTML.
+func marshalExportJSON(v any) ([]byte, error) {
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetIndent("", "  ")
 	enc.SetEscapeHTML(false)
-	err := enc.Encode(file)
+	err := enc.Encode(v)
 	if err != nil {
-		return nil, fmt.Errorf("encode export file: %w", err)
+		return nil, fmt.Errorf("encode export: %w", err)
 	}
 	return buf.Bytes(), nil
 }

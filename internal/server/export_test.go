@@ -170,12 +170,25 @@ func TestExportJSON(t *testing.T) {
 }
 `
 
-	got, err := marshalExportFile(newExportFile(data, "1.1.0", exportedAt))
+	got, err := marshalExportJSON(newExportFile(data, "1.1.0", exportedAt))
 	if err != nil {
-		t.Fatalf("marshalExportFile() error = %v", err)
+		t.Fatalf("marshalExportJSON() error = %v", err)
 	}
 	if string(got) != want {
-		t.Errorf("marshalExportFile() = %s, want %s", got, want)
+		t.Errorf("marshalExportJSON() = %s, want %s", got, want)
+	}
+}
+
+// TestNewExportListsEmpty checks that a user without games gets empty lists, not nil lists, so the export file holds []
+// and not null.
+func TestNewExportListsEmpty(t *testing.T) {
+	library, wishlist := newExportLists(database.ExportData{})
+
+	if library == nil || len(library) != 0 {
+		t.Errorf("newExportLists() library = %#v, want empty and non-nil", library)
+	}
+	if wishlist == nil || len(wishlist) != 0 {
+		t.Errorf("newExportLists() wishlist = %#v, want empty and non-nil", wishlist)
 	}
 }
 

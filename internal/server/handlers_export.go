@@ -17,7 +17,7 @@ func (server *Server) handleExportJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	exportedAt := time.Now()
 
-	body, err := marshalExportFile(newExportFile(data, server.version, exportedAt))
+	body, err := marshalExportJSON(newExportFile(data, server.version, exportedAt))
 	if err != nil {
 		server.logger.Error("failed to encode export", "error", err)
 		server.renderServerError(w, r)
