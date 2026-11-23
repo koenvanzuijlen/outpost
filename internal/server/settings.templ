@@ -1,0 +1,60 @@
+package server
+
+// settingsView is the settings page of the signed-in user: the username, the password and the export. Each section
+// shows the message of its failed change.
+templ settingsView(page settingsPage) {
+	@layout("") {
+		<section class="account-page settings">
+			<h1>Settings</h1>
+			if page.Saved != "" {
+				<p class="settings__saved" role="status">{ page.Saved }</p>
+			}
+			@settingsSection("Account") {
+				<form class="account-form" method="post" action="/settings/username">
+					if page.UsernameError != "" {
+						@accountFormError(page.UsernameError)
+					}
+					<label class="account-form__field">
+						Username
+						<input class="account-form__input" type="text" name="username" autocomplete="username" value={ page.Username } required/>
+						<span class="account-form__hint">{ usernameRule }</span>
+					</label>
+					<button class="account-form__submit" type="submit">Save username</button>
+				</form>
+			}
+			@settingsSection("Password") {
+				<form class="account-form" method="post" action="/settings/password">
+					if page.PasswordError != "" {
+						@accountFormError(page.PasswordError)
+					}
+					<label class="account-form__field">
+						Current password
+						<input class="account-form__input" type="password" name="current_password" autocomplete="current-password" required/>
+					</label>
+					<label class="account-form__field">
+						New password
+						<input class="account-form__input" type="password" name="new_password" autocomplete="new-password" required minlength="12"/>
+					</label>
+					<label class="account-form__field">
+						Repeat new password
+						<input class="account-form__input" type="password" name="new_password_confirm" autocomplete="new-password" required minlength="12"/>
+					</label>
+					<button class="account-form__submit" type="submit">Change password</button>
+				</form>
+			}
+			@settingsSection("Export") {
+				<p>Download your library and wishlist as a JSON file.</p>
+				<a class="settings__link" href="/export.json">Download JSON export</a>
+			}
+		</section>
+	}
+}
+
+// settingsSection is one section of the settings page with title as its heading. The children are the content of the
+// section.
+templ settingsSection(title string) {
+	<section class="settings__section">
+		<h2>{ title }</h2>
+		{ children... }
+	</section>
+}

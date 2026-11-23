@@ -10,8 +10,8 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // menuBar is the navigation bar at the top of every page. It always shows the logo. For a signed-in user, it also shows
-// the search box prefilled with query, the links to the library, the wishlist and the export, and the account menu
-// with the username and "Sign out".
+// the search box prefilled with query, the links to the library and the wishlist, and the account menu with the
+// username, "Settings" and "Sign out".
 func menuBar(query string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -43,7 +43,7 @@ func menuBar(query string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</li><li><a href=\"/library\">Library</a></li><li><a href=\"/wishlist\">Wishlist</a></li><li><a href=\"/export.json\">Export</a></li><li class=\"menu-bar__account\"><button class=\"menu-bar__account-toggle\" type=\"button\" popovertarget=\"account-menu\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</li><li><a href=\"/library\">Library</a></li><li><a href=\"/wishlist\">Wishlist</a></li><li class=\"menu-bar__account\"><button class=\"menu-bar__account-toggle\" type=\"button\" popovertarget=\"account-menu\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -58,13 +58,13 @@ func menuBar(query string) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(user.Username)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/menu_bar.templ`, Line: 26, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/menu_bar.templ`, Line: 25, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></button><div id=\"account-menu\" class=\"account-menu\" popover><ul class=\"account-menu__list\"><li><form method=\"POST\" action=\"/sign-out\"><button class=\"account-menu__item\" type=\"submit\">Sign out</button></form></li></ul></div></li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></button><div id=\"account-menu\" class=\"account-menu\" popover><ul class=\"account-menu__list\"><li><a class=\"account-menu__item\" href=\"/settings\">Settings</a></li><li><form method=\"POST\" action=\"/sign-out\"><button class=\"account-menu__item\" type=\"submit\">Sign out</button></form></li></ul></div></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
