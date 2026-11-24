@@ -23,7 +23,7 @@ func TestHandleSettingsSaved(t *testing.T) {
 		t.Run(tt.query, func(t *testing.T) {
 			server := newTestServer(t)
 
-			w := getPage(t, server, "/settings"+tt.query)
+			w := getPage(t, server, "/settings/account"+tt.query)
 			if tt.wantBody != "" {
 				assertBodyContains(t, w, tt.wantBody)
 			}
@@ -44,8 +44,8 @@ func TestHandleChangeUsername(t *testing.T) {
 		wantStatus   int
 		wantLocation string
 	}{
-		{"valid", "", "username=Admin2", http.StatusSeeOther, "/settings?saved=username"},
-		{"same", "", "username=admin", http.StatusSeeOther, "/settings?saved=username"},
+		{"valid", "", "username=Admin2", http.StatusSeeOther, "/settings/account?saved=username"},
+		{"same", "", "username=admin", http.StatusSeeOther, "/settings/account?saved=username"},
 		{"invalid", "", "username=a", http.StatusBadRequest, ""},
 		{"taken", "anna", "username=anna", http.StatusBadRequest, ""},
 	}
@@ -56,7 +56,7 @@ func TestHandleChangeUsername(t *testing.T) {
 				addSignedInUser(t, server, tt.otherUser)
 			}
 
-			w := postForm(t, server, "/settings/username", tt.body)
+			w := postForm(t, server, "/settings/account/username", tt.body)
 			if w.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
 			}
@@ -74,9 +74,9 @@ func TestHandleSetTimeZone(t *testing.T) {
 		wantLocation string
 		wantStored   *string
 	}{
-		{"zone", "time_zone=Europe%2FAmsterdam", http.StatusSeeOther, "/settings?saved=time-zone", new("Europe/Amsterdam")},
-		{"spaces", "time_zone=+UTC+", http.StatusSeeOther, "/settings?saved=time-zone", new("UTC")},
-		{"empty", "time_zone=", http.StatusSeeOther, "/settings?saved=time-zone", nil},
+		{"zone", "time_zone=Europe%2FAmsterdam", http.StatusSeeOther, "/settings/account?saved=time-zone", new("Europe/Amsterdam")},
+		{"spaces", "time_zone=+UTC+", http.StatusSeeOther, "/settings/account?saved=time-zone", new("UTC")},
+		{"empty", "time_zone=", http.StatusSeeOther, "/settings/account?saved=time-zone", nil},
 		{"unknown", "time_zone=Mars%2FOlympus_Mons", http.StatusBadRequest, "", nil},
 		{"local", "time_zone=Local", http.StatusBadRequest, "", nil},
 	}
@@ -84,7 +84,7 @@ func TestHandleSetTimeZone(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
 
-			w := postForm(t, server, "/settings/time-zone", tt.body)
+			w := postForm(t, server, "/settings/account/time-zone", tt.body)
 			if w.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
 			}
@@ -106,7 +106,7 @@ func TestHandleSetTimeZone(t *testing.T) {
 func TestHandleChangeUsernameStoresNormalized(t *testing.T) {
 	server := newTestServer(t)
 
-	w := postForm(t, server, "/settings/username", "username=Admin2")
+	w := postForm(t, server, "/settings/account/username", "username=Admin2")
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
@@ -131,7 +131,7 @@ func TestHandleChangePassword(t *testing.T) {
 		{
 			"valid",
 			"current_password=correct+horse+battery&new_password=new+password+123&new_password_confirm=new+password+123",
-			http.StatusSeeOther, "/settings?saved=password",
+			http.StatusSeeOther, "/settings/account?saved=password",
 		},
 		{
 			"wrong current",
@@ -153,7 +153,7 @@ func TestHandleChangePassword(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
 
-			w := postForm(t, server, "/settings/password", tt.body)
+			w := postForm(t, server, "/settings/account/password", tt.body)
 			if w.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
 			}
@@ -168,7 +168,7 @@ func TestHandleChangePasswordKeepsSession(t *testing.T) {
 	server := newTestServer(t)
 
 	body := "current_password=correct+horse+battery&new_password=new+password+123&new_password_confirm=new+password+123"
-	w := postForm(t, server, "/settings/password", body)
+	w := postForm(t, server, "/settings/account/password", body)
 	if w.Code != http.StatusSeeOther {
 		t.Fatalf("status = %d, want %d", w.Code, http.StatusSeeOther)
 	}

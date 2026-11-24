@@ -18,7 +18,7 @@ func TestHandleExportJSON(t *testing.T) {
 	}
 	addTestGame(t, server)
 
-	w = getPage(t, server, "/export.json")
+	w = getPage(t, server, "/settings/export.json")
 
 	contentType := w.Header().Get("Content-Type")
 	if contentType != "application/json; charset=utf-8" {
@@ -73,7 +73,7 @@ func TestHandleExportJSONDatabaseError(t *testing.T) {
 	_ = server.store.Close()
 
 	w := httptest.NewRecorder()
-	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/export.json", nil))
+	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/settings/export.json", nil))
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
@@ -128,6 +128,37 @@ func TestHandleExportAllJSON(t *testing.T) {
 		if len(got.Wishlist) != want.wishlistLen {
 			t.Errorf("len(Users[%d].Wishlist) = %d, want %d", i, len(got.Wishlist), want.wishlistLen)
 		}
+	}
+}
+
+// TestHandleSettingsExport checks that every signed-in user can open the export page of the settings, and that the
+// page links to the download of the own export.
+func TestHandleSettingsExport(t *testing.T) {
+	tests := []struct {
+		name       string
+		asUser     bool
+		wantStatus int
+	}{
+		{"admin", false, http.StatusOK},
+		{"user", true, http.StatusOK},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			var w *httptest.ResponseRecorder
+			if tt.asUser {
+				_, cookie := addSignedInUser(t, server, "anna")
+				w = serveWithCookie(t, server, http.MethodGet, "/settings/export", "", cookie)
+			} else {
+				w = getPage(t, server, "/settings/export")
+			}
+
+			if w.Code != tt.wantStatus {
+				t.Fatalf("GET /settings/export status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertBodyContains(t, w, `href="/settings/export.json"`)
+		})
 	}
 }
 

@@ -5,6 +5,11 @@ import (
 	"net/http"
 )
 
+// handleSettingsExport renders the settings page with the download of the export of the user. It reads no input.
+func (server *Server) handleSettingsExport(w http.ResponseWriter, r *http.Request) {
+	server.renderComponent(w, r, http.StatusOK, settingsExportView())
+}
+
 // handleExportJSON sends the library and the wishlist of the user as a JSON file download. The file name holds the
 // date of the export in the time zone of the user. It reads no input.
 func (server *Server) handleExportJSON(w http.ResponseWriter, r *http.Request) {
