@@ -131,6 +131,16 @@ func TestHandleExportAllJSON(t *testing.T) {
 	}
 }
 
+// TestHandleAdminExport checks that the export page links to the download of all users.
+func TestHandleAdminExport(t *testing.T) {
+	w := getPage(t, newTestServer(t), "/admin/export")
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("GET /admin/export status = %d, want %d", w.Code, http.StatusOK)
+	}
+	assertBodyContains(t, w, `href="/admin/export.json"`)
+}
+
 // TestAdminExportForbidden checks that a user who is not an admin gets a 403 on the export routes of the admin.
 func TestAdminExportForbidden(t *testing.T) {
 	tests := []struct {
@@ -138,6 +148,7 @@ func TestAdminExportForbidden(t *testing.T) {
 		wantStatus int
 	}{
 		{"/admin/export.json", http.StatusForbidden},
+		{"/admin/export", http.StatusForbidden},
 	}
 
 	for _, tt := range tests {

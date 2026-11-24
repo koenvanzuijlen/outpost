@@ -29,6 +29,11 @@ func (server *Server) handleExportJSON(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(body)
 }
 
+// handleAdminExport renders the admin page with the download of the export of all users. It reads no input.
+func (server *Server) handleAdminExport(w http.ResponseWriter, r *http.Request) {
+	server.renderComponent(w, r, http.StatusOK, adminExportView())
+}
+
 // handleExportAllJSON sends the library and the wishlist of every user as a JSON file download. The file name holds
 // the date of the export in the server time zone. It reads no input.
 func (server *Server) handleExportAllJSON(w http.ResponseWriter, r *http.Request) {

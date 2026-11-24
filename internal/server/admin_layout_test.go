@@ -7,13 +7,14 @@ import (
 
 // TestAdminNav checks which tab of the admin submenu is marked as the current page on each admin page.
 func TestAdminNav(t *testing.T) {
-	tabs := []string{"/admin/users"}
+	tabs := []string{"/admin/users", "/admin/export"}
 
 	tests := []struct {
 		path   string
 		active string
 	}{
 		{"/admin/users", "/admin/users"},
+		{"/admin/export", "/admin/export"},
 	}
 
 	for _, tt := range tests {

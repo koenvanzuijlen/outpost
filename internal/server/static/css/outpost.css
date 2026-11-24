@@ -1295,6 +1295,11 @@
     font-weight: 600;
   }
 
+  /* A grid child fills the row, so the link keeps the width of its text. */
+  .admin__link {
+    justify-self: start;
+  }
+
   .admin-users {
     display: grid;
     gap: 0.75rem;
