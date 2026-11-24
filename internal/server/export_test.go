@@ -212,3 +212,26 @@ func TestExportFilename(t *testing.T) {
 		})
 	}
 }
+
+// TestExportAllFilename checks that the file name of the export of all users uses the date in the time zone of the
+// export time, not the date in UTC.
+func TestExportAllFilename(t *testing.T) {
+	cet := time.FixedZone("CET", 3600)
+	tests := []struct {
+		name       string
+		exportedAt time.Time
+		want       string
+	}{
+		{"late in the day", time.Date(2026, 11, 15, 23, 30, 0, 0, cet), "outpost-all-users-2026-11-15.json"},
+		{"next day in CET, previous day in UTC", time.Date(2026, 11, 16, 0, 30, 0, 0, cet), "outpost-all-users-2026-11-16.json"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := exportAllFilename(tt.exportedAt)
+			if got != tt.want {
+				t.Errorf("exportAllFilename() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
