@@ -48,7 +48,7 @@ func (q *Queries) DeleteSession(ctx context.Context, tokenHash string) error {
 
 const getSessionUser = `-- name: GetSessionUser :one
 SELECT
-    u.id, u.username, u.password_hash, u.role,
+    u.id, u.username, u.password_hash, u.role, u.time_zone,
     s.expires_at
 FROM
     sessions s
@@ -76,6 +76,7 @@ func (q *Queries) GetSessionUser(ctx context.Context, arg GetSessionUserParams) 
 		&i.User.Username,
 		&i.User.PasswordHash,
 		&i.User.Role,
+		&i.User.TimeZone,
 		&i.ExpiresAt,
 	)
 	return i, err

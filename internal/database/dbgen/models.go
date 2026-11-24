@@ -66,6 +66,7 @@ type User struct {
 	Username     string
 	PasswordHash string
 	Role         string
+	TimeZone     *string
 }
 
 type UserGame struct {

@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -363,6 +364,62 @@ func TestSetUserRole(t *testing.T) {
 				t.Errorf("UserByUsername() role = %q, want %q", user.Role, tt.role)
 			}
 		})
+	}
+}
+
+// TestSetUserTimeZone checks that a time zone is stored, read back and cleared again.
+func TestSetUserTimeZone(t *testing.T) {
+	store := newTestStore(t)
+	ctx := t.Context()
+	if _, err := store.CompleteSetup(ctx, "koen", "hash"); err != nil {
+		t.Fatalf("CompleteSetup() error = %v", err)
+	}
+
+	steps := []struct {
+		name     string
+		set      bool
+		timeZone *string
+		want     *string
+	}{
+		{name: "default", set: false, timeZone: nil, want: nil},
+		{name: "set", set: true, timeZone: new("Europe/Amsterdam"), want: new("Europe/Amsterdam")},
+		{name: "clear", set: true, timeZone: nil, want: nil},
+	}
+
+	// The steps share one store and run in order: each step starts from the state of the step before it.
+	for _, step := range steps {
+		if step.set {
+			if err := store.SetUserTimeZone(ctx, 1, step.timeZone); err != nil {
+				t.Fatalf("%s: SetUserTimeZone() error = %v", step.name, err)
+			}
+		}
+
+		user, _, err := store.UserByUsername(ctx, "koen")
+		if err != nil {
+			t.Fatalf("%s: UserByUsername() error = %v", step.name, err)
+		}
+		got := user.TimeZone
+		if (got == nil) != (step.want == nil) || (got != nil && *got != *step.want) {
+			t.Errorf("%s: UserByUsername() time zone = %s, want %s", step.name, timeZoneText(got), timeZoneText(step.want))
+		}
+	}
+}
+
+// timeZoneText returns timeZone as quoted text for a failure message, or "nil" if timeZone is nil.
+func timeZoneText(timeZone *string) string {
+	if timeZone == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("%q", *timeZone)
+}
+
+// TestSetUserTimeZoneUnknownUser checks that an unknown user ID returns ErrUserNotFound.
+func TestSetUserTimeZoneUnknownUser(t *testing.T) {
+	store := newTestStore(t)
+
+	err := store.SetUserTimeZone(t.Context(), 99, nil)
+	if !errors.Is(err, ErrUserNotFound) {
+		t.Errorf("SetUserTimeZone() error = %v, want %v", err, ErrUserNotFound)
 	}
 }
 
