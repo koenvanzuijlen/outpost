@@ -1,0 +1,17 @@
+package server
+
+// settingsNavItems are the links in the submenu of the settings pages, in the order of the submenu.
+var settingsNavItems = []tabNavItem{
+	{Label: "Account", Href: "/settings"},
+}
+
+// settingsLayout is the page layout of the settings pages: the tab bar with settingsNavItems above the page content in
+// children. The link whose Href is current is marked as the current page.
+templ settingsLayout(current string) {
+	@layout("") {
+		<div class="account-page settings">
+			@tabNav("Settings", settingsNavItems, current)
+			{ children... }
+		</div>
+	}
+}

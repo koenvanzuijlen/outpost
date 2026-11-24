@@ -1,80 +1,78 @@
 package server
 
-// settingsView is the settings page of the signed-in user: the username, the password, the time zone and the export.
-// Each section shows the message of its failed change.
+// settingsView is the account page of the settings: the username, the password, the time zone and the export. Each
+// section shows the message of its failed change.
 templ settingsView(page settingsPage) {
-	@layout("") {
-		<section class="account-page settings">
-			<h1>Settings</h1>
-			if page.Saved != "" {
-				<p class="settings__saved" role="status">{ page.Saved }</p>
-			}
-			@settingsSection("Account") {
-				<form class="account-form" method="post" action="/settings/username">
-					if page.UsernameError != "" {
-						@accountFormError(page.UsernameError)
-					}
-					<label class="account-form__field">
-						Username
-						<input class="account-form__input" type="text" name="username" autocomplete="username" value={ page.Username } required/>
-						<span class="account-form__hint">{ usernameRule }</span>
-					</label>
-					<button class="account-form__submit" type="submit">Save username</button>
-				</form>
-			}
-			@settingsSection("Password") {
-				<form class="account-form" method="post" action="/settings/password">
-					if page.PasswordError != "" {
-						@accountFormError(page.PasswordError)
-					}
-					<label class="account-form__field">
-						Current password
-						<input class="account-form__input" type="password" name="current_password" autocomplete="current-password" required/>
-					</label>
-					<label class="account-form__field">
-						New password
-						<input class="account-form__input" type="password" name="new_password" autocomplete="new-password" required minlength="12"/>
-					</label>
-					<label class="account-form__field">
-						Repeat new password
-						<input class="account-form__input" type="password" name="new_password_confirm" autocomplete="new-password" required minlength="12"/>
-					</label>
-					<button class="account-form__submit" type="submit">Change password</button>
-				</form>
-			}
-			@settingsSection("Time zone") {
-				<form class="account-form" method="post" action="/settings/time-zone">
-					if page.TimeZoneError != "" {
-						@accountFormError(page.TimeZoneError)
-					}
-					<label class="account-form__field">
-						Time zone
-						<input
-							class="account-form__input"
-							type="text"
-							name="time_zone"
-							list="time-zones"
-							autocomplete="off"
-							value={ page.TimeZone }
-							placeholder={ page.ServerTimeZone }
-						/>
-						<span class="account-form__hint">
-							if page.ServerTimeZone != "" {
-								Leave empty to use the server time zone ({ page.ServerTimeZone }).
-							} else {
-								Leave empty to use the server time zone.
-							}
-						</span>
-					</label>
-					<datalist id="time-zones" data-time-zones></datalist>
-					<button class="account-form__submit" type="submit">Save time zone</button>
-				</form>
-			}
-			@settingsSection("Export") {
-				<p>Download your library and wishlist as a JSON file.</p>
-				<a class="settings__link" href="/export.json">Download JSON export</a>
-			}
-		</section>
+	@settingsLayout("/settings") {
+		<h1>Account</h1>
+		if page.Saved != "" {
+			<p class="settings__saved" role="status">{ page.Saved }</p>
+		}
+		@settingsSection("Username") {
+			<form class="account-form" method="post" action="/settings/username">
+				if page.UsernameError != "" {
+					@accountFormError(page.UsernameError)
+				}
+				<label class="account-form__field">
+					Username
+					<input class="account-form__input" type="text" name="username" autocomplete="username" value={ page.Username } required/>
+					<span class="account-form__hint">{ usernameRule }</span>
+				</label>
+				<button class="account-form__submit" type="submit">Save username</button>
+			</form>
+		}
+		@settingsSection("Password") {
+			<form class="account-form" method="post" action="/settings/password">
+				if page.PasswordError != "" {
+					@accountFormError(page.PasswordError)
+				}
+				<label class="account-form__field">
+					Current password
+					<input class="account-form__input" type="password" name="current_password" autocomplete="current-password" required/>
+				</label>
+				<label class="account-form__field">
+					New password
+					<input class="account-form__input" type="password" name="new_password" autocomplete="new-password" required minlength="12"/>
+				</label>
+				<label class="account-form__field">
+					Repeat new password
+					<input class="account-form__input" type="password" name="new_password_confirm" autocomplete="new-password" required minlength="12"/>
+				</label>
+				<button class="account-form__submit" type="submit">Change password</button>
+			</form>
+		}
+		@settingsSection("Time zone") {
+			<form class="account-form" method="post" action="/settings/time-zone">
+				if page.TimeZoneError != "" {
+					@accountFormError(page.TimeZoneError)
+				}
+				<label class="account-form__field">
+					Time zone
+					<input
+						class="account-form__input"
+						type="text"
+						name="time_zone"
+						list="time-zones"
+						autocomplete="off"
+						value={ page.TimeZone }
+						placeholder={ page.ServerTimeZone }
+					/>
+					<span class="account-form__hint">
+						if page.ServerTimeZone != "" {
+							Leave empty to use the server time zone ({ page.ServerTimeZone }).
+						} else {
+							Leave empty to use the server time zone.
+						}
+					</span>
+				</label>
+				<datalist id="time-zones" data-time-zones></datalist>
+				<button class="account-form__submit" type="submit">Save time zone</button>
+			</form>
+		}
+		@settingsSection("Export") {
+			<p>Download your library and wishlist as a JSON file.</p>
+			<a class="settings__link" href="/export.json">Download JSON export</a>
+		}
 	}
 }
 
