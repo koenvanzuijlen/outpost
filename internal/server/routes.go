@@ -15,6 +15,8 @@ func (server *Server) routes() {
 	server.mux.Handle("GET /settings", server.requireUser(server.handleSettings))
 	server.mux.Handle("GET /export.json", server.requireUser(server.handleExportJSON))
 	server.mux.Handle("GET /admin/users", server.requireAdmin(server.handleAdminUsers))
+	server.mux.Handle("GET /admin/export", server.requireAdmin(server.handleAdminExport))
+	server.mux.Handle("GET /admin/export.json", server.requireAdmin(server.handleExportAllJSON))
 	server.mux.Handle("GET /static/", server.staticHandler())
 	server.mux.HandleFunc("GET /health", server.handleHealth)
 	server.mux.HandleFunc("GET /", server.handleNotFound)

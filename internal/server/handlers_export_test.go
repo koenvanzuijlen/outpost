@@ -79,3 +79,87 @@ func TestHandleExportJSONDatabaseError(t *testing.T) {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
 	}
 }
+
+// TestHandleExportAllJSON checks that the download of all users holds every user with the own data, and no password
+// hash.
+func TestHandleExportAllJSON(t *testing.T) {
+	server := newTestServer(t)
+	addTestGame(t, server)
+	addSignedInUser(t, server, "anna")
+
+	w := getPage(t, server, "/admin/export.json")
+
+	disposition := w.Header().Get("Content-Disposition")
+	if !strings.HasPrefix(disposition, "attachment; filename=outpost-all-users-") {
+		t.Errorf("Content-Disposition = %q, want prefix %q", disposition, "attachment; filename=outpost-all-users-")
+	}
+	if strings.Contains(w.Body.String(), "$argon2id$") {
+		t.Errorf("export body contains a password hash")
+	}
+
+	var file exportAllFile
+	if err := json.Unmarshal(w.Body.Bytes(), &file); err != nil {
+		t.Fatalf("decode export: %v", err)
+	}
+	if len(file.Users) != 2 {
+		t.Fatalf("len(Users) = %d, want %d", len(file.Users), 2)
+	}
+
+	wants := []struct {
+		username    string
+		role        string
+		libraryLen  int
+		wishlistLen int
+	}{
+		{"admin", "admin", 1, 0},
+		{"anna", "user", 0, 0},
+	}
+	for i, want := range wants {
+		got := file.Users[i]
+		if got.Username != want.username {
+			t.Errorf("Users[%d].Username = %q, want %q", i, got.Username, want.username)
+		}
+		if got.Role != want.role {
+			t.Errorf("Users[%d].Role = %q, want %q", i, got.Role, want.role)
+		}
+		if len(got.Library) != want.libraryLen {
+			t.Errorf("len(Users[%d].Library) = %d, want %d", i, len(got.Library), want.libraryLen)
+		}
+		if len(got.Wishlist) != want.wishlistLen {
+			t.Errorf("len(Users[%d].Wishlist) = %d, want %d", i, len(got.Wishlist), want.wishlistLen)
+		}
+	}
+}
+
+// TestHandleAdminExport checks that the export page links to the download of all users.
+func TestHandleAdminExport(t *testing.T) {
+	w := getPage(t, newTestServer(t), "/admin/export")
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("GET /admin/export status = %d, want %d", w.Code, http.StatusOK)
+	}
+	assertBodyContains(t, w, `href="/admin/export.json"`)
+}
+
+// TestAdminExportForbidden checks that a user who is not an admin gets a 403 on the export routes of the admin.
+func TestAdminExportForbidden(t *testing.T) {
+	tests := []struct {
+		path       string
+		wantStatus int
+	}{
+		{"/admin/export.json", http.StatusForbidden},
+		{"/admin/export", http.StatusForbidden},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			server := newTestServer(t)
+			_, cookie := addSignedInUser(t, server, "anna")
+
+			w := serveWithCookie(t, server, http.MethodGet, tt.path, "", cookie)
+			if w.Code != tt.wantStatus {
+				t.Errorf("GET %s status = %d, want %d", tt.path, w.Code, tt.wantStatus)
+			}
+		})
+	}
+}

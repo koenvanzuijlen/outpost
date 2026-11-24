@@ -13,24 +13,22 @@ func userRoleLabel(role database.UserRole) string {
 	return "User"
 }
 
-// adminUsersView is the admin page: all users with their role and actions, and the form that creates a user.
-// page.Error shows above the list after a failed action.
+// adminUsersView is the admin page of the users: all users with their role and actions, and the form that creates a
+// user. page.Error shows above the list after a failed action.
 templ adminUsersView(page adminUsersPage) {
-	@layout("") {
-		<section class="admin">
-			<h1>Users</h1>
-			if page.Error != "" {
-				@accountFormError(page.Error)
+	@adminLayout("/admin/users") {
+		<h1>Users</h1>
+		if page.Error != "" {
+			@accountFormError(page.Error)
+		}
+		<ul class="admin-users">
+			for _, user := range page.Users {
+				@adminUser(user, user.ID == page.SelfID)
 			}
-			<ul class="admin-users">
-				for _, user := range page.Users {
-					@adminUser(user, user.ID == page.SelfID)
-				}
-			</ul>
-			<section class="admin__create">
-				<h2>Create user</h2>
-				@adminUserCreateForm(page)
-			</section>
+		</ul>
+		<section class="admin__create">
+			<h2>Create user</h2>
+			@adminUserCreateForm(page)
 		</section>
 	}
 }
