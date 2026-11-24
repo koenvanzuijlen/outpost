@@ -1,8 +1,8 @@
 package server
 
-// settingsView is the account page of the settings: the username, the password and the time zone. Each section shows
+// settingsAccountView is the account page of the settings: the username, the password and the time zone. Each section shows
 // the message of its failed change.
-templ settingsView(page settingsPage) {
+templ settingsAccountView(page settingsPage) {
 	@settingsLayout("/settings/account") {
 		<h1>Account</h1>
 		if page.Saved != "" {

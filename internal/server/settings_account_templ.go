@@ -9,9 +9,9 @@ package server
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// settingsView is the account page of the settings: the username, the password and the time zone. Each section shows
+// settingsAccountView is the account page of the settings: the username, the password and the time zone. Each section shows
 // the message of its failed change.
-func settingsView(page settingsPage) templ.Component {
+func settingsAccountView(page settingsPage) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

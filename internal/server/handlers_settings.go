@@ -43,7 +43,7 @@ func (server *Server) renderSettings(w http.ResponseWriter, r *http.Request, sta
 		page.TimeZone = *page.User.TimeZone
 	}
 	page.ServerTimeZone = serverTimeZoneLabel()
-	server.renderComponent(w, r, status, settingsView(page))
+	server.renderComponent(w, r, status, settingsAccountView(page))
 }
 
 // handleSettings renders the settings of the signed-in user. It reads query value saved, and shows the message of a
