@@ -217,5 +217,5 @@ func TestResetPasswordEndsSessions(t *testing.T) {
 	if w.Code != http.StatusSeeOther {
 		t.Errorf("GET /library status = %d, want %d", w.Code, http.StatusSeeOther)
 	}
-	assertLocation(t, w, "/sign-in")
+	assertLocation(t, w, "/sign-in?next=%2Flibrary")
 }

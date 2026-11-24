@@ -122,17 +122,24 @@ func TestRequireUser(t *testing.T) {
 		wantLocation string
 	}{
 		{"no admin", newServerWithoutSetup, nil, http.MethodGet, "/library", http.StatusSeeOther, "/setup"},
-		{"no cookie", newSignedOutTestServer, nil, http.MethodGet, "/library", http.StatusSeeOther, "/sign-in"},
+		{
+			"no cookie", newSignedOutTestServer, nil,
+			http.MethodGet, "/library", http.StatusSeeOther, "/sign-in?next=%2Flibrary",
+		},
 		{
 			"unknown session", newSignedOutTestServer, &http.Cookie{Name: sessionCookieName, Value: "bogus"},
-			http.MethodGet, "/library", http.StatusSeeOther, "/sign-in",
+			http.MethodGet, "/library", http.StatusSeeOther, "/sign-in?next=%2Flibrary",
 		},
+		{"home without cookie", newSignedOutTestServer, nil, http.MethodGet, "/", http.StatusSeeOther, "/sign-in"},
 		{
 			"post without cookie", newSignedOutTestServer, nil,
 			http.MethodPost, "/games/1942/library", http.StatusSeeOther, "/sign-in",
 		},
 		{"signed in", newTestServer, nil, http.MethodGet, "/library", http.StatusOK, ""},
-		{"admin page without cookie", newSignedOutTestServer, nil, http.MethodGet, "/admin/users", http.StatusSeeOther, "/sign-in"},
+		{
+			"admin page without cookie", newSignedOutTestServer, nil,
+			http.MethodGet, "/admin/users", http.StatusSeeOther, "/sign-in?next=%2Fadmin%2Fusers",
+		},
 		{"health is public", newSignedOutTestServer, nil, http.MethodGet, "/health", http.StatusOK, ""},
 		{
 			"static is public", newSignedOutTestServer, nil,
