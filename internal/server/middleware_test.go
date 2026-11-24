@@ -166,6 +166,76 @@ func TestRequireUser(t *testing.T) {
 	}
 }
 
+// TestRequireUserFetch tests the answer to a request without a valid session, by the Sec-Fetch-Mode header.
+func TestRequireUserFetch(t *testing.T) {
+	tests := []struct {
+		name         string
+		newServer    func(*testing.T) *Server
+		cookie       *http.Cookie
+		method       string
+		path         string
+		secFetchMode string
+		wantStatus   int
+		wantLocation string
+	}{
+		{
+			"fetch without cookie", newSignedOutTestServer, nil,
+			http.MethodPost, "/games/1942/details", "cors", http.StatusUnauthorized, "",
+		},
+		{
+			"fetch with unknown session", newSignedOutTestServer, &http.Cookie{Name: sessionCookieName, Value: "bogus"},
+			http.MethodPost, "/games/1942/details", "cors", http.StatusUnauthorized, "",
+		},
+		{
+			"fetch before setup", newServerWithoutSetup, nil,
+			http.MethodPost, "/games/1942/details", "cors", http.StatusUnauthorized, "",
+		},
+		{
+			"form submit without cookie", newSignedOutTestServer, nil,
+			http.MethodPost, "/games/1942/details", "navigate", http.StatusSeeOther, "/sign-in",
+		},
+		{
+			"page load without cookie", newSignedOutTestServer, nil,
+			http.MethodGet, "/library", "navigate", http.StatusSeeOther, "/sign-in?next=%2Flibrary",
+		},
+		{
+			"no header", newSignedOutTestServer, nil,
+			http.MethodPost, "/games/1942/details", "", http.StatusSeeOther, "/sign-in",
+		},
+		{"fetch signed in", newTestServer, nil, http.MethodGet, "/library", "cors", http.StatusOK, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := tt.newServer(t)
+			req := httptest.NewRequest(tt.method, tt.path, nil)
+			if tt.secFetchMode != "" {
+				req.Header.Set("Sec-Fetch-Mode", tt.secFetchMode)
+				req.Header.Set("Sec-Fetch-Site", "same-origin")
+			}
+			if tt.cookie != nil {
+				req.AddCookie(tt.cookie)
+			}
+			w := httptest.NewRecorder()
+			server.ServeHTTP(w, req)
+
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertLocation(t, w, tt.wantLocation)
+			if tt.wantStatus == http.StatusUnauthorized {
+				assertBodyContains(t, w, "You are signed out")
+			}
+			if tt.cookie == nil {
+				return
+			}
+			cookie := sessionCookie(w)
+			if cookie == nil || cookie.MaxAge >= 0 {
+				t.Errorf("session cookie = %v, want a cookie with MaxAge < 0", cookie)
+			}
+		})
+	}
+}
+
 // TestRequireUserRenewsSession tests when the response sends the session cookie again.
 func TestRequireUserRenewsSession(t *testing.T) {
 	tests := []struct {

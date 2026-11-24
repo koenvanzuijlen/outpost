@@ -69,15 +69,28 @@ func (server *Server) recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
+// navigationRequest reports whether r loads a page in the browser: a link, a form submit or an address that the user
+// typed. Browsers send the header Sec-Fetch-Mode with the value navigate for these requests, and another value, such
+// as cors, for fetch. A request without the header counts as a navigation request.
+func navigationRequest(r *http.Request) bool {
+	mode := r.Header.Get("Sec-Fetch-Mode")
+	return mode == "" || mode == "navigate"
+}
+
 // requireUser returns a handler that calls next only for a request with a valid session, and stores the user in the
-// request context. A request without a valid session redirects to the sign-in page, or to the setup page when setup
-// is not done. A failed session lookup renders the server error page.
+// request context. A navigation request without a valid session redirects to the sign-in page, or to the setup page
+// when setup is not done. Another request without a valid session, such as a fetch, gets a 401. A failed session
+// lookup renders the server error page.
 func (server *Server) requireUser(next http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, ok, err := server.signedInUser(w, r)
 		if err != nil {
 			server.logger.Error("failed to get session", "error", err)
 			server.renderServerError(w, r)
+			return
+		}
+		if !ok && !navigationRequest(r) {
+			server.renderError(w, r, http.StatusUnauthorized, "You are signed out")
 			return
 		}
 		if !ok {
