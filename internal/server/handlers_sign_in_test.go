@@ -164,6 +164,41 @@ func TestHandleSignInPageNext(t *testing.T) {
 	}
 }
 
+// TestHandleSignInPageSignedIn tests that a signed-in user goes from the sign-in page to the next page, and that an
+// unknown session sees the form with a cleared cookie.
+func TestHandleSignInPageSignedIn(t *testing.T) {
+	tests := []struct {
+		name              string
+		newServer         func(*testing.T) *Server
+		cookie            *http.Cookie
+		path              string
+		wantStatus        int
+		wantLocation      string
+		wantClearedCookie bool
+	}{
+		{"next", newTestServer, nil, "/sign-in?next=%2Fgames%2F1942", http.StatusSeeOther, "/games/1942", false},
+		{"no next", newTestServer, nil, "/sign-in", http.StatusSeeOther, "/", false},
+		{"other site", newTestServer, nil, "/sign-in?next=%2F%2Fevil.example%2F", http.StatusSeeOther, "/", false},
+		{
+			"unknown session", newSignedOutTestServer, &http.Cookie{Name: sessionCookieName, Value: "bogus"},
+			"/sign-in", http.StatusOK, "", true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := serveWithCookie(t, tt.newServer(t), http.MethodGet, tt.path, "", tt.cookie)
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertLocation(t, w, tt.wantLocation)
+			cookie := sessionCookie(w)
+			if cleared := cookie != nil && cookie.MaxAge < 0; cleared != tt.wantClearedCookie {
+				t.Errorf("session cookie cleared = %v, want %v (cookie %v)", cleared, tt.wantClearedCookie, cookie)
+			}
+		})
+	}
+}
+
 // TestHandleSignInNext tests that sign-in redirects to a local next page, and that a failed attempt keeps next.
 func TestHandleSignInNext(t *testing.T) {
 	tests := []struct {

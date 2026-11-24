@@ -95,8 +95,9 @@ func (server *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// handleSignInPage renders the sign-in form. Before the first admin exists, it redirects to the setup page. It reads
-// query value next, the page to open after sign-in. An invalid next gives the home page.
+// handleSignInPage renders the sign-in form. Before the first admin exists, it redirects to the setup page. A
+// signed-in user goes to the next page without the form. It reads the session cookie and query value next, the page
+// to open after sign-in. An invalid next gives the home page.
 func (server *Server) handleSignInPage(w http.ResponseWriter, r *http.Request) {
 	needed, err := server.store.SetupNeeded(r.Context())
 	if err != nil {
@@ -108,8 +109,22 @@ func (server *Server) handleSignInPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/setup", http.StatusSeeOther)
 		return
 	}
+
+	next := nextPath(r.URL.Query().Get("next"))
+
+	_, ok, err := server.signedInUser(w, r)
+	if err != nil {
+		server.logger.Error("session lookup failed", "error", err)
+		server.renderServerError(w, r)
+		return
+	}
+	if ok {
+		http.Redirect(w, r, next, http.StatusSeeOther)
+		return
+	}
+
 	server.renderComponent(w, r, http.StatusOK, signInView(signInPage{
-		Next: nextPath(r.URL.Query().Get("next")),
+		Next: next,
 	}))
 }
 
