@@ -53,3 +53,10 @@ document.addEventListener("change", function (event) {
     );
   }
 });
+
+// Fills the time zone suggestions of the settings page with the time zones that the browser knows.
+for (const list of document.querySelectorAll("datalist[data-time-zones]")) {
+  for (const tz of Intl.supportedValuesOf("timeZone")) {
+    list.appendChild(new Option(tz));
+  }
+}

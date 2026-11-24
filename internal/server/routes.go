@@ -38,6 +38,7 @@ func (server *Server) routes() {
 	server.mux.Handle("POST /games/{igdbID}/playthroughs/{playthroughID}/delete", server.requireUser(server.handleDeletePlaythrough))
 	server.mux.Handle("POST /settings/username", server.requireUser(server.handleChangeUsername))
 	server.mux.Handle("POST /settings/password", server.requireUser(server.handleChangePassword))
+	server.mux.Handle("POST /settings/time-zone", server.requireUser(server.handleSetTimeZone))
 	server.mux.Handle("POST /admin/users", server.requireAdmin(server.handleCreateUser))
 	server.mux.Handle("POST /admin/users/{userID}/username", server.requireAdmin(server.handleAdminRenameUser))
 	server.mux.Handle("POST /admin/users/{userID}/role", server.requireAdmin(server.handleSetUserRole))
