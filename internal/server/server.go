@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
@@ -33,6 +34,8 @@ type Server struct {
 	igdbClient    IGDBClient
 	version       string
 	secureCookies bool
+	// now returns the current time. Tests replace it with a fixed time.
+	now func() time.Time
 }
 
 // New creates a Server with the given logger, store, IGDB client and config. New registers the routes and the
@@ -45,6 +48,7 @@ func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient, conf
 		igdbClient:    igdbClient,
 		version:       config.Version,
 		secureCookies: config.SecureCookies,
+		now:           time.Now,
 	}
 	server.routes()
 

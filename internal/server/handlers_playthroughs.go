@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
 )
@@ -26,7 +25,7 @@ func (server *Server) handleStartPlaythrough(w http.ResponseWriter, r *http.Requ
 
 	name := ptrIfNonZero(strings.TrimSpace(r.PostFormValue("name")))
 
-	playthrough, err := server.store.StartPlaythrough(r.Context(), currentUser(r).ID, igdbID, platformIGDBID, name, time.Now())
+	playthrough, err := server.store.StartPlaythrough(r.Context(), currentUser(r).ID, igdbID, platformIGDBID, name, server.userNow(r))
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			server.renderError(w, r, http.StatusNotFound, "Game not in library")
@@ -59,7 +58,7 @@ func (server *Server) handleSetPlaythroughOutcome(w http.ResponseWriter, r *http
 
 	outcome := database.PlaythroughOutcome(r.PostFormValue("outcome"))
 
-	err := server.store.SetPlaythroughOutcome(r.Context(), currentUser(r).ID, igdbID, playthroughID, outcome, time.Now())
+	err := server.store.SetPlaythroughOutcome(r.Context(), currentUser(r).ID, igdbID, playthroughID, outcome, server.userNow(r))
 	if err != nil {
 		if errors.Is(err, database.ErrUserGameNotFound) {
 			server.renderError(w, r, http.StatusNotFound, "Game not in library")
