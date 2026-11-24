@@ -64,7 +64,7 @@ func menuBar(query string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></button><div id=\"account-menu\" class=\"account-menu\" popover><ul class=\"account-menu__list\"><li><a class=\"account-menu__item\" href=\"/settings\">Settings</a></li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span></button><div id=\"account-menu\" class=\"account-menu\" popover><ul class=\"account-menu__list\"><li><a class=\"account-menu__item\" href=\"/settings/account\">Settings</a></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

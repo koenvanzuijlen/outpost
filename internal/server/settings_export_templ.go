@@ -39,7 +39,7 @@ func settingsExportView() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Export</h1><p>Download your library and wishlist as a JSON file.</p><a class=\"settings__link\" href=\"/export.json\">Download JSON export</a>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<h1>Export</h1><p>Download your library and wishlist as a JSON file.</p><a class=\"settings__link\" href=\"/settings/export.json\">Download JSON export</a>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

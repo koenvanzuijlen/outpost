@@ -57,7 +57,7 @@ func (server *Server) handleSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleChangeUsername changes the username of the signed-in user. It reads form value username, and redirects to the
-// settings page. The own username counts as success.
+// account page of the settings. The own username counts as success.
 func (server *Server) handleChangeUsername(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 
@@ -84,12 +84,12 @@ func (server *Server) handleChangeUsername(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	http.Redirect(w, r, "/settings?saved=username", http.StatusSeeOther)
+	http.Redirect(w, r, "/settings/account?saved=username", http.StatusSeeOther)
 }
 
 // handleChangePassword changes the password of the signed-in user, after it checks the current password. It ends all
 // other sessions of the user. It reads form values current_password, new_password and new_password_confirm, and
-// redirects to the settings page.
+// redirects to the account page of the settings.
 func (server *Server) handleChangePassword(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 
@@ -133,11 +133,11 @@ func (server *Server) handleChangePassword(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	http.Redirect(w, r, "/settings?saved=password", http.StatusSeeOther)
+	http.Redirect(w, r, "/settings/account?saved=password", http.StatusSeeOther)
 }
 
 // handleSetTimeZone stores the time zone of the signed-in user. An empty value selects the time zone of the server. It
-// reads form value time_zone, and redirects to the settings page.
+// reads form value time_zone, and redirects to the account page of the settings.
 func (server *Server) handleSetTimeZone(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.PostFormValue("time_zone"))
 	var timeZone *string
@@ -157,7 +157,7 @@ func (server *Server) handleSetTimeZone(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	http.Redirect(w, r, "/settings?saved=time-zone", http.StatusSeeOther)
+	http.Redirect(w, r, "/settings/account?saved=time-zone", http.StatusSeeOther)
 }
 
 // serverTimeZoneLabel returns the name of the server time zone for the settings page, or "" if Go knows the zone only

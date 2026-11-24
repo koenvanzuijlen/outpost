@@ -3,13 +3,13 @@ package server
 // settingsView is the account page of the settings: the username, the password and the time zone. Each section shows
 // the message of its failed change.
 templ settingsView(page settingsPage) {
-	@settingsLayout("/settings") {
+	@settingsLayout("/settings/account") {
 		<h1>Account</h1>
 		if page.Saved != "" {
 			<p class="settings__saved" role="status">{ page.Saved }</p>
 		}
 		@settingsSection("Username") {
-			<form class="account-form" method="post" action="/settings/username">
+			<form class="account-form" method="post" action="/settings/account/username">
 				if page.UsernameError != "" {
 					@accountFormError(page.UsernameError)
 				}
@@ -22,7 +22,7 @@ templ settingsView(page settingsPage) {
 			</form>
 		}
 		@settingsSection("Password") {
-			<form class="account-form" method="post" action="/settings/password">
+			<form class="account-form" method="post" action="/settings/account/password">
 				if page.PasswordError != "" {
 					@accountFormError(page.PasswordError)
 				}
@@ -42,7 +42,7 @@ templ settingsView(page settingsPage) {
 			</form>
 		}
 		@settingsSection("Time zone") {
-			<form class="account-form" method="post" action="/settings/time-zone">
+			<form class="account-form" method="post" action="/settings/account/time-zone">
 				if page.TimeZoneError != "" {
 					@accountFormError(page.TimeZoneError)
 				}

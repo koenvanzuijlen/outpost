@@ -18,7 +18,7 @@ func TestHandleExportJSON(t *testing.T) {
 	}
 	addTestGame(t, server)
 
-	w = getPage(t, server, "/export.json")
+	w = getPage(t, server, "/settings/export.json")
 
 	contentType := w.Header().Get("Content-Type")
 	if contentType != "application/json; charset=utf-8" {
@@ -73,7 +73,7 @@ func TestHandleExportJSONDatabaseError(t *testing.T) {
 	_ = server.store.Close()
 
 	w := httptest.NewRecorder()
-	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/export.json", nil))
+	server.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/settings/export.json", nil))
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
@@ -157,7 +157,7 @@ func TestHandleSettingsExport(t *testing.T) {
 			if w.Code != tt.wantStatus {
 				t.Fatalf("GET /settings/export status = %d, want %d", w.Code, tt.wantStatus)
 			}
-			assertBodyContains(t, w, `href="/export.json"`)
+			assertBodyContains(t, w, `href="/settings/export.json"`)
 		})
 	}
 }
