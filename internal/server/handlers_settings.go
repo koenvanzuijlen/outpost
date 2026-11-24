@@ -3,34 +3,46 @@ package server
 import (
 	"errors"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/auth"
 	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
-// settingsPage is the data for settingsView. Saved is the message of a successful change. UsernameError and
-// PasswordError are the messages of a failed change in that section. Username is the value of the username field.
+// settingsPage is the data for settingsView. Saved is the message of a successful change. UsernameError, PasswordError
+// and TimeZoneError are the messages of a failed change in that section. Username and TimeZone are the values of the
+// username and time zone fields. ServerTimeZone is the name of the server time zone, or "" if it has no name.
 type settingsPage struct {
-	User          database.User
-	Username      string
-	Saved         string
-	UsernameError string
-	PasswordError string
+	User           database.User
+	Username       string
+	TimeZone       string
+	ServerTimeZone string
+	Saved          string
+	UsernameError  string
+	PasswordError  string
+	TimeZoneError  string
 }
 
 // savedMessages maps the saved query value to the message that the settings page shows after a successful change.
 var savedMessages = map[string]string{
-	"username": "Username saved.",
-	"password": "Password changed. Other sessions are signed out.",
+	"username":  "Username saved.",
+	"password":  "Password changed. Other sessions are signed out.",
+	"time-zone": "Time zone saved.",
 }
 
-// renderSettings renders the settings page of the signed-in user with status. It fills page.User, and page.Username
-// when it is empty.
+// renderSettings renders the settings page of the signed-in user with status. It fills page.User and
+// page.ServerTimeZone, page.Username when it is empty, and page.TimeZone when it is empty and no time zone error is
+// set.
 func (server *Server) renderSettings(w http.ResponseWriter, r *http.Request, status int, page settingsPage) {
 	page.User = currentUser(r)
 	if page.Username == "" {
 		page.Username = page.User.Username
 	}
+	if page.TimeZone == "" && page.TimeZoneError == "" && page.User.TimeZone != nil {
+		page.TimeZone = *page.User.TimeZone
+	}
+	page.ServerTimeZone = serverTimeZoneLabel()
 	server.renderComponent(w, r, status, settingsView(page))
 }
 
@@ -122,4 +134,38 @@ func (server *Server) handleChangePassword(w http.ResponseWriter, r *http.Reques
 	}
 
 	http.Redirect(w, r, "/settings?saved=password", http.StatusSeeOther)
+}
+
+// handleSetTimeZone stores the time zone of the signed-in user. An empty value selects the time zone of the server. It
+// reads form value time_zone, and redirects to the settings page.
+func (server *Server) handleSetTimeZone(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimSpace(r.PostFormValue("time_zone"))
+	var timeZone *string
+	if name != "" {
+		_, err := time.LoadLocation(name)
+		if err != nil || name == "Local" {
+			server.renderSettings(w, r, http.StatusBadRequest, settingsPage{TimeZone: name, TimeZoneError: "Choose a time zone from the list"})
+			return
+		}
+		timeZone = &name
+	}
+
+	err := server.store.SetUserTimeZone(r.Context(), currentUser(r).ID, timeZone)
+	if err != nil {
+		server.logger.Error("failed to set time zone", "error", err)
+		server.renderServerError(w, r)
+		return
+	}
+
+	http.Redirect(w, r, "/settings?saved=time-zone", http.StatusSeeOther)
+}
+
+// serverTimeZoneLabel returns the name of the server time zone for the settings page, or "" if Go knows the zone only
+// as Local.
+func serverTimeZoneLabel() string {
+	local := time.Local.String()
+	if local == "Local" {
+		return ""
+	}
+	return local
 }

@@ -16,6 +16,7 @@ func TestHandleSettingsSaved(t *testing.T) {
 	}{
 		{query: "?saved=username", wantBody: "Username saved."},
 		{query: "?saved=password", wantBody: "Password changed."},
+		{query: "?saved=time-zone", wantBody: "Time zone saved."},
 		{query: "?saved=bogus", unwantBody: `role="status"`},
 	}
 	for _, tt := range tests {
@@ -60,6 +61,43 @@ func TestHandleChangeUsername(t *testing.T) {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
 			}
 			assertLocation(t, w, tt.wantLocation)
+		})
+	}
+}
+
+// TestHandleSetTimeZone checks the validation, the redirect and the stored value of a time zone change.
+func TestHandleSetTimeZone(t *testing.T) {
+	tests := []struct {
+		name         string
+		body         string
+		wantStatus   int
+		wantLocation string
+		wantStored   *string
+	}{
+		{"zone", "time_zone=Europe%2FAmsterdam", http.StatusSeeOther, "/settings?saved=time-zone", new("Europe/Amsterdam")},
+		{"spaces", "time_zone=+UTC+", http.StatusSeeOther, "/settings?saved=time-zone", new("UTC")},
+		{"empty", "time_zone=", http.StatusSeeOther, "/settings?saved=time-zone", nil},
+		{"unknown", "time_zone=Mars%2FOlympus_Mons", http.StatusBadRequest, "", nil},
+		{"local", "time_zone=Local", http.StatusBadRequest, "", nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+
+			w := postForm(t, server, "/settings/time-zone", tt.body)
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertLocation(t, w, tt.wantLocation)
+
+			user, _, err := server.store.UserByUsername(t.Context(), "admin")
+			if err != nil {
+				t.Fatalf("UserByUsername() error = %v", err)
+			}
+			got := user.TimeZone
+			if (got == nil) != (tt.wantStored == nil) || (got != nil && *got != *tt.wantStored) {
+				t.Errorf("UserByUsername() time zone = %v, want %v", derefOrNil(got), derefOrNil(tt.wantStored))
+			}
 		})
 	}
 }

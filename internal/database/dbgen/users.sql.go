@@ -40,7 +40,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) (int64, error) {
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT
-    id, username, password_hash, role
+    id, username, password_hash, role, time_zone
 FROM
     users
 WHERE
@@ -55,13 +55,14 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.Username,
 		&i.PasswordHash,
 		&i.Role,
+		&i.TimeZone,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT
-    id, username, password_hash, role
+    id, username, password_hash, role, time_zone
 FROM
     users
 WHERE
@@ -76,6 +77,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Username,
 		&i.PasswordHash,
 		&i.Role,
+		&i.TimeZone,
 	)
 	return i, err
 }
@@ -84,7 +86,7 @@ const insertUser = `-- name: InsertUser :one
 INSERT INTO users(username, password_hash, role)
     VALUES (?, ?, ?)
 RETURNING
-    id, username, password_hash, role
+    id, username, password_hash, role, time_zone
 `
 
 type InsertUserParams struct {
@@ -101,13 +103,14 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (User, e
 		&i.Username,
 		&i.PasswordHash,
 		&i.Role,
+		&i.TimeZone,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
 SELECT
-    id, username, password_hash, role
+    id, username, password_hash, role, time_zone
 FROM
     users
 ORDER BY
@@ -128,6 +131,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Username,
 			&i.PasswordHash,
 			&i.Role,
+			&i.TimeZone,
 		); err != nil {
 			return nil, err
 		}
@@ -211,6 +215,28 @@ type UpdateUserRoleParams struct {
 
 func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateUserRole, arg.Role, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserTimeZone = `-- name: UpdateUserTimeZone :execrows
+UPDATE
+    users
+SET
+    time_zone = ?
+WHERE
+    id = ?
+`
+
+type UpdateUserTimeZoneParams struct {
+	TimeZone *string
+	ID       int64
+}
+
+func (q *Queries) UpdateUserTimeZone(ctx context.Context, arg UpdateUserTimeZoneParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserTimeZone, arg.TimeZone, arg.ID)
 	if err != nil {
 		return 0, err
 	}

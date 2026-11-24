@@ -38,6 +38,43 @@ func TestHandleStartPlaythrough(t *testing.T) {
 	}
 }
 
+// TestHandleStartPlaythroughUserDate checks that the start date is "today" in the time zone of the user. The server
+// clock is fixed at 11:30 UTC, so the zones on both sides of the date line get a different date.
+func TestHandleStartPlaythroughUserDate(t *testing.T) {
+	tests := []struct {
+		timeZone string
+		want     string
+	}{
+		{timeZone: "Pacific/Kiritimati", want: "2026-11-16"}, // UTC+14
+		{timeZone: "Etc/GMT+12", want: "2026-11-14"},         // UTC−12: the sign of the Etc zones is inverted.
+		{timeZone: "Europe/Amsterdam", want: "2026-11-15"},   // UTC+1
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.timeZone, func(t *testing.T) {
+			server := newTestServer(t)
+			server.now = func() time.Time { return time.Date(2026, 11, 15, 11, 30, 0, 0, time.UTC) }
+			if err := server.store.SetUserTimeZone(t.Context(), testUserID, &tt.timeZone); err != nil {
+				t.Fatalf("SetUserTimeZone() error = %v", err)
+			}
+			addTestGame(t, server)
+
+			w := postForm(t, server, "/games/1942/playthroughs", "platform=6")
+			if w.Code != http.StatusSeeOther {
+				t.Fatalf("start playthrough status = %d, want %d", w.Code, http.StatusSeeOther)
+			}
+
+			startedAt := onlyPlaythrough(t, getTestGame(t, server)).Playthrough.StartedAt
+			if startedAt == nil {
+				t.Fatal("StartedAt = nil, want a date")
+			}
+			if got := startedAt.Format(time.DateOnly); got != tt.want {
+				t.Errorf("StartedAt = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestHandleStartPlaythroughBlankName(t *testing.T) {
 	server := newTestServer(t)
 	addTestGame(t, server)

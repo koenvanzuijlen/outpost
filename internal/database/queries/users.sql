@@ -60,6 +60,14 @@ SET
 WHERE
     id = ?;
 
+-- name: UpdateUserTimeZone :execrows
+UPDATE
+    users
+SET
+    time_zone = ?
+WHERE
+    id = ?;
+
 -- name: UpdateUserForSetup :execrows
 UPDATE
     users

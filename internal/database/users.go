@@ -47,10 +47,12 @@ func (r UserRole) Valid() bool {
 }
 
 // User is a user account without its password hash.
+// TimeZone is an IANA time zone name, or nil for the time zone of the server.
 type User struct {
 	ID       int64
 	Username string
 	Role     UserRole
+	TimeZone *string
 }
 
 // IsAdmin reports whether u has the admin role.
@@ -64,6 +66,7 @@ func userFrom(row dbgen.User) User {
 		ID:       row.ID,
 		Username: row.Username,
 		Role:     UserRole(row.Role),
+		TimeZone: row.TimeZone,
 	}
 }
 
@@ -245,6 +248,22 @@ func (s *Store) SetUserRole(ctx context.Context, userID int64, role UserRole) er
 		return ErrUserNotFound
 	}
 
+	return nil
+}
+
+// SetUserTimeZone stores timeZone as the time zone of the user. A nil timeZone selects the time zone of the server.
+// The caller validates the name. Returns ErrUserNotFound if the user does not exist.
+func (s *Store) SetUserTimeZone(ctx context.Context, userID int64, timeZone *string) error {
+	rows, err := s.queries.UpdateUserTimeZone(ctx, dbgen.UpdateUserTimeZoneParams{
+		ID:       userID,
+		TimeZone: timeZone,
+	})
+	if err != nil {
+		return fmt.Errorf("update user time zone: %w", err)
+	}
+	if rows == 0 {
+		return ErrUserNotFound
+	}
 	return nil
 }
 

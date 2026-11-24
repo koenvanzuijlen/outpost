@@ -1,7 +1,7 @@
 package server
 
-// settingsView is the settings page of the signed-in user: the username, the password and the export. Each section
-// shows the message of its failed change.
+// settingsView is the settings page of the signed-in user: the username, the password, the time zone and the export.
+// Each section shows the message of its failed change.
 templ settingsView(page settingsPage) {
 	@layout("") {
 		<section class="account-page settings">
@@ -40,6 +40,34 @@ templ settingsView(page settingsPage) {
 						<input class="account-form__input" type="password" name="new_password_confirm" autocomplete="new-password" required minlength="12"/>
 					</label>
 					<button class="account-form__submit" type="submit">Change password</button>
+				</form>
+			}
+			@settingsSection("Time zone") {
+				<form class="account-form" method="post" action="/settings/time-zone">
+					if page.TimeZoneError != "" {
+						@accountFormError(page.TimeZoneError)
+					}
+					<label class="account-form__field">
+						Time zone
+						<input
+							class="account-form__input"
+							type="text"
+							name="time_zone"
+							list="time-zones"
+							autocomplete="off"
+							value={ page.TimeZone }
+							placeholder={ page.ServerTimeZone }
+						/>
+						<span class="account-form__hint">
+							if page.ServerTimeZone != "" {
+								Leave empty to use the server time zone ({ page.ServerTimeZone }).
+							} else {
+								Leave empty to use the server time zone.
+							}
+						</span>
+					</label>
+					<datalist id="time-zones" data-time-zones></datalist>
+					<button class="account-form__submit" type="submit">Save time zone</button>
 				</form>
 			}
 			@settingsSection("Export") {

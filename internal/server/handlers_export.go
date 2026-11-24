@@ -3,11 +3,10 @@ package server
 import (
 	"mime"
 	"net/http"
-	"time"
 )
 
 // handleExportJSON sends the library and the wishlist of the user as a JSON file download. The file name holds the
-// date of the export in the server time zone. It reads no input.
+// date of the export in the time zone of the user. It reads no input.
 func (server *Server) handleExportJSON(w http.ResponseWriter, r *http.Request) {
 	data, err := server.store.Export(r.Context(), currentUser(r).ID)
 	if err != nil {
@@ -15,7 +14,7 @@ func (server *Server) handleExportJSON(w http.ResponseWriter, r *http.Request) {
 		server.renderServerError(w, r)
 		return
 	}
-	exportedAt := time.Now()
+	exportedAt := server.userNow(r)
 
 	body, err := marshalExportJSON(newExportFile(data, server.version, exportedAt))
 	if err != nil {
@@ -35,7 +34,7 @@ func (server *Server) handleAdminExport(w http.ResponseWriter, r *http.Request) 
 }
 
 // handleExportAllJSON sends the library and the wishlist of every user as a JSON file download. The file name holds
-// the date of the export in the server time zone. It reads no input.
+// the date of the export in the time zone of the user. It reads no input.
 func (server *Server) handleExportAllJSON(w http.ResponseWriter, r *http.Request) {
 	users, err := server.store.ExportAll(r.Context())
 	if err != nil {
@@ -43,7 +42,7 @@ func (server *Server) handleExportAllJSON(w http.ResponseWriter, r *http.Request
 		server.renderServerError(w, r)
 		return
 	}
-	exportedAt := time.Now()
+	exportedAt := server.userNow(r)
 
 	body, err := marshalExportJSON(newExportAllFile(users, server.version, exportedAt))
 	if err != nil {

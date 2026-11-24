@@ -26,14 +26,14 @@ Outpost stores everything in one SQLite file in `/data`. To back it up, stop the
 
 Outpost is configured with environment variables.
 
-| Variable               | Default                                     | Description                                                                                                 |
-| ---------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `TWITCH_CLIENT_ID`     | required                                    | Client ID of your Twitch app, for IGDB access.                                                              |
-| `TWITCH_CLIENT_SECRET` | required                                    | Client secret of your Twitch app.                                                                           |
-| `TZ`                   | system time zone (UTC in Docker)            | Time zone that decides what "today" is for playthrough dates, e.g. `Europe/Amsterdam`.                      |
-| `DATABASE_PATH`        | `outpost.db` (`/data/outpost.db` in Docker) | Location of the SQLite database. Backups made before migrations are stored next to it.                      |
-| `PORT`                 | `8080`                                      | Port to listen on. In Docker, change the host side of `-p` instead.                                         |
-| `SECURE_COOKIES`       | `false`                                     | Set to `true` when Outpost is served over HTTPS. The browser then sends the session cookie only over HTTPS. |
+| Variable               | Default                                     | Description                                                                                                     |
+| ---------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `TWITCH_CLIENT_ID`     | required                                    | Client ID of your Twitch app, for IGDB access.                                                                  |
+| `TWITCH_CLIENT_SECRET` | required                                    | Client secret of your Twitch app.                                                                               |
+| `TZ`                   | system time zone (UTC in Docker)            | Time zone of the server, for example `Europe/Amsterdam`. Users without an own time zone in the settings use it. |
+| `DATABASE_PATH`        | `outpost.db` (`/data/outpost.db` in Docker) | Location of the SQLite database. Backups made before migrations are stored next to it.                          |
+| `PORT`                 | `8080`                                      | Port to listen on. In Docker, change the host side of `-p` instead.                                             |
+| `SECURE_COOKIES`       | `false`                                     | Set to `true` when Outpost is served over HTTPS. The browser then sends the session cookie only over HTTPS.     |
 
 ## Development
 
