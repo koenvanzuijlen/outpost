@@ -142,6 +142,98 @@ func TestHandleSignIn(t *testing.T) {
 	}
 }
 
+// TestHandleSignInPageNext tests that the sign-in form keeps only a local next page in its hidden field.
+func TestHandleSignInPageNext(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{"next", "/sign-in?next=%2Fgames%2F1942", `name="next" value="/games/1942"`},
+		{"no next", "/sign-in", `name="next" value="/"`},
+		{"other site", "/sign-in?next=https%3A%2F%2Fevil.example%2F", `name="next" value="/"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := serveWithCookie(t, newSignedOutTestServer(t), http.MethodGet, tt.path, "", nil)
+			if w.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+			}
+			assertBodyContains(t, w, tt.want)
+		})
+	}
+}
+
+// TestHandleSignInPageSignedIn tests that a signed-in user goes from the sign-in page to the next page, and that an
+// unknown session sees the form with a cleared cookie.
+func TestHandleSignInPageSignedIn(t *testing.T) {
+	tests := []struct {
+		name              string
+		newServer         func(*testing.T) *Server
+		cookie            *http.Cookie
+		path              string
+		wantStatus        int
+		wantLocation      string
+		wantClearedCookie bool
+	}{
+		{"next", newTestServer, nil, "/sign-in?next=%2Fgames%2F1942", http.StatusSeeOther, "/games/1942", false},
+		{"no next", newTestServer, nil, "/sign-in", http.StatusSeeOther, "/", false},
+		{"other site", newTestServer, nil, "/sign-in?next=%2F%2Fevil.example%2F", http.StatusSeeOther, "/", false},
+		{
+			"unknown session", newSignedOutTestServer, &http.Cookie{Name: sessionCookieName, Value: "bogus"},
+			"/sign-in", http.StatusOK, "", true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := serveWithCookie(t, tt.newServer(t), http.MethodGet, tt.path, "", tt.cookie)
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertLocation(t, w, tt.wantLocation)
+			cookie := sessionCookie(w)
+			if cleared := cookie != nil && cookie.MaxAge < 0; cleared != tt.wantClearedCookie {
+				t.Errorf("session cookie cleared = %v, want %v (cookie %v)", cleared, tt.wantClearedCookie, cookie)
+			}
+		})
+	}
+}
+
+// TestHandleSignInNext tests that sign-in redirects to a local next page, and that a failed attempt keeps next.
+func TestHandleSignInNext(t *testing.T) {
+	tests := []struct {
+		name         string
+		body         string
+		wantStatus   int
+		wantLocation string
+		wantBody     string
+	}{
+		{"next", validSignInBody + "&next=%2Fgames%2F1942", http.StatusSeeOther, "/games/1942", ""},
+		{
+			"next with query", validSignInBody + "&next=%2Flibrary%3Fstatus%3Dbacklog",
+			http.StatusSeeOther, "/library?status=backlog", "",
+		},
+		{"other site", validSignInBody + "&next=%2F%2Fevil.example%2F", http.StatusSeeOther, "/", ""},
+		{"no next", validSignInBody, http.StatusSeeOther, "/", ""},
+		{
+			"wrong password keeps next", "username=admin&password=wrong+password+123&next=%2Fgames%2F1942",
+			http.StatusUnauthorized, "", `name="next" value="/games/1942"`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := serveWithCookie(t, newSignedOutTestServer(t), http.MethodPost, "/sign-in", tt.body, nil)
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertLocation(t, w, tt.wantLocation)
+			if tt.wantBody != "" {
+				assertBodyContains(t, w, tt.wantBody)
+			}
+		})
+	}
+}
+
 // TestHandleSignInBeforeSetup tests that the seeded user cannot sign in before the setup, because its password hash
 // matches no password.
 func TestHandleSignInBeforeSetup(t *testing.T) {
