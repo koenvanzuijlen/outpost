@@ -131,6 +131,37 @@ func TestHandleExportAllJSON(t *testing.T) {
 	}
 }
 
+// TestHandleSettingsExport checks that every signed-in user can open the export page of the settings, and that the
+// page links to the download of the own export.
+func TestHandleSettingsExport(t *testing.T) {
+	tests := []struct {
+		name       string
+		asUser     bool
+		wantStatus int
+	}{
+		{"admin", false, http.StatusOK},
+		{"user", true, http.StatusOK},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			var w *httptest.ResponseRecorder
+			if tt.asUser {
+				_, cookie := addSignedInUser(t, server, "anna")
+				w = serveWithCookie(t, server, http.MethodGet, "/settings/export", "", cookie)
+			} else {
+				w = getPage(t, server, "/settings/export")
+			}
+
+			if w.Code != tt.wantStatus {
+				t.Fatalf("GET /settings/export status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertBodyContains(t, w, `href="/export.json"`)
+		})
+	}
+}
+
 // TestHandleAdminExport checks that the export page links to the download of all users.
 func TestHandleAdminExport(t *testing.T) {
 	w := getPage(t, newTestServer(t), "/admin/export")

@@ -7,13 +7,14 @@ import (
 
 // TestSettingsNav checks which tab of the settings submenu is marked as the current page on each settings page.
 func TestSettingsNav(t *testing.T) {
-	tabs := []string{"/settings"}
+	tabs := []string{"/settings", "/settings/export"}
 
 	tests := []struct {
 		path   string
 		active string
 	}{
 		{"/settings", "/settings"},
+		{"/settings/export", "/settings/export"},
 	}
 
 	for _, tt := range tests {

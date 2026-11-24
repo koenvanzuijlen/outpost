@@ -12,6 +12,7 @@ import templruntime "github.com/a-h/templ/runtime"
 // settingsNavItems are the links in the submenu of the settings pages, in the order of the submenu.
 var settingsNavItems = []tabNavItem{
 	{Label: "Account", Href: "/settings"},
+	{Label: "Export", Href: "/settings/export"},
 }
 
 // settingsLayout is the page layout of the settings pages: the tab bar with settingsNavItems above the page content in

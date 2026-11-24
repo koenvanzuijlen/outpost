@@ -1,7 +1,7 @@
 package server
 
-// settingsView is the account page of the settings: the username, the password, the time zone and the export. Each
-// section shows the message of its failed change.
+// settingsView is the account page of the settings: the username, the password and the time zone. Each section shows
+// the message of its failed change.
 templ settingsView(page settingsPage) {
 	@settingsLayout("/settings") {
 		<h1>Account</h1>
@@ -68,10 +68,6 @@ templ settingsView(page settingsPage) {
 				<datalist id="time-zones" data-time-zones></datalist>
 				<button class="account-form__submit" type="submit">Save time zone</button>
 			</form>
-		}
-		@settingsSection("Export") {
-			<p>Download your library and wishlist as a JSON file.</p>
-			<a class="settings__link" href="/export.json">Download JSON export</a>
 		}
 	}
 }

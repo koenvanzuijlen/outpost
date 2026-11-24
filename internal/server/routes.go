@@ -13,6 +13,7 @@ func (server *Server) routes() {
 	server.mux.Handle("GET /wishlist", server.requireUser(server.handleWishlist))
 	server.mux.Handle("GET /games/{igdbID}", server.requireUser(server.handleGame))
 	server.mux.Handle("GET /settings", server.requireUser(server.handleSettings))
+	server.mux.Handle("GET /settings/export", server.requireUser(server.handleSettingsExport))
 	server.mux.Handle("GET /export.json", server.requireUser(server.handleExportJSON))
 	server.mux.Handle("GET /admin/users", server.requireAdmin(server.handleAdminUsers))
 	server.mux.Handle("GET /admin/export", server.requireAdmin(server.handleAdminExport))
