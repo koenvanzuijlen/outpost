@@ -1270,13 +1270,13 @@
   }
 
   /* The tabs sit on one border line. The current tab covers that line with its accent underline. */
-  .admin-nav__list {
+  .tab-nav__list {
     display: flex;
     gap: 1.5rem;
     border-bottom: 1px solid var(--color-border);
   }
 
-  .admin-nav__link {
+  .tab-nav__link {
     display: block;
     margin-bottom: -1px;
     padding: 0.5rem 0;
@@ -1285,11 +1285,11 @@
     text-decoration: none;
   }
 
-  .admin-nav__link:hover {
+  .tab-nav__link:hover {
     color: var(--color-text);
   }
 
-  .admin-nav__link[aria-current="page"] {
+  .tab-nav__link[aria-current="page"] {
     border-bottom-color: var(--color-accent);
     color: var(--color-text);
     font-weight: 600;
