@@ -12,9 +12,27 @@ document.addEventListener("change", function (event) {
 // the requests reach the server in order and the last request carries the latest form state.
 const saveQueues = new WeakMap();
 
+// showSignedOut shows in statusField that the session has ended, with a link to the sign-in page. After sign-in, the
+// sign-in page returns to the current page.
+function showSignedOut(statusField) {
+  const link = document.createElement("a");
+  const query = new URLSearchParams({
+    next: window.location.pathname + window.location.search,
+  });
+  link.href = "/sign-in?" + query;
+  link.textContent = "Sign in";
+
+  statusField.replaceChildren(
+    "You are signed out. ",
+    link,
+    " to save your changes.",
+  );
+}
+
 // saveForm posts all fields of form to its action and shows the result in the form's [data-save-status] element. The
-// server answers a successful save with a redirect, which fetch does not follow. The function never rejects, so a
-// failed save does not stop later saves in the queue. It does nothing if the form has no [data-save-status] element.
+// server answers a successful save with a redirect, which fetch does not follow, and a request without a valid
+// session with a 401. The function never rejects, so a failed save does not stop later saves in the queue. It does
+// nothing if the form has no [data-save-status] element.
 async function saveForm(form) {
   const statusField = form.querySelector("[data-save-status]");
   if (!statusField) {
@@ -30,6 +48,8 @@ async function saveForm(form) {
     });
     if (response.type === "opaqueredirect") {
       statusField.textContent = "Saved.";
+    } else if (response.status === 401) {
+      showSignedOut(statusField);
     } else {
       statusField.textContent = "Couldn't save. Reload the page and try again.";
     }
