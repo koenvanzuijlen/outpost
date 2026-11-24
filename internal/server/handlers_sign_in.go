@@ -15,10 +15,12 @@ type setupPage struct {
 	Error    string
 }
 
-// signInPage is the data for signInView: the submitted username and the message of a failed attempt.
+// signInPage is the data for signInView: the submitted username, the message of a failed attempt and the page to
+// open after sign-in.
 type signInPage struct {
 	Username string
 	Error    string
+	Next     string
 }
 
 // dummyPasswordHash is a valid hash that no account uses. A sign-in with an unknown username verifies against it, so
@@ -94,7 +96,7 @@ func (server *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleSignInPage renders the sign-in form. Before the first admin exists, it redirects to the setup page. It reads
-// no input.
+// query value next, the page to open after sign-in. An invalid next gives the home page.
 func (server *Server) handleSignInPage(w http.ResponseWriter, r *http.Request) {
 	needed, err := server.store.SetupNeeded(r.Context())
 	if err != nil {
@@ -106,19 +108,24 @@ func (server *Server) handleSignInPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/setup", http.StatusSeeOther)
 		return
 	}
-	server.renderComponent(w, r, http.StatusOK, signInView(signInPage{}))
+	server.renderComponent(w, r, http.StatusOK, signInView(signInPage{
+		Next: nextPath(r.URL.Query().Get("next")),
+	}))
 }
 
 // handleSignIn signs in the user with the username and the password. A wrong username or password renders the form
-// again with a 401. It reads form values username and password, and redirects to the home page.
+// again with a 401. It reads form values username, password and next, and redirects to next. An invalid or missing
+// next gives the home page.
 func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 	username := normalizeUsername(r.FormValue("username"))
 	password := r.FormValue("password")
+	next := nextPath(r.PostFormValue("next"))
 
 	if username == "" || password == "" {
 		server.renderComponent(w, r, http.StatusBadRequest, signInView(signInPage{
 			Username: username,
 			Error:    "Enter your username and password",
+			Next:     next,
 		}))
 		return
 	}
@@ -131,6 +138,7 @@ func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 			server.renderComponent(w, r, http.StatusUnauthorized, signInView(signInPage{
 				Username: username,
 				Error:    "Invalid username or password",
+				Next:     next,
 			}))
 			return
 		}
@@ -144,6 +152,7 @@ func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 		server.renderComponent(w, r, http.StatusUnauthorized, signInView(signInPage{
 			Username: username,
 			Error:    "Invalid username or password",
+			Next:     next,
 		}))
 		return
 	}
@@ -155,7 +164,7 @@ func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, next, http.StatusSeeOther)
 }
 
 // handleSignOut ends the session of the request and deletes the session cookie. It reads the session cookie and
