@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
@@ -33,18 +34,24 @@ type Server struct {
 	igdbClient    IGDBClient
 	version       string
 	secureCookies bool
+	// signInThrottle counts the sign-in attempts per username.
+	signInThrottle *signInThrottle
+	// now returns the current time. Tests replace it with a fixed time.
+	now func() time.Time
 }
 
 // New creates a Server with the given logger, store, IGDB client and config. New registers the routes and the
 // middleware.
 func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient, config Config) *Server {
 	server := &Server{
-		mux:           http.NewServeMux(),
-		logger:        logger,
-		store:         store,
-		igdbClient:    igdbClient,
-		version:       config.Version,
-		secureCookies: config.SecureCookies,
+		mux:            http.NewServeMux(),
+		logger:         logger,
+		store:          store,
+		igdbClient:     igdbClient,
+		version:        config.Version,
+		secureCookies:  config.SecureCookies,
+		signInThrottle: newSignInThrottle(),
+		now:            time.Now,
 	}
 	server.routes()
 

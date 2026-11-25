@@ -415,3 +415,39 @@ func TestGamePageRemoveLabel(t *testing.T) {
 		})
 	}
 }
+
+// TestLibraryPerUser checks that a user does not see the library of another user. The admin has The Witcher 3 in the
+// library; anna has an empty library. The admin rows show that the checked texts appear for a library game.
+func TestLibraryPerUser(t *testing.T) {
+	server := newTestServer(t)
+	addTestGame(t, server)
+	_, annaCookie := addSignedInUser(t, server, "anna")
+
+	const libraryLink = `href="/games/1942"`
+	tests := []struct {
+		name    string
+		cookie  *http.Cookie
+		path    string
+		want    string
+		wantNot string
+	}{
+		{name: "admin library", cookie: nil, path: "/library", want: libraryLink},
+		{name: "anna library", cookie: annaCookie, path: "/library", wantNot: libraryLink},
+		{name: "admin game page", cookie: nil, path: "/games/1942", want: "Remove from library", wantNot: "Not in your library."},
+		{name: "anna game page", cookie: annaCookie, path: "/games/1942", want: "Not in your library.", wantNot: "Remove from library"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := serveWithCookie(t, server, http.MethodGet, tt.path, "", tt.cookie)
+			if w.Code != http.StatusOK {
+				t.Fatalf("GET %s status = %d, want %d", tt.path, w.Code, http.StatusOK)
+			}
+			if tt.want != "" {
+				assertBodyContains(t, w, tt.want)
+			}
+			if tt.wantNot != "" {
+				assertBodyNotContains(t, w, tt.wantNot)
+			}
+		})
+	}
+}

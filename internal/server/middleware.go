@@ -1,13 +1,9 @@
 package server
 
 import (
-	"errors"
 	"net/http"
 	"runtime/debug"
 	"time"
-
-	"github.com/koenvanzuijlen/outpost/internal/auth"
-	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
 // contentSecurityPolicyValue is the Content-Security-Policy of every response. Scripts, styles and fonts load only
@@ -73,38 +69,48 @@ func (server *Server) recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-// requireUser returns a handler that calls next only for a request with a valid session. It reads the session cookie
-// and stores the user in the request context. It sends the session cookie again when the session was renewed. A
-// request without a valid session redirects to the sign-in page, or to the setup page when setup is not done. An
-// unknown session also clears the cookie. A failed session lookup renders the server error page.
+// navigationRequest reports whether r loads a page in the browser: a link, a form submit or an address that the user
+// typed. Browsers send the header Sec-Fetch-Mode with the value navigate for these requests, and another value, such
+// as cors, for fetch. A request without the header counts as a navigation request.
+func navigationRequest(r *http.Request) bool {
+	mode := r.Header.Get("Sec-Fetch-Mode")
+	return mode == "" || mode == "navigate"
+}
+
+// requireUser returns a handler that calls next only for a request with a valid session, and stores the user in the
+// request context. A navigation request without a valid session redirects to the sign-in page, or to the setup page
+// when setup is not done. Another request without a valid session, such as a fetch, gets a 401. A failed session
+// lookup renders the server error page.
 func (server *Server) requireUser(next http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(sessionCookieName)
+		user, ok, err := server.signedInUser(w, r)
 		if err != nil {
-			server.redirectToSignIn(w, r)
-			return
-		}
-
-		session, err := server.store.SessionUser(
-			r.Context(),
-			auth.HashSessionToken(cookie.Value),
-			time.Now().UTC(),
-		)
-		if err != nil {
-			if errors.Is(err, database.ErrSessionNotFound) {
-				server.clearSessionCookie(w)
-				server.redirectToSignIn(w, r)
-				return
-			}
 			server.logger.Error("failed to get session", "error", err)
 			server.renderServerError(w, r)
 			return
 		}
-
-		if session.Renewed {
-			server.setSessionCookie(w, cookie.Value, session.ExpiresAt)
+		if !ok && !navigationRequest(r) {
+			server.renderError(w, r, http.StatusUnauthorized, "You are signed out")
+			return
+		}
+		if !ok {
+			server.redirectToSignIn(w, r)
+			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(withUser(r.Context(), session.User)))
+		next.ServeHTTP(w, r.WithContext(withUser(r.Context(), user)))
+	})
+}
+
+// requireAdmin lets only signed-in admins reach next. A signed-in user who is not an admin gets a 403 error page.
+// Requests without a valid session go where requireUser sends them.
+func (server *Server) requireAdmin(next http.HandlerFunc) http.Handler {
+	return server.requireUser(func(w http.ResponseWriter, r *http.Request) {
+		user := currentUser(r)
+		if !user.IsAdmin() {
+			server.renderError(w, r, http.StatusForbidden, "Only admins can open this page")
+			return
+		}
+		next(w, r)
 	})
 }

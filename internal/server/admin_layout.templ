@@ -1,0 +1,18 @@
+package server
+
+// adminNavItems are the links in the submenu of the admin pages, in the order of the submenu.
+var adminNavItems = []tabNavItem{
+	{Label: "Users", Href: "/admin/users"},
+	{Label: "Export", Href: "/admin/export"},
+}
+
+// adminLayout is the page layout of the admin pages: the tab bar with adminNavItems above the page content in
+// children. The link whose Href is current is marked as the current page.
+templ adminLayout(current string) {
+	@layout("") {
+		<div class="admin">
+			@tabNav("Admin", adminNavItems, current)
+			{ children... }
+		</div>
+	}
+}

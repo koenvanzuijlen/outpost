@@ -139,6 +139,23 @@ func newSignedOutTestServer(t *testing.T) *Server {
 	return server
 }
 
+// addSignedInUser creates a user with the role user and testPassword, and a session with the token
+// "<username>-token". It returns the user and the session cookie. It fails the test if the user or the session cannot
+// be created.
+func addSignedInUser(t *testing.T, server *Server, username string) (database.User, *http.Cookie) {
+	t.Helper()
+	ctx := t.Context()
+	user, err := server.store.CreateUser(ctx, username, testPasswordHash(), database.UserRoleUser)
+	if err != nil {
+		t.Fatalf("CreateUser(%q) failed: %v", username, err)
+	}
+	token := username + "-token"
+	if _, err := server.store.CreateSession(ctx, user.ID, auth.HashSessionToken(token), time.Now().UTC()); err != nil {
+		t.Fatalf("CreateSession(%q) failed: %v", username, err)
+	}
+	return user, &http.Cookie{Name: sessionCookieName, Value: token}
+}
+
 // serveWithCookie sends a request through server.ServeHTTP. It sets the form content type when body is not empty.
 // A nil cookie sends no cookie.
 func serveWithCookie(

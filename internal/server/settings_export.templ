@@ -1,0 +1,10 @@
+package server
+
+// settingsExportView is the settings page with the link that downloads the library and the wishlist of the user.
+templ settingsExportView() {
+	@settingsLayout("/settings/export") {
+		<h1>Export</h1>
+		<p>Download your library and wishlist as a JSON file.</p>
+		<a class="settings__link" href="/settings/export.json">Download JSON export</a>
+	}
+}
