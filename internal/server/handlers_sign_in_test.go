@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
@@ -137,6 +138,92 @@ func TestHandleSignIn(t *testing.T) {
 			assertLocation(t, w, tt.wantLocation)
 			if got := sessionCookie(w) != nil; got != tt.wantCookie {
 				t.Errorf("has session cookie = %v, want %v", got, tt.wantCookie)
+			}
+		})
+	}
+}
+
+// signInStep is one POST /sign-in in TestHandleSignInThrottle. The step first moves the test clock forward by
+// advance. lockPage also checks the lock message, the kept username and the missing session cookie.
+type signInStep struct {
+	advance        time.Duration
+	body           string
+	wantStatus     int
+	wantRetryAfter string
+	wantLocation   string
+	lockPage       bool
+}
+
+// repeatSignIn returns n steps that post body without moving the clock, each with the status want.
+func repeatSignIn(n int, body string, want int) []signInStep {
+	steps := make([]signInStep, n)
+	for i := range steps {
+		steps[i] = signInStep{body: body, wantStatus: want}
+	}
+	return steps
+}
+
+// TestHandleSignInThrottle tests that sign-in locks a username after too many attempts without success.
+func TestHandleSignInThrottle(t *testing.T) {
+	const (
+		wrong   = "username=admin&password=wrong+password+123"
+		right   = validSignInBody
+		unknown = "username=nobody&password=wrong+password+123"
+		short   = "username=ab&password=wrong+password+123"
+		empty   = ""
+	)
+
+	tests := []struct {
+		name  string
+		steps []signInStep
+	}{
+		{"lock after five failures", slices.Concat(
+			repeatSignIn(5, wrong, http.StatusUnauthorized),
+			[]signInStep{
+				{body: right, wantStatus: http.StatusTooManyRequests, wantRetryAfter: "60", lockPage: true},
+				{advance: 30 * time.Second, body: right, wantStatus: http.StatusTooManyRequests, wantRetryAfter: "30"},
+				{advance: 30 * time.Second, body: right, wantStatus: http.StatusSeeOther, wantLocation: "/"},
+			},
+		)},
+		{"success clears the count", slices.Concat(
+			repeatSignIn(4, wrong, http.StatusUnauthorized),
+			[]signInStep{{body: right, wantStatus: http.StatusSeeOther, wantLocation: "/"}},
+			repeatSignIn(5, wrong, http.StatusUnauthorized),
+			[]signInStep{{body: wrong, wantStatus: http.StatusTooManyRequests, wantRetryAfter: "60"}},
+		)},
+		{"unknown username is locked", slices.Concat(
+			repeatSignIn(5, unknown, http.StatusUnauthorized),
+			[]signInStep{{body: unknown, wantStatus: http.StatusTooManyRequests, wantRetryAfter: "60"}},
+		)},
+		{"invalid username is not counted", repeatSignIn(6, short, http.StatusUnauthorized)},
+		{"empty fields are not counted", slices.Concat(
+			repeatSignIn(6, empty, http.StatusBadRequest),
+			[]signInStep{{body: right, wantStatus: http.StatusSeeOther, wantLocation: "/"}},
+		)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newSignedOutTestServer(t)
+			now := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
+			server.now = func() time.Time { return now }
+
+			for i, step := range tt.steps {
+				now = now.Add(step.advance)
+				w := serveWithCookie(t, server, http.MethodPost, "/sign-in", step.body, nil)
+				if w.Code != step.wantStatus {
+					t.Errorf("step %d: status = %d, want %d", i, w.Code, step.wantStatus)
+				}
+				if got := w.Header().Get("Retry-After"); got != step.wantRetryAfter {
+					t.Errorf("step %d: Retry-After = %q, want %q", i, got, step.wantRetryAfter)
+				}
+				assertLocation(t, w, step.wantLocation)
+				if step.lockPage {
+					assertBodyContains(t, w, "Too many failed attempts. Try again in 1 minute.")
+					assertBodyContains(t, w, `value="admin"`)
+					if got := sessionCookie(w) != nil; got {
+						t.Errorf("step %d: has session cookie = %v, want %v", i, got, false)
+					}
+				}
 			}
 		})
 	}

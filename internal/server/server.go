@@ -34,6 +34,8 @@ type Server struct {
 	igdbClient    IGDBClient
 	version       string
 	secureCookies bool
+	// signInThrottle counts the sign-in attempts per username.
+	signInThrottle *signInThrottle
 	// now returns the current time. Tests replace it with a fixed time.
 	now func() time.Time
 }
@@ -42,13 +44,14 @@ type Server struct {
 // middleware.
 func New(logger *slog.Logger, store *database.Store, igdbClient IGDBClient, config Config) *Server {
 	server := &Server{
-		mux:           http.NewServeMux(),
-		logger:        logger,
-		store:         store,
-		igdbClient:    igdbClient,
-		version:       config.Version,
-		secureCookies: config.SecureCookies,
-		now:           time.Now,
+		mux:            http.NewServeMux(),
+		logger:         logger,
+		store:          store,
+		igdbClient:     igdbClient,
+		version:        config.Version,
+		secureCookies:  config.SecureCookies,
+		signInThrottle: newSignInThrottle(),
+		now:            time.Now,
 	}
 	server.routes()
 

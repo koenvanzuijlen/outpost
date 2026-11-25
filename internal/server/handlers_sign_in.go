@@ -2,7 +2,9 @@ package server
 
 import (
 	"errors"
+	"math"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/koenvanzuijlen/outpost/internal/auth"
@@ -129,8 +131,9 @@ func (server *Server) handleSignInPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleSignIn signs in the user with the username and the password. A wrong username or password renders the form
-// again with a 401. It reads form values username, password and next, and redirects to next. An invalid or missing
-// next gives the home page.
+// again with a 401. After too many attempts without success, it renders the form with a 429 and does not check the
+// password (see signInThrottle). It reads form values username, password and next, and redirects to next. An invalid
+// or missing next gives the home page.
 func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 	username := normalizeUsername(r.FormValue("username"))
 	password := r.FormValue("password")
@@ -143,6 +146,20 @@ func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 			Next:     next,
 		}))
 		return
+	}
+
+	if validUsername(username) {
+		wait := server.signInThrottle.attempt(username, server.now())
+		if wait > 0 {
+			server.logger.Warn("sign-in locked", "username", username, "wait", wait)
+			w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(wait.Seconds()))))
+			server.renderComponent(w, r, http.StatusTooManyRequests, signInView(signInPage{
+				Username: username,
+				Error:    signInLockedMessage(wait),
+				Next:     next,
+			}))
+			return
+		}
 	}
 
 	user, hash, err := server.store.UserByUsername(r.Context(), username)
@@ -171,6 +188,8 @@ func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 		}))
 		return
 	}
+
+	server.signInThrottle.reset(username)
 
 	err = server.startSession(r.Context(), w, user.ID)
 	if err != nil {
