@@ -20,6 +20,22 @@ func (q *Queries) DeleteExpiredSessions(ctx context.Context, expiresAt time.Time
 	return err
 }
 
+const deleteOtherSessions = `-- name: DeleteOtherSessions :exec
+DELETE FROM sessions
+WHERE user_id = ?1
+    AND token_hash != ?2
+`
+
+type DeleteOtherSessionsParams struct {
+	UserID        int64
+	KeepTokenHash string
+}
+
+func (q *Queries) DeleteOtherSessions(ctx context.Context, arg DeleteOtherSessionsParams) error {
+	_, err := q.db.ExecContext(ctx, deleteOtherSessions, arg.UserID, arg.KeepTokenHash)
+	return err
+}
+
 const deleteSession = `-- name: DeleteSession :exec
 DELETE FROM sessions
 WHERE token_hash = ?
@@ -32,7 +48,7 @@ func (q *Queries) DeleteSession(ctx context.Context, tokenHash string) error {
 
 const getSessionUser = `-- name: GetSessionUser :one
 SELECT
-    u.id, u.username, u.password_hash, u.role,
+    u.id, u.username, u.password_hash, u.role, u.time_zone,
     s.expires_at
 FROM
     sessions s
@@ -60,6 +76,7 @@ func (q *Queries) GetSessionUser(ctx context.Context, arg GetSessionUserParams) 
 		&i.User.Username,
 		&i.User.PasswordHash,
 		&i.User.Role,
+		&i.User.TimeZone,
 		&i.ExpiresAt,
 	)
 	return i, err

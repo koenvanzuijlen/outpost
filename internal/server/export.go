@@ -23,6 +23,22 @@ type exportFile struct {
 	Wishlist       []exportWishlistGame `json:"wishlist"`
 }
 
+// exportAllFile is the content of the JSON export file of all users.
+type exportAllFile struct {
+	FormatVersion  int          `json:"format_version"`
+	OutpostVersion string       `json:"outpost_version"`
+	ExportedAt     time.Time    `json:"exported_at"`
+	Users          []exportUser `json:"users"`
+}
+
+// exportUser is one user in the export of all users, with the library and the wishlist. It holds no password hash.
+type exportUser struct {
+	Username string               `json:"username"`
+	Role     string               `json:"role"`
+	Library  []exportLibraryGame  `json:"library"`
+	Wishlist []exportWishlistGame `json:"wishlist"`
+}
+
 // exportGame holds the catalog fields of a game in the export. The library and wishlist types embed it, so its fields
 // appear at their level.
 type exportGame struct {
@@ -79,6 +95,20 @@ type exportPlaythrough struct {
 // newExportFile converts the user data of the store into the export file format. ExportedAt is exportedAt in UTC,
 // truncated to whole seconds. Every list in the result is non-nil, so it encodes as [] when it is empty.
 func newExportFile(data database.ExportData, version string, exportedAt time.Time) exportFile {
+	library, wishlist := newExportLists(data)
+
+	return exportFile{
+		FormatVersion:  exportFormatVersion,
+		OutpostVersion: version,
+		ExportedAt:     exportedAt.UTC().Truncate(time.Second),
+		Library:        library,
+		Wishlist:       wishlist,
+	}
+}
+
+// newExportLists converts the library and the wishlist of one user for the export. Both lists are non-nil, so they
+// encode as [] when they are empty.
+func newExportLists(data database.ExportData) ([]exportLibraryGame, []exportWishlistGame) {
 	library := make([]exportLibraryGame, 0, len(data.Library))
 	for _, entry := range data.Library {
 		library = append(library, newExportLibraryGame(entry))
@@ -89,12 +119,28 @@ func newExportFile(data database.ExportData, version string, exportedAt time.Tim
 		wishlist = append(wishlist, newExportWishlistGame(entry))
 	}
 
-	return exportFile{
+	return library, wishlist
+}
+
+// newExportAllFile converts the data of all users into the export file format. ExportedAt is exportedAt in UTC,
+// truncated to whole seconds. Users is non-nil.
+func newExportAllFile(users []database.UserExportData, version string, exportedAt time.Time) exportAllFile {
+	exportedUsers := make([]exportUser, 0, len(users))
+	for _, u := range users {
+		library, wishlist := newExportLists(u.Data)
+		exportedUsers = append(exportedUsers, exportUser{
+			Username: u.User.Username,
+			Role:     string(u.User.Role),
+			Library:  library,
+			Wishlist: wishlist,
+		})
+	}
+
+	return exportAllFile{
 		FormatVersion:  exportFormatVersion,
 		OutpostVersion: version,
 		ExportedAt:     exportedAt.UTC().Truncate(time.Second),
-		Library:        library,
-		Wishlist:       wishlist,
+		Users:          exportedUsers,
 	}
 }
 
@@ -178,16 +224,16 @@ func exportDate(t *time.Time) *string {
 	return &s
 }
 
-// marshalExportFile encodes file as JSON with an indent of two spaces and a final newline. It does not escape HTML
-// characters, because the file is not HTML.
-func marshalExportFile(file exportFile) ([]byte, error) {
+// marshalExportJSON encodes v as JSON with an indent of two spaces and a final newline. It does not escape HTML
+// characters, because the export is not HTML.
+func marshalExportJSON(v any) ([]byte, error) {
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetIndent("", "  ")
 	enc.SetEscapeHTML(false)
-	err := enc.Encode(file)
+	err := enc.Encode(v)
 	if err != nil {
-		return nil, fmt.Errorf("encode export file: %w", err)
+		return nil, fmt.Errorf("encode export: %w", err)
 	}
 	return buf.Bytes(), nil
 }
@@ -196,4 +242,10 @@ func marshalExportFile(file exportFile) ([]byte, error) {
 // outpost-2026-11-15.json.
 func exportFilename(exportedAt time.Time) string {
 	return "outpost-" + exportedAt.Format(time.DateOnly) + ".json"
+}
+
+// exportAllFilename returns the name of the export file of all users, with the date of exportedAt in its own time
+// zone: outpost-all-users-2026-11-15.json.
+func exportAllFilename(exportedAt time.Time) string {
+	return "outpost-all-users-" + exportedAt.Format(time.DateOnly) + ".json"
 }

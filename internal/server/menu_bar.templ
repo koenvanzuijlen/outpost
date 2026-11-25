@@ -1,8 +1,8 @@
 package server
 
 // menuBar is the navigation bar at the top of every page. It always shows the logo. For a signed-in user, it also shows
-// the search box prefilled with query, the links to the library, the wishlist and the export, and the account menu
-// with the username and "Sign out".
+// the search box prefilled with query, the links to the library and the wishlist, and the account menu with the
+// username, "Settings" and "Sign out", and "Admin" for admins.
 templ menuBar(query string) {
 	{{ user, signedIn := userFromContext(ctx) }}
 	<nav class="menu-bar">
@@ -19,7 +19,6 @@ templ menuBar(query string) {
 				</li>
 				<li><a href="/library">Library</a></li>
 				<li><a href="/wishlist">Wishlist</a></li>
-				<li><a href="/export.json">Export</a></li>
 				<li class="menu-bar__account">
 					<button class="menu-bar__account-toggle" type="button" popovertarget="account-menu">
 						@icon("circle-user")
@@ -27,6 +26,14 @@ templ menuBar(query string) {
 					</button>
 					<div id="account-menu" class="account-menu" popover>
 						<ul class="account-menu__list">
+							<li>
+								<a class="account-menu__item" href="/settings/account">Settings</a>
+							</li>
+							if user.IsAdmin() {
+								<li>
+									<a class="account-menu__item" href="/admin/users">Admin</a>
+								</li>
+							}
 							<li>
 								<form method="POST" action="/sign-out">
 									<button class="account-menu__item" type="submit">Sign out</button>

@@ -25,9 +25,44 @@ func (q *Queries) CountUsersWithRole(ctx context.Context, role string) (int64, e
 	return count, err
 }
 
+const deleteUser = `-- name: DeleteUser :execrows
+DELETE FROM users
+WHERE id = ?
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteUser, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT
+    id, username, password_hash, role, time_zone
+FROM
+    users
+WHERE
+    id = ?
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Role,
+		&i.TimeZone,
+	)
+	return i, err
+}
+
 const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT
-    id, username, password_hash, role
+    id, username, password_hash, role, time_zone
 FROM
     users
 WHERE
@@ -42,8 +77,95 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Username,
 		&i.PasswordHash,
 		&i.Role,
+		&i.TimeZone,
 	)
 	return i, err
+}
+
+const insertUser = `-- name: InsertUser :one
+INSERT INTO users(username, password_hash, role)
+    VALUES (?, ?, ?)
+RETURNING
+    id, username, password_hash, role, time_zone
+`
+
+type InsertUserParams struct {
+	Username     string
+	PasswordHash string
+	Role         string
+}
+
+func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, insertUser, arg.Username, arg.PasswordHash, arg.Role)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Role,
+		&i.TimeZone,
+	)
+	return i, err
+}
+
+const listUsers = `-- name: ListUsers :many
+SELECT
+    id, username, password_hash, role, time_zone
+FROM
+    users
+ORDER BY
+    username ASC
+`
+
+func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, listUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.PasswordHash,
+			&i.Role,
+			&i.TimeZone,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updatePasswordHash = `-- name: UpdatePasswordHash :execrows
+UPDATE
+    users
+SET
+    password_hash = ?
+WHERE
+    id = ?
+`
+
+type UpdatePasswordHashParams struct {
+	PasswordHash string
+	ID           int64
+}
+
+func (q *Queries) UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updatePasswordHash, arg.PasswordHash, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateUserForSetup = `-- name: UpdateUserForSetup :execrows
@@ -71,6 +193,72 @@ func (q *Queries) UpdateUserForSetup(ctx context.Context, arg UpdateUserForSetup
 		arg.Role,
 		arg.ID,
 	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserRole = `-- name: UpdateUserRole :execrows
+UPDATE
+    users
+SET
+    role = ?
+WHERE
+    id = ?
+`
+
+type UpdateUserRoleParams struct {
+	Role string
+	ID   int64
+}
+
+func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserRole, arg.Role, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserTimeZone = `-- name: UpdateUserTimeZone :execrows
+UPDATE
+    users
+SET
+    time_zone = ?
+WHERE
+    id = ?
+`
+
+type UpdateUserTimeZoneParams struct {
+	TimeZone *string
+	ID       int64
+}
+
+func (q *Queries) UpdateUserTimeZone(ctx context.Context, arg UpdateUserTimeZoneParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserTimeZone, arg.TimeZone, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUsername = `-- name: UpdateUsername :execrows
+UPDATE
+    users
+SET
+    username = ?
+WHERE
+    id = ?
+`
+
+type UpdateUsernameParams struct {
+	Username string
+	ID       int64
+}
+
+func (q *Queries) UpdateUsername(ctx context.Context, arg UpdateUsernameParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUsername, arg.Username, arg.ID)
 	if err != nil {
 		return 0, err
 	}

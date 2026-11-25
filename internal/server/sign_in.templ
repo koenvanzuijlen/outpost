@@ -56,13 +56,14 @@ templ setupView(page setupPage) {
 	}
 }
 
-// signInView is the sign-in page with a username and a password. page.Error shows above the fields after a failed
-// attempt.
+// signInView is the sign-in page with a username and a password. The hidden field next holds the page to open after
+// sign-in. page.Error shows above the fields after a failed attempt.
 templ signInView(page signInPage) {
 	@layout("") {
 		<section class="account-page">
 			<h1>Sign in</h1>
 			<form class="account-form" method="post">
+				<input type="hidden" name="next" value={ page.Next }/>
 				if page.Error != "" {
 					@accountFormError(page.Error)
 				}

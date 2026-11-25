@@ -2,11 +2,13 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/koenvanzuijlen/outpost/internal/auth"
+	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
 // sessionCookieName is the name of the cookie that holds the session token.
@@ -49,4 +51,39 @@ func (server *Server) startSession(ctx context.Context, w http.ResponseWriter, u
 	}
 	server.setSessionCookie(w, token, expiresAt)
 	return nil
+}
+
+// sessionTokenHash returns the hash of the session token in the cookie of r, or "" if r has no session cookie.
+// Behind requireUser, the cookie is always there.
+func sessionTokenHash(r *http.Request) string {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		return ""
+	}
+	return auth.HashSessionToken(cookie.Value)
+}
+
+// signedInUser returns the user of the session cookie of r. ok is false when r has no session cookie or the session
+// is unknown or expired. An unknown session also clears the cookie. It sends the session cookie again when the
+// session was renewed. Returns an error if the session lookup fails.
+func (server *Server) signedInUser(w http.ResponseWriter, r *http.Request) (user database.User, ok bool, err error) {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		return database.User{}, false, nil
+	}
+
+	session, err := server.store.SessionUser(r.Context(), auth.HashSessionToken(cookie.Value), time.Now().UTC())
+	if err != nil {
+		if errors.Is(err, database.ErrSessionNotFound) {
+			server.clearSessionCookie(w)
+			return database.User{}, false, nil
+		}
+		return database.User{}, false, fmt.Errorf("session user: %w", err)
+	}
+
+	if session.Renewed {
+		server.setSessionCookie(w, cookie.Value, session.ExpiresAt)
+	}
+
+	return session.User, true, nil
 }

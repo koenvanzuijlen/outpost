@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
@@ -137,6 +138,184 @@ func TestHandleSignIn(t *testing.T) {
 			assertLocation(t, w, tt.wantLocation)
 			if got := sessionCookie(w) != nil; got != tt.wantCookie {
 				t.Errorf("has session cookie = %v, want %v", got, tt.wantCookie)
+			}
+		})
+	}
+}
+
+// signInStep is one POST /sign-in in TestHandleSignInThrottle. The step first moves the test clock forward by
+// advance. lockPage also checks the lock message, the kept username and the missing session cookie.
+type signInStep struct {
+	advance        time.Duration
+	body           string
+	wantStatus     int
+	wantRetryAfter string
+	wantLocation   string
+	lockPage       bool
+}
+
+// repeatSignIn returns n steps that post body without moving the clock, each with the status want.
+func repeatSignIn(n int, body string, want int) []signInStep {
+	steps := make([]signInStep, n)
+	for i := range steps {
+		steps[i] = signInStep{body: body, wantStatus: want}
+	}
+	return steps
+}
+
+// TestHandleSignInThrottle tests that sign-in locks a username after too many attempts without success.
+func TestHandleSignInThrottle(t *testing.T) {
+	const (
+		wrong   = "username=admin&password=wrong+password+123"
+		right   = validSignInBody
+		unknown = "username=nobody&password=wrong+password+123"
+		short   = "username=ab&password=wrong+password+123"
+		empty   = ""
+	)
+
+	tests := []struct {
+		name  string
+		steps []signInStep
+	}{
+		{"lock after five failures", slices.Concat(
+			repeatSignIn(5, wrong, http.StatusUnauthorized),
+			[]signInStep{
+				{body: right, wantStatus: http.StatusTooManyRequests, wantRetryAfter: "60", lockPage: true},
+				{advance: 30 * time.Second, body: right, wantStatus: http.StatusTooManyRequests, wantRetryAfter: "30"},
+				{advance: 30 * time.Second, body: right, wantStatus: http.StatusSeeOther, wantLocation: "/"},
+			},
+		)},
+		{"success clears the count", slices.Concat(
+			repeatSignIn(4, wrong, http.StatusUnauthorized),
+			[]signInStep{{body: right, wantStatus: http.StatusSeeOther, wantLocation: "/"}},
+			repeatSignIn(5, wrong, http.StatusUnauthorized),
+			[]signInStep{{body: wrong, wantStatus: http.StatusTooManyRequests, wantRetryAfter: "60"}},
+		)},
+		{"unknown username is locked", slices.Concat(
+			repeatSignIn(5, unknown, http.StatusUnauthorized),
+			[]signInStep{{body: unknown, wantStatus: http.StatusTooManyRequests, wantRetryAfter: "60"}},
+		)},
+		{"invalid username is not counted", repeatSignIn(6, short, http.StatusUnauthorized)},
+		{"empty fields are not counted", slices.Concat(
+			repeatSignIn(6, empty, http.StatusBadRequest),
+			[]signInStep{{body: right, wantStatus: http.StatusSeeOther, wantLocation: "/"}},
+		)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newSignedOutTestServer(t)
+			now := time.Date(2026, 11, 24, 12, 0, 0, 0, time.UTC)
+			server.now = func() time.Time { return now }
+
+			for i, step := range tt.steps {
+				now = now.Add(step.advance)
+				w := serveWithCookie(t, server, http.MethodPost, "/sign-in", step.body, nil)
+				if w.Code != step.wantStatus {
+					t.Errorf("step %d: status = %d, want %d", i, w.Code, step.wantStatus)
+				}
+				if got := w.Header().Get("Retry-After"); got != step.wantRetryAfter {
+					t.Errorf("step %d: Retry-After = %q, want %q", i, got, step.wantRetryAfter)
+				}
+				assertLocation(t, w, step.wantLocation)
+				if step.lockPage {
+					assertBodyContains(t, w, "Too many failed attempts. Try again in 1 minute.")
+					assertBodyContains(t, w, `value="admin"`)
+					if got := sessionCookie(w) != nil; got {
+						t.Errorf("step %d: has session cookie = %v, want %v", i, got, false)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestHandleSignInPageNext tests that the sign-in form keeps only a local next page in its hidden field.
+func TestHandleSignInPageNext(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{"next", "/sign-in?next=%2Fgames%2F1942", `name="next" value="/games/1942"`},
+		{"no next", "/sign-in", `name="next" value="/"`},
+		{"other site", "/sign-in?next=https%3A%2F%2Fevil.example%2F", `name="next" value="/"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := serveWithCookie(t, newSignedOutTestServer(t), http.MethodGet, tt.path, "", nil)
+			if w.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+			}
+			assertBodyContains(t, w, tt.want)
+		})
+	}
+}
+
+// TestHandleSignInPageSignedIn tests that a signed-in user goes from the sign-in page to the next page, and that an
+// unknown session sees the form with a cleared cookie.
+func TestHandleSignInPageSignedIn(t *testing.T) {
+	tests := []struct {
+		name              string
+		newServer         func(*testing.T) *Server
+		cookie            *http.Cookie
+		path              string
+		wantStatus        int
+		wantLocation      string
+		wantClearedCookie bool
+	}{
+		{"next", newTestServer, nil, "/sign-in?next=%2Fgames%2F1942", http.StatusSeeOther, "/games/1942", false},
+		{"no next", newTestServer, nil, "/sign-in", http.StatusSeeOther, "/", false},
+		{"other site", newTestServer, nil, "/sign-in?next=%2F%2Fevil.example%2F", http.StatusSeeOther, "/", false},
+		{
+			"unknown session", newSignedOutTestServer, &http.Cookie{Name: sessionCookieName, Value: "bogus"},
+			"/sign-in", http.StatusOK, "", true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := serveWithCookie(t, tt.newServer(t), http.MethodGet, tt.path, "", tt.cookie)
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertLocation(t, w, tt.wantLocation)
+			cookie := sessionCookie(w)
+			if cleared := cookie != nil && cookie.MaxAge < 0; cleared != tt.wantClearedCookie {
+				t.Errorf("session cookie cleared = %v, want %v (cookie %v)", cleared, tt.wantClearedCookie, cookie)
+			}
+		})
+	}
+}
+
+// TestHandleSignInNext tests that sign-in redirects to a local next page, and that a failed attempt keeps next.
+func TestHandleSignInNext(t *testing.T) {
+	tests := []struct {
+		name         string
+		body         string
+		wantStatus   int
+		wantLocation string
+		wantBody     string
+	}{
+		{"next", validSignInBody + "&next=%2Fgames%2F1942", http.StatusSeeOther, "/games/1942", ""},
+		{
+			"next with query", validSignInBody + "&next=%2Flibrary%3Fstatus%3Dbacklog",
+			http.StatusSeeOther, "/library?status=backlog", "",
+		},
+		{"other site", validSignInBody + "&next=%2F%2Fevil.example%2F", http.StatusSeeOther, "/", ""},
+		{"no next", validSignInBody, http.StatusSeeOther, "/", ""},
+		{
+			"wrong password keeps next", "username=admin&password=wrong+password+123&next=%2Fgames%2F1942",
+			http.StatusUnauthorized, "", `name="next" value="/games/1942"`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := serveWithCookie(t, newSignedOutTestServer(t), http.MethodPost, "/sign-in", tt.body, nil)
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertLocation(t, w, tt.wantLocation)
+			if tt.wantBody != "" {
+				assertBodyContains(t, w, tt.wantBody)
 			}
 		})
 	}

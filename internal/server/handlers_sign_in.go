@@ -2,7 +2,9 @@ package server
 
 import (
 	"errors"
+	"math"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/koenvanzuijlen/outpost/internal/auth"
@@ -15,10 +17,12 @@ type setupPage struct {
 	Error    string
 }
 
-// signInPage is the data for signInView: the submitted username and the message of a failed attempt.
+// signInPage is the data for signInView: the submitted username, the message of a failed attempt and the page to
+// open after sign-in.
 type signInPage struct {
 	Username string
 	Error    string
+	Next     string
 }
 
 // dummyPasswordHash is a valid hash that no account uses. A sign-in with an unknown username verifies against it, so
@@ -93,8 +97,9 @@ func (server *Server) handleSetup(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// handleSignInPage renders the sign-in form. Before the first admin exists, it redirects to the setup page. It reads
-// no input.
+// handleSignInPage renders the sign-in form. Before the first admin exists, it redirects to the setup page. A
+// signed-in user goes to the next page without the form. It reads the session cookie and query value next, the page
+// to open after sign-in. An invalid next gives the home page.
 func (server *Server) handleSignInPage(w http.ResponseWriter, r *http.Request) {
 	needed, err := server.store.SetupNeeded(r.Context())
 	if err != nil {
@@ -106,21 +111,55 @@ func (server *Server) handleSignInPage(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/setup", http.StatusSeeOther)
 		return
 	}
-	server.renderComponent(w, r, http.StatusOK, signInView(signInPage{}))
+
+	next := nextPath(r.URL.Query().Get("next"))
+
+	_, ok, err := server.signedInUser(w, r)
+	if err != nil {
+		server.logger.Error("session lookup failed", "error", err)
+		server.renderServerError(w, r)
+		return
+	}
+	if ok {
+		http.Redirect(w, r, next, http.StatusSeeOther)
+		return
+	}
+
+	server.renderComponent(w, r, http.StatusOK, signInView(signInPage{
+		Next: next,
+	}))
 }
 
 // handleSignIn signs in the user with the username and the password. A wrong username or password renders the form
-// again with a 401. It reads form values username and password, and redirects to the home page.
+// again with a 401. After too many attempts without success, it renders the form with a 429 and does not check the
+// password (see signInThrottle). It reads form values username, password and next, and redirects to next. An invalid
+// or missing next gives the home page.
 func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 	username := normalizeUsername(r.FormValue("username"))
 	password := r.FormValue("password")
+	next := nextPath(r.PostFormValue("next"))
 
 	if username == "" || password == "" {
 		server.renderComponent(w, r, http.StatusBadRequest, signInView(signInPage{
 			Username: username,
 			Error:    "Enter your username and password",
+			Next:     next,
 		}))
 		return
+	}
+
+	if validUsername(username) {
+		wait := server.signInThrottle.attempt(username, server.now())
+		if wait > 0 {
+			server.logger.Warn("sign-in locked", "username", username, "wait", wait)
+			w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(wait.Seconds()))))
+			server.renderComponent(w, r, http.StatusTooManyRequests, signInView(signInPage{
+				Username: username,
+				Error:    signInLockedMessage(wait),
+				Next:     next,
+			}))
+			return
+		}
 	}
 
 	user, hash, err := server.store.UserByUsername(r.Context(), username)
@@ -131,6 +170,7 @@ func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 			server.renderComponent(w, r, http.StatusUnauthorized, signInView(signInPage{
 				Username: username,
 				Error:    "Invalid username or password",
+				Next:     next,
 			}))
 			return
 		}
@@ -144,9 +184,12 @@ func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 		server.renderComponent(w, r, http.StatusUnauthorized, signInView(signInPage{
 			Username: username,
 			Error:    "Invalid username or password",
+			Next:     next,
 		}))
 		return
 	}
+
+	server.signInThrottle.reset(username)
 
 	err = server.startSession(r.Context(), w, user.ID)
 	if err != nil {
@@ -155,7 +198,7 @@ func (server *Server) handleSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, next, http.StatusSeeOther)
 }
 
 // handleSignOut ends the session of the request and deletes the session cookie. It reads the session cookie and
@@ -174,7 +217,7 @@ func (server *Server) handleSignOut(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
 }
 
-// redirectToSignIn redirects with 303 to the setup page when setup is not done, and to the sign-in page otherwise. It
+// redirectToSignIn redirects with 303 to the setup page when setup is not done, and to signInURL(r) otherwise. It
 // renders the server error page if the setup check fails.
 func (server *Server) redirectToSignIn(w http.ResponseWriter, r *http.Request) {
 	needed, err := server.store.SetupNeeded(r.Context())
@@ -187,5 +230,5 @@ func (server *Server) redirectToSignIn(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/setup", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
+	http.Redirect(w, r, signInURL(r), http.StatusSeeOther)
 }

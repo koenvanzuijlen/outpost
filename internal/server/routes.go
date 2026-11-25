@@ -1,8 +1,9 @@
 package server
 
 // routes registers every HTTP route the server handles. It is called by New and must not be called again on a Server
-// that is already serving. Every route needs a signed-in user, and requireUser enforces this. The public routes are
-// the health check, the static files, the setup, sign-in and sign-out routes, and the 404 page.
+// that is already serving. Every route needs a signed-in user, and requireUser enforces this. The routes under /admin/
+// need a signed-in admin, and requireAdmin enforces this. The public routes are the health check, the static files,
+// the setup, sign-in and sign-out routes, and the 404 page.
 func (server *Server) routes() {
 	server.mux.Handle("GET /{$}", server.requireUser(server.handleHome))
 	server.mux.HandleFunc("GET /sign-in", server.handleSignInPage)
@@ -11,7 +12,12 @@ func (server *Server) routes() {
 	server.mux.Handle("GET /library", server.requireUser(server.handleLibrary))
 	server.mux.Handle("GET /wishlist", server.requireUser(server.handleWishlist))
 	server.mux.Handle("GET /games/{igdbID}", server.requireUser(server.handleGame))
-	server.mux.Handle("GET /export.json", server.requireUser(server.handleExportJSON))
+	server.mux.Handle("GET /settings/account", server.requireUser(server.handleSettings))
+	server.mux.Handle("GET /settings/export", server.requireUser(server.handleSettingsExport))
+	server.mux.Handle("GET /settings/export.json", server.requireUser(server.handleExportJSON))
+	server.mux.Handle("GET /admin/users", server.requireAdmin(server.handleAdminUsers))
+	server.mux.Handle("GET /admin/export", server.requireAdmin(server.handleAdminExport))
+	server.mux.Handle("GET /admin/export.json", server.requireAdmin(server.handleExportAllJSON))
 	server.mux.Handle("GET /static/", server.staticHandler())
 	server.mux.HandleFunc("GET /health", server.handleHealth)
 	server.mux.HandleFunc("GET /", server.handleNotFound)
@@ -31,4 +37,12 @@ func (server *Server) routes() {
 	server.mux.Handle("POST /games/{igdbID}/playthroughs/{playthroughID}", server.requireUser(server.handleUpdatePlaythrough))
 	server.mux.Handle("POST /games/{igdbID}/playthroughs/{playthroughID}/outcome", server.requireUser(server.handleSetPlaythroughOutcome))
 	server.mux.Handle("POST /games/{igdbID}/playthroughs/{playthroughID}/delete", server.requireUser(server.handleDeletePlaythrough))
+	server.mux.Handle("POST /settings/account/username", server.requireUser(server.handleChangeUsername))
+	server.mux.Handle("POST /settings/account/password", server.requireUser(server.handleChangePassword))
+	server.mux.Handle("POST /settings/account/time-zone", server.requireUser(server.handleSetTimeZone))
+	server.mux.Handle("POST /admin/users", server.requireAdmin(server.handleCreateUser))
+	server.mux.Handle("POST /admin/users/{userID}/username", server.requireAdmin(server.handleAdminRenameUser))
+	server.mux.Handle("POST /admin/users/{userID}/role", server.requireAdmin(server.handleSetUserRole))
+	server.mux.Handle("POST /admin/users/{userID}/password", server.requireAdmin(server.handleResetPassword))
+	server.mux.Handle("POST /admin/users/{userID}/delete", server.requireAdmin(server.handleDeleteUser))
 }

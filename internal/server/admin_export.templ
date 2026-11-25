@@ -1,0 +1,10 @@
+package server
+
+// adminExportView is the admin page with the link that downloads the export of all users.
+templ adminExportView() {
+	@adminLayout("/admin/export") {
+		<h1>Export</h1>
+		<p>Download the library and wishlist of every user as one JSON file.</p>
+		<a class="admin__link" href="/admin/export.json">Download JSON export of all users</a>
+	}
+}

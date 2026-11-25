@@ -1,0 +1,27 @@
+package server
+
+// tabNavItem is one link in a tab bar. Href is the path of the page.
+type tabNavItem struct {
+	Label string
+	Href  string
+}
+
+// tabNav is the tab bar of an area with several pages, such as the admin pages. label names the navigation for screen
+// readers. The link whose Href is current is marked as the current page.
+templ tabNav(label string, items []tabNavItem, current string) {
+	<nav class="tab-nav" aria-label={ label }>
+		<ul class="tab-nav__list">
+			for _, item := range items {
+				<li>
+					<a
+						class="tab-nav__link"
+						href={ item.Href }
+						if item.Href == current {
+							aria-current="page"
+						}
+					>{ item.Label }</a>
+				</li>
+			}
+		</ul>
+	</nav>
+}

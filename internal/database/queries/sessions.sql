@@ -25,6 +25,11 @@ WHERE
 DELETE FROM sessions
 WHERE token_hash = ?;
 
+-- name: DeleteOtherSessions :exec
+DELETE FROM sessions
+WHERE user_id = sqlc.arg(user_id)
+    AND token_hash != sqlc.arg(keep_token_hash);
+
 -- name: DeleteExpiredSessions :exec
 DELETE FROM sessions
 WHERE expires_at <= ?;
