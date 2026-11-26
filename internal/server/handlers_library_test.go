@@ -375,6 +375,8 @@ func TestHandleLibrarySelectMode(t *testing.T) {
 				`href="/library?order=asc&amp;select=true&amp;sort=title"`,
 				// Cancel leaves select mode and keeps the filter.
 				`<a class="library-edit__cancel" href="/library?order=asc&amp;sort=title&amp;status=backlog">Cancel</a>`,
+				// Without JavaScript, the selection tools stay hidden.
+				`data-selection-tools hidden`,
 			},
 			wantNot: []string{`href="/games/194662"`, `class="list-controls__select"`},
 		},

@@ -261,7 +261,7 @@ func libraryView(page libraryPage) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</ul><div class=\"library-edit__bar\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</ul><div class=\"library-edit__bar\"><div class=\"library-edit__selection\" data-selection-tools hidden><p class=\"library-edit__count\" role=\"status\" data-selection-count></p><button class=\"library-edit__select\" type=\"button\" data-select=\"all\">Select all</button> <button class=\"library-edit__select\" type=\"button\" data-select=\"none\">Select none</button></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -276,7 +276,7 @@ func libraryView(page libraryPage) templ.Component {
 					var templ_7745c5c3_Var11 string
 					templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.NewAttributeExpression(page.SelectToggleURL).ResolveURL(ctx)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/library.templ`, Line: 64, Col: 66}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/server/library.templ`, Line: 69, Col: 66}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 					if templ_7745c5c3_Err != nil {

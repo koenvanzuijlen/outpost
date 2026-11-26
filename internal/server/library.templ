@@ -58,6 +58,11 @@ templ libraryView(page libraryPage) {
 						}
 					</ul>
 					<div class="library-edit__bar">
+						<div class="library-edit__selection" data-selection-tools hidden>
+							<p class="library-edit__count" role="status" data-selection-count></p>
+							<button class="library-edit__select" type="button" data-select="all">Select all</button>
+							<button class="library-edit__select" type="button" data-select="none">Select none</button>
+						</div>
 						@gameStatusPicker(page.EditStatuses, "")
 						<div class="library-edit__actions">
 							<button class="library-edit__apply" type="submit">Apply</button>
