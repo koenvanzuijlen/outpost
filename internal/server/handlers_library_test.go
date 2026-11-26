@@ -286,6 +286,7 @@ func TestHandleLibraryInvalidQuery(t *testing.T) {
 		{"invalid status", "/library?status=bogus"},
 		{"one invalid status", "/library?status=backlog&status=bogus"},
 		{"invalid order", "/library?order=bogus"},
+		{"invalid select", "/library?select=yes"},
 	}
 
 	for _, tt := range tests {
@@ -347,6 +348,64 @@ func TestHandleLibrarySelectedOptions(t *testing.T) {
 	}
 }
 
+func TestHandleLibrarySelectMode(t *testing.T) {
+	tests := []struct {
+		name    string
+		path    string
+		want    []string
+		wantNot []string
+	}{
+		{
+			name: "normal mode",
+			path: "/library",
+			want: []string{
+				`<a class="list-controls__select" href="/library?order=asc&amp;select=true&amp;sort=title">Select</a>`,
+				`href="/games/1942"`,
+			},
+			wantNot: []string{`class="library-edit"`, `name="igdb_id"`},
+		},
+		{
+			name: "select mode",
+			path: "/library?select=true&status=backlog",
+			want: []string{
+				`action="/library/edit?order=asc&amp;sort=title&amp;status=backlog"`,
+				`name="igdb_id" value="194662"`,
+				`<input type="hidden" name="select" value="true">`,
+				// The active backlog toggle switches the filter off and stays in select mode.
+				`href="/library?order=asc&amp;select=true&amp;sort=title"`,
+				// Cancel leaves select mode and keeps the filter.
+				`<a class="library-edit__cancel" href="/library?order=asc&amp;sort=title&amp;status=backlog">Cancel</a>`,
+			},
+			wantNot: []string{`href="/games/194662"`, `class="list-controls__select"`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			addBacklogAndCompletedGames(t, server)
+
+			w := getPage(t, server, tt.path)
+
+			for _, want := range tt.want {
+				assertBodyContains(t, w, want)
+			}
+			for _, unwanted := range tt.wantNot {
+				assertBodyNotContains(t, w, unwanted)
+			}
+		})
+	}
+}
+
+func TestHandleLibrarySelectModeEmpty(t *testing.T) {
+	server := newTestServer(t)
+
+	w := getPage(t, server, "/library?select=true")
+
+	assertBodyContains(t, w, "No results.")
+	assertBodyNotContains(t, w, `class="library-edit"`)
+}
+
 // userGameOf returns the test user's library or wishlist entry for igdbID. It fails the test if there is none.
 func userGameOf(t *testing.T, server *Server, igdbID int64) dbgen.UserGame {
 	t.Helper()
@@ -400,6 +459,14 @@ func TestHandleEditLibrary(t *testing.T) {
 			body:         "igdb_id=999&igdb_id=1942&status=retired",
 			wantLocation: "/library?order=asc&sort=title",
 			want1942:     "retired",
+			want194662:   "backlog",
+		},
+		{
+			name:         "select mode dropped",
+			path:         "/library/edit?select=true&sort=title&order=asc",
+			body:         "igdb_id=1942&status=shelved",
+			wantLocation: "/library?order=asc&sort=title",
+			want1942:     "shelved",
 			want194662:   "backlog",
 		},
 	}

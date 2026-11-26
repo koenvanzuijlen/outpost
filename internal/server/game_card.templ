@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/koenvanzuijlen/outpost/internal/database"
 	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
+	"strconv"
 )
 
 // gameCardContent is the inside of a game card: the cover, the title, the release year, and the status and the rating
@@ -47,4 +48,13 @@ templ libraryCard(entry database.LibraryEntry) {
 		database.GameStatus(derefOrZero(entry.UserGame.Status)),
 		derefOrZero(entry.UserGame.Rating),
 	)
+}
+
+// librarySelectCard is the card of a library entry in select mode: a label with a checkbox named igdb_id and the card
+// content. It shows the status and no rating, and is not a link.
+templ librarySelectCard(entry database.LibraryEntry) {
+	<label class="game-card game-card--selectable">
+		<input class="game-card__checkbox" type="checkbox" name="igdb_id" value={ strconv.FormatInt(entry.Game.IgdbID, 10) }/>
+		@gameCardContent(entry.Game, database.GameStatus(derefOrZero(entry.UserGame.Status)), 0)
+	</label>
 }

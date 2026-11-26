@@ -62,15 +62,18 @@ func librarySortOptions() []librarySortOption {
 	}
 }
 
-// libraryQuery holds the query values of the library page: the active statuses, the sort and the sort order.
+// libraryQuery holds the query values of the library page: the active statuses, the sort, the sort order and select
+// mode.
 type libraryQuery struct {
-	Statuses []database.GameStatus
-	Sort     librarySort
-	Order    sortOrder
+	Statuses  []database.GameStatus
+	Sort      librarySort
+	Order     sortOrder
+	Selecting bool
 }
 
-// URL returns the library page URL for q. The statuses are in the order of database.GameStatuses, each status once.
-func (q libraryQuery) URL() string {
+// values returns the status, sort and order of q as query values. The statuses are in the order of
+// database.GameStatuses, each status once.
+func (q libraryQuery) values() url.Values {
 	values := url.Values{}
 	for _, status := range database.GameStatuses {
 		if slices.Contains(q.Statuses, status) {
@@ -79,7 +82,29 @@ func (q libraryQuery) URL() string {
 	}
 	values.Set("sort", string(q.Sort))
 	values.Set("order", string(q.Order))
+	return values
+}
+
+// URL returns the library page URL for q, with select=true in select mode. See values for the order of the statuses.
+func (q libraryQuery) URL() string {
+	values := q.values()
+	if q.Selecting {
+		values.Set("select", "true")
+	}
 	return "/library?" + values.Encode()
+}
+
+// SelectToggleURL returns the library page URL for q with select mode switched on or off. q is not changed.
+func (q libraryQuery) SelectToggleURL() string {
+	next := q
+	next.Selecting = !q.Selecting
+	return next.URL()
+}
+
+// EditURL returns the mass edit URL for q. Its query is the library page to return to after the edit, without select
+// mode.
+func (q libraryQuery) EditURL() string {
+	return "/library/edit?" + q.values().Encode()
 }
 
 // libraryStatusToggle is a status filter link on the library page. Href is the library URL with Status switched on or
@@ -123,8 +148,8 @@ func (q libraryQuery) OrderToggleURL() string {
 }
 
 // parseLibraryQuery returns the library query in values. It reads status (repeatable; empty values are skipped, none
-// means all statuses), sort (default title) and order (default from librarySort.DefaultOrder). ok is false if a value
-// is unknown.
+// means all statuses), sort (default title), order (default from librarySort.DefaultOrder), and select (true for
+// select mode, or empty). ok is false if a value is unknown.
 func parseLibraryQuery(values url.Values) (libraryQuery, bool) {
 	statuses := make([]database.GameStatus, 0, len(values["status"]))
 	for _, s := range values["status"] {
@@ -154,10 +179,16 @@ func parseLibraryQuery(values url.Values) (libraryQuery, bool) {
 		return libraryQuery{}, false
 	}
 
+	selecting := values.Get("select")
+	if selecting != "" && selecting != "true" {
+		return libraryQuery{}, false
+	}
+
 	return libraryQuery{
-		Statuses: statuses,
-		Sort:     sort,
-		Order:    order,
+		Statuses:  statuses,
+		Sort:      sort,
+		Order:     order,
+		Selecting: selecting == "true",
 	}, true
 }
 

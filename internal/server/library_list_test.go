@@ -137,6 +137,12 @@ func TestLibraryQueryStatusToggles(t *testing.T) {
 			status:   database.GameStatusBacklog,
 			wantHref: "/library?order=asc&sort=title&status=backlog&status=playing",
 		},
+		{
+			name:     "keeps select mode",
+			query:    libraryQuery{Sort: librarySortTitle, Order: sortOrderAsc, Selecting: true},
+			status:   database.GameStatusBacklog,
+			wantHref: "/library?order=asc&select=true&sort=title&status=backlog",
+		},
 	}
 
 	for _, tt := range tests {
@@ -187,6 +193,111 @@ func TestLibraryQueryOrderToggleURL(t *testing.T) {
 	}
 }
 
+func TestLibraryQueryURL(t *testing.T) {
+	tests := []struct {
+		name  string
+		query libraryQuery
+		want  string
+	}{
+		{
+			name:  "normal",
+			query: libraryQuery{Sort: librarySortTitle, Order: sortOrderAsc},
+			want:  "/library?order=asc&sort=title",
+		},
+		{
+			name:  "select mode",
+			query: libraryQuery{Sort: librarySortTitle, Order: sortOrderAsc, Selecting: true},
+			want:  "/library?order=asc&select=true&sort=title",
+		},
+		{
+			name: "select mode with statuses",
+			query: libraryQuery{
+				Statuses:  []database.GameStatus{database.GameStatusCompleted, database.GameStatusBacklog},
+				Sort:      librarySortAdded,
+				Order:     sortOrderDesc,
+				Selecting: true,
+			},
+			want: "/library?order=desc&select=true&sort=added&status=backlog&status=completed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.query.URL(); got != tt.want {
+				t.Errorf("URL() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLibraryQuerySelectToggleURL(t *testing.T) {
+	tests := []struct {
+		name  string
+		query libraryQuery
+		want  string
+	}{
+		{
+			name:  "switch on",
+			query: libraryQuery{Sort: librarySortTitle, Order: sortOrderAsc},
+			want:  "/library?order=asc&select=true&sort=title",
+		},
+		{
+			name: "switch off",
+			query: libraryQuery{
+				Statuses:  []database.GameStatus{database.GameStatusBacklog},
+				Sort:      librarySortTitle,
+				Order:     sortOrderAsc,
+				Selecting: true,
+			},
+			want: "/library?order=asc&sort=title&status=backlog",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			before := tt.query.Selecting
+			if got := tt.query.SelectToggleURL(); got != tt.want {
+				t.Errorf("SelectToggleURL() = %q, want %q", got, tt.want)
+			}
+			if tt.query.Selecting != before {
+				t.Errorf("Selecting after SelectToggleURL() = %v, want %v", tt.query.Selecting, before)
+			}
+		})
+	}
+}
+
+func TestLibraryQueryEditURL(t *testing.T) {
+	tests := []struct {
+		name  string
+		query libraryQuery
+		want  string
+	}{
+		{
+			name:  "without statuses",
+			query: libraryQuery{Sort: librarySortTitle, Order: sortOrderAsc},
+			want:  "/library/edit?order=asc&sort=title",
+		},
+		{
+			name: "select mode dropped",
+			query: libraryQuery{
+				Statuses:  []database.GameStatus{database.GameStatusBacklog},
+				Sort:      librarySortAdded,
+				Order:     sortOrderDesc,
+				Selecting: true,
+			},
+			want: "/library/edit?order=desc&sort=added&status=backlog",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.query.EditURL(); got != tt.want {
+				t.Errorf("EditURL() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestLibraryQueryStatusTogglesKeepsQuery(t *testing.T) {
 	// The query slice has room for one more status, so an append without a copy writes into backing[1].
 	backing := []database.GameStatus{database.GameStatusShelved, database.GameStatusCompleted}
@@ -200,12 +311,13 @@ func TestLibraryQueryStatusTogglesKeepsQuery(t *testing.T) {
 
 func TestParseLibraryQuery(t *testing.T) {
 	tests := []struct {
-		name         string
-		query        string
-		wantOK       bool
-		wantStatuses []database.GameStatus
-		wantSort     librarySort
-		wantOrder    sortOrder
+		name          string
+		query         string
+		wantOK        bool
+		wantStatuses  []database.GameStatus
+		wantSort      librarySort
+		wantOrder     sortOrder
+		wantSelecting bool
 	}{
 		{
 			name:         "defaults",
@@ -235,6 +347,17 @@ func TestParseLibraryQuery(t *testing.T) {
 		{name: "one unknown status", query: "status=backlog&status=bogus"},
 		{name: "unknown sort", query: "sort=bogus"},
 		{name: "unknown order", query: "order=bogus"},
+		{
+			name:          "select mode",
+			query:         "select=true",
+			wantOK:        true,
+			wantStatuses:  []database.GameStatus{},
+			wantSort:      librarySort("title"),
+			wantOrder:     sortOrder("asc"),
+			wantSelecting: true,
+		},
+		{name: "select false", query: "select=false"},
+		{name: "select other", query: "select=yes"},
 	}
 
 	for _, tt := range tests {
@@ -259,6 +382,9 @@ func TestParseLibraryQuery(t *testing.T) {
 			}
 			if got.Order != tt.wantOrder {
 				t.Errorf("parseLibraryQuery(%q).Order = %q, want %q", tt.query, got.Order, tt.wantOrder)
+			}
+			if got.Selecting != tt.wantSelecting {
+				t.Errorf("parseLibraryQuery(%q).Selecting = %v, want %v", tt.query, got.Selecting, tt.wantSelecting)
 			}
 		})
 	}

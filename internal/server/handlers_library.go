@@ -13,16 +13,20 @@ import (
 )
 
 // libraryPage represents the data needed to render the library page: the filtered and sorted entries, the active
-// statuses with a toggle link for each status, the current and available sorts, and the order with the link that
-// reverses it.
+// statuses with a toggle link for each status, the current and available sorts, the order with the link that reverses
+// it, select mode with the link that switches it, the mass edit URL and the statuses that a mass edit offers.
 type libraryPage struct {
-	Games          []database.LibraryEntry
-	Statuses       []database.GameStatus
-	StatusToggles  []libraryStatusToggle
-	Sort           librarySort
-	SortOptions    []librarySortOption
-	Order          sortOrder
-	OrderToggleURL string
+	Games           []database.LibraryEntry
+	Statuses        []database.GameStatus
+	StatusToggles   []libraryStatusToggle
+	Sort            librarySort
+	SortOptions     []librarySortOption
+	Order           sortOrder
+	OrderToggleURL  string
+	Selecting       bool
+	SelectToggleURL string
+	EditURL         string
+	EditStatuses    []database.GameStatus
 }
 
 // handleLibrary renders the library page. It reads query values status, sort and order (see parseLibraryQuery), and
@@ -47,20 +51,24 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	games = sortLibrary(games, query.Sort, query.Order)
 
 	server.renderComponent(w, r, http.StatusOK, libraryView(libraryPage{
-		Games:          games,
-		Statuses:       query.Statuses,
-		StatusToggles:  query.StatusToggles(),
-		Sort:           query.Sort,
-		SortOptions:    librarySortOptions(),
-		Order:          query.Order,
-		OrderToggleURL: query.OrderToggleURL(),
+		Games:           games,
+		Statuses:        query.Statuses,
+		StatusToggles:   query.StatusToggles(),
+		Sort:            query.Sort,
+		SortOptions:     librarySortOptions(),
+		Order:           query.Order,
+		OrderToggleURL:  query.OrderToggleURL(),
+		Selecting:       query.Selecting,
+		SelectToggleURL: query.SelectToggleURL(),
+		EditURL:         query.EditURL(),
+		EditStatuses:    database.GameStatuses,
 	}))
 }
 
 // handleEditLibrary sets the status of several library games at once, see database.Store.EditLibraryGames. It reads
 // query values status, sort and order (the library page to return to, see parseLibraryQuery), and form values igdb_id
-// (repeatable, at least one) and status. It redirects to the library page with the same filter and sort. Games that
-// are not in the library are skipped, so a repeat gives the same result.
+// (repeatable, at least one) and status. It redirects to the library page with the same filter and sort, outside
+// select mode. Games that are not in the library are skipped, so a repeat gives the same result.
 func (server *Server) handleEditLibrary(w http.ResponseWriter, r *http.Request) {
 	query, ok := parseLibraryQuery(r.URL.Query())
 	if !ok {
@@ -99,6 +107,7 @@ func (server *Server) handleEditLibrary(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	query.Selecting = false
 	http.Redirect(w, r, query.URL(), http.StatusSeeOther)
 }
 
