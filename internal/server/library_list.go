@@ -122,6 +122,45 @@ func (q libraryQuery) OrderToggleURL() string {
 	return next.URL()
 }
 
+// parseLibraryQuery returns the library query in values. It reads status (repeatable; empty values are skipped, none
+// means all statuses), sort (default title) and order (default from librarySort.DefaultOrder). ok is false if a value
+// is unknown.
+func parseLibraryQuery(values url.Values) (libraryQuery, bool) {
+	statuses := make([]database.GameStatus, 0, len(values["status"]))
+	for _, s := range values["status"] {
+		if s == "" {
+			continue
+		}
+		status := database.GameStatus(s)
+		if !status.Valid() {
+			return libraryQuery{}, false
+		}
+		statuses = append(statuses, status)
+	}
+
+	sort := librarySort(values.Get("sort"))
+	if sort == "" {
+		sort = librarySortTitle
+	}
+	if !sort.Valid() {
+		return libraryQuery{}, false
+	}
+
+	order := sortOrder(values.Get("order"))
+	if order == "" {
+		order = sort.DefaultOrder()
+	}
+	if !order.Valid() {
+		return libraryQuery{}, false
+	}
+
+	return libraryQuery{
+		Statuses: statuses,
+		Sort:     sort,
+		Order:    order,
+	}, true
+}
+
 // filterLibrary returns the entries with one of the given statuses, or all entries if statuses is empty. It modifies
 // entries in place.
 func filterLibrary(entries []database.LibraryEntry, statuses []database.GameStatus) []database.LibraryEntry {

@@ -25,40 +25,14 @@ type libraryPage struct {
 	OrderToggleURL string
 }
 
-// handleLibrary renders the library page. It reads query values status (repeatable; none means all statuses, empty
-// values are skipped), sort (default title) and order (asc or desc; default from librarySort.DefaultOrder), and
+// handleLibrary renders the library page. It reads query values status, sort and order (see parseLibraryQuery), and
 // returns 400 for an unknown value.
 func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	statusQuery := r.URL.Query()["status"]
-	selectedStatus := make([]database.GameStatus, 0, len(statusQuery))
-	for _, s := range statusQuery {
-		if s == "" {
-			continue
-		}
-		if !database.GameStatus(s).Valid() {
-			server.renderError(w, r, http.StatusBadRequest, "Invalid game status")
-			return
-		}
-		selectedStatus = append(selectedStatus, database.GameStatus(s))
-	}
-
-	sort := librarySort(r.URL.Query().Get("sort"))
-	if sort == "" {
-		sort = librarySortTitle
-	}
-	if !sort.Valid() {
-		server.renderError(w, r, http.StatusBadRequest, "Invalid sort")
-		return
-	}
-
-	order := sortOrder(r.URL.Query().Get("order"))
-	if order == "" {
-		order = sort.DefaultOrder()
-	}
-	if !order.Valid() {
-		server.renderError(w, r, http.StatusBadRequest, "Invalid order")
+	query, ok := parseLibraryQuery(r.URL.Query())
+	if !ok {
+		server.renderError(w, r, http.StatusBadRequest, "Invalid filter or sort")
 		return
 	}
 
@@ -69,22 +43,16 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := libraryQuery{
-		Statuses: selectedStatus,
-		Sort:     sort,
-		Order:    order,
-	}
-
-	games = filterLibrary(games, selectedStatus)
-	games = sortLibrary(games, sort, order)
+	games = filterLibrary(games, query.Statuses)
+	games = sortLibrary(games, query.Sort, query.Order)
 
 	server.renderComponent(w, r, http.StatusOK, libraryView(libraryPage{
 		Games:          games,
-		Statuses:       selectedStatus,
+		Statuses:       query.Statuses,
 		StatusToggles:  query.StatusToggles(),
-		Sort:           sort,
+		Sort:           query.Sort,
 		SortOptions:    librarySortOptions(),
-		Order:          order,
+		Order:          query.Order,
 		OrderToggleURL: query.OrderToggleURL(),
 	}))
 }

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/url"
 	"slices"
 	"testing"
 	"time"
@@ -194,6 +195,72 @@ func TestLibraryQueryStatusTogglesKeepsQuery(t *testing.T) {
 	want := []database.GameStatus{database.GameStatusShelved, database.GameStatusCompleted}
 	if !slices.Equal(backing, want) {
 		t.Errorf("statuses after StatusToggles() = %v, want %v", backing, want)
+	}
+}
+
+func TestParseLibraryQuery(t *testing.T) {
+	tests := []struct {
+		name         string
+		query        string
+		wantOK       bool
+		wantStatuses []database.GameStatus
+		wantSort     librarySort
+		wantOrder    sortOrder
+	}{
+		{
+			name:         "defaults",
+			query:        "",
+			wantOK:       true,
+			wantStatuses: []database.GameStatus{},
+			wantSort:     librarySort("title"),
+			wantOrder:    sortOrder("asc"),
+		},
+		{
+			name:         "statuses and sort",
+			query:        "status=backlog&status=&status=completed&sort=added",
+			wantOK:       true,
+			wantStatuses: []database.GameStatus{database.GameStatus("backlog"), database.GameStatus("completed")},
+			wantSort:     librarySort("added"),
+			wantOrder:    sortOrder("desc"),
+		},
+		{
+			name:         "sort and order",
+			query:        "sort=finished&order=asc",
+			wantOK:       true,
+			wantStatuses: []database.GameStatus{},
+			wantSort:     librarySort("finished"),
+			wantOrder:    sortOrder("asc"),
+		},
+		{name: "unknown status", query: "status=bogus"},
+		{name: "one unknown status", query: "status=backlog&status=bogus"},
+		{name: "unknown sort", query: "sort=bogus"},
+		{name: "unknown order", query: "order=bogus"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			values, err := url.ParseQuery(tt.query)
+			if err != nil {
+				t.Fatalf("url.ParseQuery(%q) error = %v", tt.query, err)
+			}
+
+			got, ok := parseLibraryQuery(values)
+			if ok != tt.wantOK {
+				t.Fatalf("parseLibraryQuery(%q) ok = %v, want %v", tt.query, ok, tt.wantOK)
+			}
+			if !ok {
+				return
+			}
+			if !slices.Equal(got.Statuses, tt.wantStatuses) {
+				t.Errorf("parseLibraryQuery(%q).Statuses = %v, want %v", tt.query, got.Statuses, tt.wantStatuses)
+			}
+			if got.Sort != tt.wantSort {
+				t.Errorf("parseLibraryQuery(%q).Sort = %q, want %q", tt.query, got.Sort, tt.wantSort)
+			}
+			if got.Order != tt.wantOrder {
+				t.Errorf("parseLibraryQuery(%q).Order = %q, want %q", tt.query, got.Order, tt.wantOrder)
+			}
+		})
 	}
 }
 
