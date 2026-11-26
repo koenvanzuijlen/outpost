@@ -14,6 +14,7 @@ func TestGameStatusValid(t *testing.T) {
 		{"shelved", GameStatus("shelved"), true},
 		{"abandoned", GameStatus("abandoned"), true},
 		{"retired", GameStatus("retired"), true},
+		{"uninterested", GameStatus("uninterested"), true},
 		{"unknown", GameStatus("unknown"), false},
 		{"empty", GameStatus(""), false},
 		{"whitespace", GameStatus(" backlog"), false},

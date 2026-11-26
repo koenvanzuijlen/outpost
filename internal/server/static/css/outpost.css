@@ -328,6 +328,11 @@
     --badge-chroma: 0.13;
   }
 
+  .badge--uninterested {
+    --badge-hue: 20;
+    --badge-chroma: 0.06;
+  }
+
   .status-filter {
     display: flex;
     flex-wrap: wrap;
