@@ -17,9 +17,9 @@ var ErrPlaythroughNotFound = errors.New("playthrough not found")
 // or finished before started.
 var ErrInvalidPlaythroughDates = errors.New("invalid playthrough dates")
 
-// StartPlaythrough starts a playthrough of a library game, optionally named and on a platform. If the game is on the
-// backlog, its status becomes playing. Returns ErrUserGameNotFound if the game isn't in the library, or
-// ErrPlatformNotFound if the platform isn't in the catalog.
+// StartPlaythrough starts a playthrough of a library game, optionally named and on a platform. If the game has not
+// been started (see GameStatus.notStarted), its status becomes playing. Returns ErrUserGameNotFound if the game isn't
+// in the library, or ErrPlatformNotFound if the platform isn't in the catalog.
 func (s *Store) StartPlaythrough(
 	ctx context.Context,
 	userID,
@@ -56,7 +56,7 @@ func (s *Store) StartPlaythrough(
 		return dbgen.Playthrough{}, fmt.Errorf("create playthrough: %w", err)
 	}
 
-	if gameStatusFrom(userGame.Status) == GameStatusBacklog {
+	if gameStatusFrom(userGame.Status).notStarted() {
 		err = q.UpdateUserGameStatus(ctx, dbgen.UpdateUserGameStatusParams{
 			ID:     userGame.ID,
 			Status: GameStatusPlaying.StringPtr(),

@@ -38,6 +38,15 @@ func (s GameStatus) Valid() bool {
 	return slices.Contains(GameStatuses, s)
 }
 
+// notStarted reports whether s means that the game has not been started: backlog or uninterested.
+func (s GameStatus) notStarted() bool {
+	switch s {
+	case GameStatusBacklog, GameStatusUninterested:
+		return true
+	}
+	return false
+}
+
 // StringPtr returns s as a *string, for the nullable status column.
 func (s GameStatus) StringPtr() *string {
 	str := string(s)

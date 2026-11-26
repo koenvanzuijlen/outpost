@@ -115,6 +115,7 @@ func TestStartPlaythroughStatus(t *testing.T) {
 		wantStatus GameStatus
 	}{
 		{"backlog becomes playing", GameStatusBacklog, GameStatusPlaying},
+		{"uninterested becomes playing", GameStatusUninterested, GameStatusPlaying},
 		{"shelved stays shelved", GameStatusShelved, GameStatusShelved},
 	}
 
