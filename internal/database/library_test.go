@@ -342,6 +342,92 @@ func setupRemoveUserGame(t *testing.T, store *Store) {
 	}
 }
 
+func TestEditLibraryGames(t *testing.T) {
+	ctx := t.Context()
+	store := newTestStore(t)
+
+	for _, igdbID := range []int64{100, 101, 102} {
+		addOwnedGame(t, store, igdbID)
+	}
+	if err := store.AddToWishlist(ctx, newGameParams(103, "Wishlisted Game"), 1, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToWishlist(103) failed: %v", err)
+	}
+	anna, err := store.CreateUser(ctx, "anna", "hash", UserRoleUser)
+	if err != nil {
+		t.Fatalf("CreateUser(anna) failed: %v", err)
+	}
+	if err := store.AddToLibrary(ctx, newGameParams(100, "Test Game"), nil, anna.ID, time.Now().UTC()); err != nil {
+		t.Fatalf("AddToLibrary(100) for anna failed: %v", err)
+	}
+
+	err = store.EditLibraryGames(ctx, 1, []int64{100, 101, 103, 999}, LibraryEdit{Status: new(GameStatus("completed"))})
+	if err != nil {
+		t.Fatalf("EditLibraryGames() failed: %v", err)
+	}
+
+	tests := []struct {
+		name       string
+		userID     int64
+		igdbID     int64
+		wantStatus any
+	}{
+		{"selected game", 1, 100, "completed"},
+		{"second selected game", 1, 101, "completed"},
+		{"game not selected", 1, 102, "backlog"},
+		{"wishlisted game skipped", 1, 103, nil},
+		{"other user's game", anna.ID, 100, "backlog"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			details, err := store.GetGame(ctx, tt.userID, tt.igdbID)
+			if err != nil {
+				t.Fatalf("GetGame(%d, %d) failed: %v", tt.userID, tt.igdbID, err)
+			}
+			if details.UserGame == nil {
+				t.Fatalf("GetGame(%d, %d).UserGame = nil, want an entry", tt.userID, tt.igdbID)
+			}
+			if got := derefOrNil(details.UserGame.Status); got != tt.wantStatus {
+				t.Errorf("UserGame.Status = %v, want %v", got, tt.wantStatus)
+			}
+		})
+	}
+
+	if userGame := getUserGame(t, store, 103); !userGame.Wishlisted {
+		t.Errorf("UserGame.Wishlisted = %v, want %v", userGame.Wishlisted, true)
+	}
+}
+
+func TestEditLibraryGamesNoChange(t *testing.T) {
+	tests := []struct {
+		name    string
+		igdbIDs []int64
+		edit    LibraryEdit
+		wantErr error
+	}{
+		{"invalid status", []int64{100}, LibraryEdit{Status: new(GameStatus("bogus"))}, ErrInvalidGameStatus},
+		{"no change", []int64{100}, LibraryEdit{}, nil},
+		{"no games", []int64{}, LibraryEdit{Status: new(GameStatus("completed"))}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newTestStore(t)
+			addOwnedGame(t, store, 100)
+
+			err := store.EditLibraryGames(t.Context(), 1, tt.igdbIDs, tt.edit)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("EditLibraryGames() error = %v, want %v", err, tt.wantErr)
+			}
+
+			userGame := getUserGame(t, store, 100)
+			if got := derefOrNil(userGame.Status); got != "backlog" {
+				t.Errorf("UserGame.Status = %v, want %v", got, "backlog")
+			}
+		})
+	}
+}
+
 func TestRemoveUserGame(t *testing.T) {
 	ctx := t.Context()
 	store := newTestStore(t)

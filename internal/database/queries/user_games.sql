@@ -130,6 +130,22 @@ WHERE
             igdb_id = ?)
     AND NOT wishlisted;
 
+-- name: UpdateLibraryUserGamesStatus :exec
+UPDATE
+    user_games
+SET
+    status = sqlc.arg(status)
+WHERE
+    user_id = sqlc.arg(user_id)
+    AND NOT wishlisted
+    AND game_id IN (
+        SELECT
+            id
+        FROM
+            games
+        WHERE
+            igdb_id IN (sqlc.slice(igdb_ids)));
+
 -- name: DeleteLibraryDLCs :exec
 DELETE FROM user_games
 WHERE user_id = sqlc.arg(user_id)
