@@ -423,6 +423,9 @@
   .sort-form__select,
   .sort-order-toggle,
   .sort-form__apply,
+  .list-controls__select,
+  .library-edit__apply,
+  .library-edit__select,
   .game-details__save,
   .game-playthrough-form__input,
   .game-playthrough-form__submit,
@@ -470,6 +473,9 @@
   }
 
   .sort-form__apply,
+  .list-controls__select,
+  .library-edit__apply,
+  .library-edit__select,
   .game-details__save,
   .game-playthrough-form__submit,
   .add-form__submit,
@@ -481,6 +487,9 @@
   }
 
   .sort-form__apply:hover,
+  .list-controls__select:hover,
+  .library-edit__apply:hover,
+  .library-edit__select:hover,
   .game-details__save:hover,
   .game-playthrough-form__submit:hover,
   .add-form__submit:hover,
@@ -786,6 +795,92 @@
     .game-card__rating {
       transition: none;
     }
+  }
+
+  /* The Select link looks like the buttons of the list controls. */
+  .list-controls__select {
+    text-decoration: none;
+  }
+
+  /* A selectable card is a label: the whole card checks the box. */
+  .game-card--selectable {
+    cursor: pointer;
+  }
+
+  /* The checkbox takes the corner where a normal card shows the rating. */
+  .game-card__checkbox {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    margin: 0;
+    accent-color: var(--color-accent);
+    cursor: pointer;
+  }
+
+  /* In select mode the status always shows, so the user sees the current status before the change. */
+  .game-card--selectable .game-card__status {
+    opacity: 1;
+  }
+
+  /* A checked card gets an accent frame on the cover. The checkbox shows the state without color. */
+  .game-card--selectable:has(.game-card__checkbox:checked) .game-card__cover {
+    border-color: var(--color-accent);
+    outline: 3px solid var(--color-accent);
+    outline-offset: -1px;
+  }
+
+  .library-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* The bar sticks to the bottom of the window while the grid scrolls past it, and stops at the end of the form. The
+     z-index keeps the bar above the positioned overlays of the cards. */
+  .library-edit__bar {
+    position: sticky;
+    inset-block-end: 0.75rem;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: var(--color-surface);
+    box-shadow: 0 0.25rem 1rem oklch(0.25 0.012 250 / 0.15);
+  }
+
+  /* An element with the hidden attribute stays hidden: display on the class would show it. */
+  .library-edit__selection:not([hidden]) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* The count has room for "999 selected", and all digits have the same width, so the buttons do not move when the
+     count changes. */
+  .library-edit__count {
+    min-inline-size: 12ch;
+    margin: 0;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The auto margin keeps Apply and Cancel on the right, also on their own row. */
+  .library-edit__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-inline-start: auto;
+  }
+
+  .library-edit__cancel {
+    color: var(--color-text-muted);
   }
 
   /* The section is a flex column, so align-self moves the link to the right edge. */

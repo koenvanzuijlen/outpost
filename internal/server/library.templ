@@ -1,6 +1,8 @@
 package server
 
-// libraryView renders the library page: a toggle link for each status, the sort form, and the matching games.
+// libraryView renders the library page: a toggle link for each status, the sort form, and the matching games. In
+// select mode, the games are checkboxes in the mass edit form, with a status picker, Apply and Cancel in a bar at the
+// bottom of the window.
 templ libraryView(page libraryPage) {
 	@layout("") {
 		<h1>Library</h1>
@@ -22,6 +24,9 @@ templ libraryView(page libraryPage) {
 				}
 			</ul>
 			<form class="sort-form" method="get" action="/library">
+				if page.Selecting {
+					<input type="hidden" name="select" value="true"/>
+				}
 				for _, status := range page.Statuses {
 					<input type="hidden" name="status" value={ string(status) }/>
 				}
@@ -38,15 +43,42 @@ templ libraryView(page libraryPage) {
 					<button class="sort-form__apply" type="submit">Apply</button>
 				</noscript>
 			</form>
+			if !page.Selecting {
+				<a class="list-controls__select" href={ page.SelectToggleURL }>Select</a>
+			}
 		</div>
 		if len(page.Games) > 0 {
-			<ul class="game-grid">
-				for _, entry := range page.Games {
-					<li>
-						@libraryCard(entry)
-					</li>
-				}
-			</ul>
+			if page.Selecting {
+				<form class="library-edit" method="post" action={ page.EditURL } data-selection>
+					<ul class="game-grid">
+						for _, entry := range page.Games {
+							<li>
+								@librarySelectCard(entry)
+							</li>
+						}
+					</ul>
+					<div class="library-edit__bar">
+						<div class="library-edit__selection" data-selection-tools hidden>
+							<p class="library-edit__count" role="status" data-selection-count></p>
+							<button class="library-edit__select" type="button" data-select="all">Select all</button>
+							<button class="library-edit__select" type="button" data-select="none">Select none</button>
+						</div>
+						@gameStatusPicker(page.EditStatuses, "")
+						<div class="library-edit__actions">
+							<button class="library-edit__apply" type="submit">Apply</button>
+							<a class="library-edit__cancel" href={ page.SelectToggleURL }>Cancel</a>
+						</div>
+					</div>
+				</form>
+			} else {
+				<ul class="game-grid">
+					for _, entry := range page.Games {
+						<li>
+							@libraryCard(entry)
+						</li>
+					}
+				</ul>
+			}
 		} else {
 			<p>No results.</p>
 		}

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/koenvanzuijlen/outpost/internal/database/dbgen"
 	"github.com/koenvanzuijlen/outpost/internal/igdb"
 )
 
@@ -285,6 +286,7 @@ func TestHandleLibraryInvalidQuery(t *testing.T) {
 		{"invalid status", "/library?status=bogus"},
 		{"one invalid status", "/library?status=backlog&status=bogus"},
 		{"invalid order", "/library?order=bogus"},
+		{"invalid select", "/library?select=yes"},
 	}
 
 	for _, tt := range tests {
@@ -344,6 +346,227 @@ func TestHandleLibrarySelectedOptions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleLibrarySelectMode(t *testing.T) {
+	tests := []struct {
+		name    string
+		path    string
+		want    []string
+		wantNot []string
+	}{
+		{
+			name: "normal mode",
+			path: "/library",
+			want: []string{
+				`<a class="list-controls__select" href="/library?order=asc&amp;select=true&amp;sort=title">Select</a>`,
+				`href="/games/1942"`,
+			},
+			wantNot: []string{`class="library-edit"`, `name="igdb_id"`},
+		},
+		{
+			name: "select mode",
+			path: "/library?select=true&status=backlog",
+			want: []string{
+				`action="/library/edit?order=asc&amp;sort=title&amp;status=backlog"`,
+				`name="igdb_id" value="194662"`,
+				`<input type="hidden" name="select" value="true">`,
+				// The active backlog toggle switches the filter off and stays in select mode.
+				`href="/library?order=asc&amp;select=true&amp;sort=title"`,
+				// Cancel leaves select mode and keeps the filter.
+				`<a class="library-edit__cancel" href="/library?order=asc&amp;sort=title&amp;status=backlog">Cancel</a>`,
+				// Without JavaScript, the selection tools stay hidden.
+				`data-selection-tools hidden`,
+			},
+			wantNot: []string{`href="/games/194662"`, `class="list-controls__select"`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			addBacklogAndCompletedGames(t, server)
+
+			w := getPage(t, server, tt.path)
+
+			for _, want := range tt.want {
+				assertBodyContains(t, w, want)
+			}
+			for _, unwanted := range tt.wantNot {
+				assertBodyNotContains(t, w, unwanted)
+			}
+		})
+	}
+}
+
+func TestHandleLibrarySelectModeEmpty(t *testing.T) {
+	server := newTestServer(t)
+
+	w := getPage(t, server, "/library?select=true")
+
+	assertBodyContains(t, w, "No results.")
+	assertBodyNotContains(t, w, `class="library-edit"`)
+}
+
+// userGameOf returns the test user's library or wishlist entry for igdbID. It fails the test if there is none.
+func userGameOf(t *testing.T, server *Server, igdbID int64) dbgen.UserGame {
+	t.Helper()
+	details, err := server.store.GetGame(t.Context(), testUserID, igdbID)
+	if err != nil {
+		t.Fatalf("GetGame(%d) failed: %v", igdbID, err)
+	}
+	if details.UserGame == nil {
+		t.Fatalf("GetGame(%d).UserGame = nil, want an entry", igdbID)
+	}
+	return *details.UserGame
+}
+
+// assertStatus reports an error if the test user's entry for igdbID does not have status want. A nil want means no
+// status.
+func assertStatus(t *testing.T, server *Server, igdbID int64, want any) {
+	t.Helper()
+	if got := derefOrNil(userGameOf(t, server, igdbID).Status); got != want {
+		t.Errorf("status of %d = %v, want %v", igdbID, got, want)
+	}
+}
+
+func TestHandleEditLibrary(t *testing.T) {
+	tests := []struct {
+		name         string
+		path         string
+		body         string
+		wantLocation string
+		want1942     string
+		want194662   string
+	}{
+		{
+			name:         "two games",
+			path:         "/library/edit?status=backlog&sort=title&order=asc",
+			body:         "igdb_id=1942&igdb_id=194662&status=shelved",
+			wantLocation: "/library?order=asc&sort=title&status=backlog",
+			want1942:     "shelved",
+			want194662:   "shelved",
+		},
+		{
+			name:         "one game",
+			path:         "/library/edit?sort=added",
+			body:         "igdb_id=194662&status=playing",
+			wantLocation: "/library?order=desc&sort=added",
+			want1942:     "completed",
+			want194662:   "playing",
+		},
+		{
+			name:         "unknown game skipped",
+			path:         "/library/edit",
+			body:         "igdb_id=999&igdb_id=1942&status=retired",
+			wantLocation: "/library?order=asc&sort=title",
+			want1942:     "retired",
+			want194662:   "backlog",
+		},
+		{
+			name:         "select mode dropped",
+			path:         "/library/edit?select=true&sort=title&order=asc",
+			body:         "igdb_id=1942&status=shelved",
+			wantLocation: "/library?order=asc&sort=title",
+			want1942:     "shelved",
+			want194662:   "backlog",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			addBacklogAndCompletedGames(t, server)
+
+			w := postForm(t, server, tt.path, tt.body)
+
+			if w.Code != http.StatusSeeOther {
+				t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
+			}
+			assertLocation(t, w, tt.wantLocation)
+			assertStatus(t, server, 1942, tt.want1942)
+			assertStatus(t, server, 194662, tt.want194662)
+		})
+	}
+}
+
+func TestHandleEditLibraryValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		body string
+	}{
+		{"invalid query", "/library/edit?sort=bogus", "igdb_id=1942&status=shelved"},
+		{"no games", "/library/edit", "status=shelved"},
+		{"game only in the URL", "/library/edit?igdb_id=1942", "status=shelved"},
+		{"invalid id", "/library/edit", "igdb_id=abc&status=shelved"},
+		{"zero id", "/library/edit", "igdb_id=0&status=shelved"},
+		{"one invalid id", "/library/edit", "igdb_id=1942&igdb_id=-1&status=shelved"},
+		{"no status", "/library/edit", "igdb_id=1942"},
+		{"empty status", "/library/edit", "igdb_id=1942&status="},
+		{"invalid status", "/library/edit", "igdb_id=1942&status=bogus"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			addBacklogAndCompletedGames(t, server)
+
+			w := postForm(t, server, tt.path, tt.body)
+
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+			}
+			assertLocation(t, w, "")
+			assertStatus(t, server, 1942, "completed")
+		})
+	}
+}
+
+func TestHandleEditLibraryWishlistedGame(t *testing.T) {
+	server := newTestServer(t)
+	wishlistTestGame(t, server)
+
+	w := postForm(t, server, "/library/edit", "igdb_id=1942&status=shelved")
+
+	if w.Code != http.StatusSeeOther {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	assertLocation(t, w, "/library?order=asc&sort=title")
+	userGame := userGameOf(t, server, 1942)
+	if userGame.Status != nil {
+		t.Errorf("status of 1942 = %v, want %v", *userGame.Status, nil)
+	}
+	if !userGame.Wishlisted {
+		t.Errorf("Wishlisted = %v, want %v", userGame.Wishlisted, true)
+	}
+}
+
+func TestHandleEditLibraryOtherUser(t *testing.T) {
+	server := newTestServer(t)
+	addTestGame(t, server)
+	_, annaCookie := addSignedInUser(t, server, "anna")
+
+	w := serveWithCookie(t, server, http.MethodPost, "/library/edit", "igdb_id=1942&status=shelved", annaCookie)
+
+	if w.Code != http.StatusSeeOther {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusSeeOther)
+	}
+	assertStatus(t, server, 1942, "backlog")
+}
+
+func TestHandleEditLibraryDatabaseFailure(t *testing.T) {
+	server := newTestServer(t)
+
+	// Simulate a database failure by closing the database connection.
+	_ = server.store.Close()
+
+	w := postForm(t, server, "/library/edit", "igdb_id=1942&status=shelved")
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+	}
+	assertLocation(t, w, "")
 }
 
 func TestHandleRemoveFromLibrary(t *testing.T) {

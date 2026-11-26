@@ -13,52 +13,30 @@ import (
 )
 
 // libraryPage represents the data needed to render the library page: the filtered and sorted entries, the active
-// statuses with a toggle link for each status, the current and available sorts, and the order with the link that
-// reverses it.
+// statuses with a toggle link for each status, the current and available sorts, the order with the link that reverses
+// it, select mode with the link that switches it, the mass edit URL and the statuses that a mass edit offers.
 type libraryPage struct {
-	Games          []database.LibraryEntry
-	Statuses       []database.GameStatus
-	StatusToggles  []libraryStatusToggle
-	Sort           librarySort
-	SortOptions    []librarySortOption
-	Order          sortOrder
-	OrderToggleURL string
+	Games           []database.LibraryEntry
+	Statuses        []database.GameStatus
+	StatusToggles   []libraryStatusToggle
+	Sort            librarySort
+	SortOptions     []librarySortOption
+	Order           sortOrder
+	OrderToggleURL  string
+	Selecting       bool
+	SelectToggleURL string
+	EditURL         string
+	EditStatuses    []database.GameStatus
 }
 
-// handleLibrary renders the library page. It reads query values status (repeatable; none means all statuses, empty
-// values are skipped), sort (default title) and order (asc or desc; default from librarySort.DefaultOrder), and
+// handleLibrary renders the library page. It reads query values status, sort and order (see parseLibraryQuery), and
 // returns 400 for an unknown value.
 func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	statusQuery := r.URL.Query()["status"]
-	selectedStatus := make([]database.GameStatus, 0, len(statusQuery))
-	for _, s := range statusQuery {
-		if s == "" {
-			continue
-		}
-		if !database.GameStatus(s).Valid() {
-			server.renderError(w, r, http.StatusBadRequest, "Invalid game status")
-			return
-		}
-		selectedStatus = append(selectedStatus, database.GameStatus(s))
-	}
-
-	sort := librarySort(r.URL.Query().Get("sort"))
-	if sort == "" {
-		sort = librarySortTitle
-	}
-	if !sort.Valid() {
-		server.renderError(w, r, http.StatusBadRequest, "Invalid sort")
-		return
-	}
-
-	order := sortOrder(r.URL.Query().Get("order"))
-	if order == "" {
-		order = sort.DefaultOrder()
-	}
-	if !order.Valid() {
-		server.renderError(w, r, http.StatusBadRequest, "Invalid order")
+	query, ok := parseLibraryQuery(r.URL.Query())
+	if !ok {
+		server.renderError(w, r, http.StatusBadRequest, "Invalid filter or sort")
 		return
 	}
 
@@ -69,24 +47,68 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := libraryQuery{
-		Statuses: selectedStatus,
-		Sort:     sort,
-		Order:    order,
-	}
-
-	games = filterLibrary(games, selectedStatus)
-	games = sortLibrary(games, sort, order)
+	games = filterLibrary(games, query.Statuses)
+	games = sortLibrary(games, query.Sort, query.Order)
 
 	server.renderComponent(w, r, http.StatusOK, libraryView(libraryPage{
-		Games:          games,
-		Statuses:       selectedStatus,
-		StatusToggles:  query.StatusToggles(),
-		Sort:           sort,
-		SortOptions:    librarySortOptions(),
-		Order:          order,
-		OrderToggleURL: query.OrderToggleURL(),
+		Games:           games,
+		Statuses:        query.Statuses,
+		StatusToggles:   query.StatusToggles(),
+		Sort:            query.Sort,
+		SortOptions:     librarySortOptions(),
+		Order:           query.Order,
+		OrderToggleURL:  query.OrderToggleURL(),
+		Selecting:       query.Selecting,
+		SelectToggleURL: query.SelectToggleURL(),
+		EditURL:         query.EditURL(),
+		EditStatuses:    database.GameStatuses,
 	}))
+}
+
+// handleEditLibrary sets the status of several library games at once, see database.Store.EditLibraryGames. It reads
+// query values status, sort and order (the library page to return to, see parseLibraryQuery), and form values igdb_id
+// (repeatable, at least one) and status. It redirects to the library page with the same filter and sort, outside
+// select mode. Games that are not in the library are skipped, so a repeat gives the same result.
+func (server *Server) handleEditLibrary(w http.ResponseWriter, r *http.Request) {
+	query, ok := parseLibraryQuery(r.URL.Query())
+	if !ok {
+		server.renderError(w, r, http.StatusBadRequest, "Invalid filter or sort")
+		return
+	}
+
+	igdbIDs, ok := formPositiveInts(r, "igdb_id")
+	if !ok {
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
+		return
+	}
+	if len(igdbIDs) == 0 {
+		server.renderError(w, r, http.StatusBadRequest, "Select at least one game")
+		return
+	}
+
+	status := database.GameStatus(r.PostFormValue("status"))
+	if status == "" {
+		server.renderError(w, r, http.StatusBadRequest, "Choose a new status")
+		return
+	}
+	if !status.Valid() {
+		server.renderError(w, r, http.StatusBadRequest, "Invalid game status")
+		return
+	}
+
+	err := server.store.EditLibraryGames(r.Context(), currentUser(r).ID, igdbIDs, database.LibraryEdit{Status: &status})
+	if err != nil {
+		if errors.Is(err, database.ErrInvalidGameStatus) {
+			server.renderError(w, r, http.StatusBadRequest, "Invalid game status")
+			return
+		}
+		server.logger.Error("failed to edit library games", "error", err)
+		server.renderServerError(w, r)
+		return
+	}
+
+	query.Selecting = false
+	http.Redirect(w, r, query.URL(), http.StatusSeeOther)
 }
 
 // handleAddToLibrary adds a game or a DLC to the library. It reads path value igdbID and, for a game, form value
@@ -166,7 +188,6 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 		}
 	}
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
-
 }
 
 // handleRemoveFromWishlist removes a game from the wishlist. It reads path value igdbID and redirects to the home page.

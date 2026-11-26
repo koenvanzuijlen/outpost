@@ -74,6 +74,51 @@ document.addEventListener("change", function (event) {
   }
 });
 
+// updateSelectionCount shows the number of checked games of form in its [data-selection-count] element. It does nothing
+// if the form has no such element.
+function updateSelectionCount(form) {
+  const countField = form.querySelector("[data-selection-count]");
+  if (!countField) {
+    return;
+  }
+  const count = form.querySelectorAll('input[name="igdb_id"]:checked').length;
+  countField.textContent = `${count} selected`;
+}
+
+// A button with data-select="all" or "none" checks or unchecks every game of its form. Setting checked fires no change
+// event, so the count is updated here.
+document.addEventListener("click", function (event) {
+  const button = event.target.closest("[data-select]");
+  if (!button) {
+    return;
+  }
+  const form = button.form;
+  if (!form?.matches("[data-selection]")) {
+    return;
+  }
+  for (const input of form.querySelectorAll('input[name="igdb_id"]')) {
+    input.checked = button.dataset.select === "all";
+  }
+  updateSelectionCount(form);
+});
+
+// A change of a game checkbox in a form with data-selection updates the count of its form.
+document.addEventListener("change", function (event) {
+  if (event.target.matches('input[name="igdb_id"]')) {
+    const form = event.target.form;
+    if (form?.matches("[data-selection]")) {
+      updateSelectionCount(form);
+    }
+  }
+});
+
+// Shows the selection tools of each form with data-selection, and its first count. The browser can restore the checks
+// on a back navigation, so the first count is not always 0.
+for (const form of document.querySelectorAll("form[data-selection]")) {
+  form.querySelector("[data-selection-tools]")?.removeAttribute("hidden");
+  updateSelectionCount(form);
+}
+
 // Fills the time zone suggestions of the settings page with the time zones that the browser knows.
 for (const list of document.querySelectorAll("datalist[data-time-zones]")) {
   for (const tz of Intl.supportedValuesOf("timeZone")) {

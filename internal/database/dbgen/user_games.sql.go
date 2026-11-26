@@ -483,6 +483,46 @@ func (q *Queries) ListWishlistedUserGames(ctx context.Context, userID int64) ([]
 	return items, nil
 }
 
+const updateLibraryUserGamesStatus = `-- name: UpdateLibraryUserGamesStatus :exec
+UPDATE
+    user_games
+SET
+    status = ?1
+WHERE
+    user_id = ?2
+    AND NOT wishlisted
+    AND game_id IN (
+        SELECT
+            id
+        FROM
+            games
+        WHERE
+            igdb_id IN (/*SLICE:igdb_ids*/?))
+`
+
+type UpdateLibraryUserGamesStatusParams struct {
+	Status  *string
+	UserID  int64
+	IgdbIds []int64
+}
+
+func (q *Queries) UpdateLibraryUserGamesStatus(ctx context.Context, arg UpdateLibraryUserGamesStatusParams) error {
+	query := updateLibraryUserGamesStatus
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.Status)
+	queryParams = append(queryParams, arg.UserID)
+	if len(arg.IgdbIds) > 0 {
+		for _, v := range arg.IgdbIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:igdb_ids*/?", strings.Repeat(",?", len(arg.IgdbIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:igdb_ids*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
+	return err
+}
+
 const updateUserGameDetails = `-- name: UpdateUserGameDetails :execrows
 UPDATE
     user_games

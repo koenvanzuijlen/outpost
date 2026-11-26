@@ -329,6 +329,44 @@ func (s *Store) UpdateGameDetails(ctx context.Context, userID, igdbID int64, det
 	return nil
 }
 
+// LibraryEdit holds the changes of a mass edit, see EditLibraryGames. A nil field stays unchanged.
+type LibraryEdit struct {
+	Status *GameStatus
+}
+
+// EditLibraryGames applies edit to the user's library games with the given IGDB IDs, in one transaction. Games that are
+// not in the library, including wishlisted games, are skipped. An edit without changes or an empty ID list does
+// nothing. Returns ErrInvalidGameStatus if the status is unknown.
+func (s *Store) EditLibraryGames(ctx context.Context, userID int64, igdbIDs []int64, edit LibraryEdit) error {
+	if edit.Status != nil && !edit.Status.Valid() {
+		return ErrInvalidGameStatus
+	}
+	if len(igdbIDs) == 0 || edit.Status == nil {
+		return nil
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	q := dbgen.New(tx)
+
+	err = q.UpdateLibraryUserGamesStatus(ctx, dbgen.UpdateLibraryUserGamesStatusParams{
+		UserID:  userID,
+		Status:  edit.Status.StringPtr(),
+		IgdbIds: igdbIDs,
+	})
+	if err != nil {
+		return fmt.Errorf("update library user games status: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit tx: %w", err)
+	}
+	return nil
+}
+
 // RemoveUserGame removes a game from the user's library (wishlisted false) or wishlist (wishlisted true). What else
 // goes with it depends on the entry:
 //   - A library game: its copies, the DLC ownership on those copies, its playthroughs, and the library entries of its
