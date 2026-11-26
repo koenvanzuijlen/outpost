@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -63,6 +64,41 @@ func TestFormOptionalPositiveInt(t *testing.T) {
 				t.Errorf("formOptionalPositiveInt() = nil, want %v", *tt.want)
 			case tt.want != nil && *got != *tt.want:
 				t.Errorf("formOptionalPositiveInt() = %v, want %v", *got, *tt.want)
+			}
+		})
+	}
+}
+
+func TestFormPositiveInts(t *testing.T) {
+	tests := []struct {
+		name   string
+		body   string
+		want   []int64
+		wantOK bool
+	}{
+		{"two values", "igdb_id=1&igdb_id=20", []int64{1, 20}, true},
+		{"duplicates kept", "igdb_id=1&igdb_id=1", []int64{1, 1}, true},
+		{"no values", "", []int64{}, true},
+		{"other field", "other=1", []int64{}, true},
+		{"not a number", "igdb_id=abc", nil, false},
+		{"zero", "igdb_id=0", nil, false},
+		{"negative", "igdb_id=-3", nil, false},
+		{"empty value", "igdb_id=", nil, false},
+		{"one bad value", "igdb_id=1&igdb_id=abc", nil, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
+			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			got, ok := formPositiveInts(r, "igdb_id")
+			if ok != tt.wantOK {
+				t.Errorf("formPositiveInts() ok = %v, want %v", ok, tt.wantOK)
+			}
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("formPositiveInts() = %v, want %v", got, tt.want)
+			}
+			if !tt.wantOK && got != nil {
+				t.Errorf("formPositiveInts() = %v, want nil", got)
 			}
 		})
 	}

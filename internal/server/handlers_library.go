@@ -57,6 +57,51 @@ func (server *Server) handleLibrary(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// handleEditLibrary sets the status of several library games at once, see database.Store.EditLibraryGames. It reads
+// query values status, sort and order (the library page to return to, see parseLibraryQuery), and form values igdb_id
+// (repeatable, at least one) and status. It redirects to the library page with the same filter and sort. Games that
+// are not in the library are skipped, so a repeat gives the same result.
+func (server *Server) handleEditLibrary(w http.ResponseWriter, r *http.Request) {
+	query, ok := parseLibraryQuery(r.URL.Query())
+	if !ok {
+		server.renderError(w, r, http.StatusBadRequest, "Invalid filter or sort")
+		return
+	}
+
+	igdbIDs, ok := formPositiveInts(r, "igdb_id")
+	if !ok {
+		server.renderError(w, r, http.StatusBadRequest, "Invalid IGDB ID")
+		return
+	}
+	if len(igdbIDs) == 0 {
+		server.renderError(w, r, http.StatusBadRequest, "Select at least one game")
+		return
+	}
+
+	status := database.GameStatus(r.PostFormValue("status"))
+	if status == "" {
+		server.renderError(w, r, http.StatusBadRequest, "Choose a new status")
+		return
+	}
+	if !status.Valid() {
+		server.renderError(w, r, http.StatusBadRequest, "Invalid game status")
+		return
+	}
+
+	err := server.store.EditLibraryGames(r.Context(), currentUser(r).ID, igdbIDs, database.LibraryEdit{Status: &status})
+	if err != nil {
+		if errors.Is(err, database.ErrInvalidGameStatus) {
+			server.renderError(w, r, http.StatusBadRequest, "Invalid game status")
+			return
+		}
+		server.logger.Error("failed to edit library games", "error", err)
+		server.renderServerError(w, r)
+		return
+	}
+
+	http.Redirect(w, r, query.URL(), http.StatusSeeOther)
+}
+
 // handleAddToLibrary adds a game or a DLC to the library. It reads path value igdbID and, for a game, form value
 // platform_id (optional; without it the game is added as not owned). A DLC is added separately from its base game, see
 // database.Store.AddDLCToLibrary; it takes no platform_id. Other game types, such as bundles, get 400. It redirects to
@@ -134,7 +179,6 @@ func (server *Server) handleAddToLibrary(w http.ResponseWriter, r *http.Request)
 		}
 	}
 	http.Redirect(w, r, "/games/"+strconv.FormatInt(igdbID, 10), http.StatusSeeOther)
-
 }
 
 // handleRemoveFromWishlist removes a game from the wishlist. It reads path value igdbID and redirects to the home page.

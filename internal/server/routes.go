@@ -29,6 +29,7 @@ func (server *Server) routes() {
 	server.mux.Handle("POST /games/{igdbID}/wishlist/remove", server.requireUser(server.handleRemoveFromWishlist))
 	server.mux.Handle("POST /games/{igdbID}/library", server.requireUser(server.handleAddToLibrary))
 	server.mux.Handle("POST /games/{igdbID}/library/remove", server.requireUser(server.handleRemoveFromLibrary))
+	server.mux.Handle("POST /library/edit", server.requireUser(server.handleEditLibrary))
 	server.mux.Handle("POST /games/{igdbID}/details", server.requireUser(server.handleUpdateGameDetails))
 	server.mux.Handle("POST /games/{igdbID}/copies", server.requireUser(server.handleAddOwnedCopy))
 	server.mux.Handle("POST /games/{igdbID}/copies/{platformIGDBID}/remove", server.requireUser(server.handleRemoveOwnedCopy))

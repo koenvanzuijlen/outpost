@@ -30,6 +30,26 @@ func formOptionalPositiveInt(r *http.Request, name string) (*int64, bool) {
 	return &parsed, true
 }
 
+// formPositiveInts returns every form value name from the POST body as a positive int64, in the order of the body. No
+// values give an empty slice and true. A value that isn't a positive integer, or a body that doesn't parse, gives nil
+// and false.
+func formPositiveInts(r *http.Request, name string) ([]int64, bool) {
+	err := r.ParseForm()
+	if err != nil {
+		return nil, false
+	}
+
+	result := make([]int64, 0, len(r.PostForm[name]))
+	for _, v := range r.PostForm[name] {
+		parsed, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || parsed <= 0 {
+			return nil, false
+		}
+		result = append(result, parsed)
+	}
+	return result, true
+}
+
 // formOptionalDate returns form value name from the POST body as a date (2006-01-02, midnight UTC). An empty value
 // gives nil and true; a value that isn't a valid date gives nil and false.
 func formOptionalDate(r *http.Request, name string) (*time.Time, bool) {
