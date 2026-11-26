@@ -17,10 +17,12 @@ func gameStatusIcon(status database.GameStatus) string {
 		return "trophy"
 	case database.GameStatusShelved:
 		return "pause"
-	case database.GameStatusAbandoned:
-		return "circle-x"
 	case database.GameStatusRetired:
 		return "archive"
+	case database.GameStatusAbandoned:
+		return "circle-x"
+	case database.GameStatusUninterested:
+		return "eye-off"
 	}
 	return ""
 }

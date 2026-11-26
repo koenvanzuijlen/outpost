@@ -81,6 +81,6 @@ Rules that follow from it:
 
 - **Ownership and the library are separate.** Adding a game to the library asks where you own it, with "Not owned" as an option. DLC can be owned per copy without being in the library, and added to the library without being owned.
 - **Remove vs delete.** _Remove_ takes something out of a set: a game from the library or wishlist, a copy from a game. _Delete_ destroys a record: a playthrough.
-- **Status vs outcome.** A library entry has a _status_ (backlog, playing, completed, shelved, abandoned, retired). A playthrough has an _outcome_ (playing, completed, abandoned, retired); `playing` is shown as "in progress".
+- **Status vs outcome.** A library entry has a _status_ (backlog, playing, completed, shelved, retired, abandoned, uninterested). A playthrough has an _outcome_ (playing, completed, retired, abandoned); `playing` is shown as "in progress".
 - **Account and user.** The UI says "account". The code and the database say "user" (`users`, `user_id`, `currentUser`).
 - **UI text** uses sentence case and "DLC" for both singular and plural.

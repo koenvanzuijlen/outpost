@@ -13,12 +13,13 @@ type GameStatus string
 
 // The game statuses. Values are stored as text and validated in Go (Valid).
 const (
-	GameStatusBacklog   GameStatus = "backlog"
-	GameStatusPlaying   GameStatus = "playing"
-	GameStatusCompleted GameStatus = "completed"
-	GameStatusShelved   GameStatus = "shelved"
-	GameStatusAbandoned GameStatus = "abandoned"
-	GameStatusRetired   GameStatus = "retired"
+	GameStatusBacklog      GameStatus = "backlog"
+	GameStatusPlaying      GameStatus = "playing"
+	GameStatusCompleted    GameStatus = "completed"
+	GameStatusShelved      GameStatus = "shelved"
+	GameStatusAbandoned    GameStatus = "abandoned"
+	GameStatusRetired      GameStatus = "retired"
+	GameStatusUninterested GameStatus = "uninterested"
 )
 
 // GameStatuses contains all possible game statuses, in the order they should be displayed.
@@ -27,13 +28,23 @@ var GameStatuses = []GameStatus{
 	GameStatusPlaying,
 	GameStatusCompleted,
 	GameStatusShelved,
-	GameStatusAbandoned,
 	GameStatusRetired,
+	GameStatusAbandoned,
+	GameStatusUninterested,
 }
 
 // Valid reports whether s is a known game status.
 func (s GameStatus) Valid() bool {
 	return slices.Contains(GameStatuses, s)
+}
+
+// notStarted reports whether s means that the game has not been started: backlog or uninterested.
+func (s GameStatus) notStarted() bool {
+	switch s {
+	case GameStatusBacklog, GameStatusUninterested:
+		return true
+	}
+	return false
 }
 
 // StringPtr returns s as a *string, for the nullable status column.

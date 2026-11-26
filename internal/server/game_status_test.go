@@ -31,6 +31,7 @@ func TestGameStatusLabel(t *testing.T) {
 		want   string
 	}{
 		{"playing", "Playing"},
+		{"uninterested", "Uninterested"},
 		{"", ""},
 	}
 	for _, tt := range tests {

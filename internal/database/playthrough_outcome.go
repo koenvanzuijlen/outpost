@@ -16,16 +16,16 @@ type PlaythroughOutcome string
 const (
 	PlaythroughOutcomePlaying   PlaythroughOutcome = "playing"
 	PlaythroughOutcomeCompleted PlaythroughOutcome = "completed"
-	PlaythroughOutcomeAbandoned PlaythroughOutcome = "abandoned"
 	PlaythroughOutcomeRetired   PlaythroughOutcome = "retired"
+	PlaythroughOutcomeAbandoned PlaythroughOutcome = "abandoned"
 )
 
 // PlaythroughOutcomes contains all possible playthrough outcomes, in the order they should be displayed.
 var PlaythroughOutcomes = []PlaythroughOutcome{
 	PlaythroughOutcomePlaying,
 	PlaythroughOutcomeCompleted,
-	PlaythroughOutcomeAbandoned,
 	PlaythroughOutcomeRetired,
+	PlaythroughOutcomeAbandoned,
 }
 
 // Valid reports whether o is a known playthrough outcome.
