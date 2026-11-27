@@ -49,31 +49,43 @@
 
 @layer base {
   :root {
-    color-scheme: light;
+    color-scheme: light dark;
+
+    /* Each color is light-dark(<light value>, <dark value>). color-scheme picks the value: "light dark" follows the
+       system. */
 
     /* Neutrals: hue 250 (slate blue-grey), low chroma */
-    --color-bg: oklch(0.98 0.004 250);
-    --color-surface: oklch(1 0.004 250);
-    --color-border: oklch(0.85 0.006 250);
-    --color-border-strong: oklch(0.62 0.01 250);
-    --color-text: oklch(0.25 0.012 250);
-    --color-text-muted: oklch(0.48 0.012 250);
+    --color-bg: light-dark(oklch(0.98 0.004 250), oklch(0.18 0.01 250));
+    --color-surface: light-dark(oklch(1 0.004 250), oklch(0.23 0.012 250));
+    --color-border: light-dark(oklch(0.85 0.006 250), oklch(0.36 0.012 250));
+    --color-border-strong: light-dark(
+      oklch(0.62 0.01 250),
+      oklch(0.55 0.012 250)
+    );
+    --color-text: light-dark(oklch(0.25 0.012 250), oklch(0.93 0.008 250));
+    --color-text-muted: light-dark(oklch(0.48 0.012 250), oklch(0.72 0.01 250));
 
     /* Accent: teal (hue 200), distinct from every status hue */
-    --color-accent: oklch(0.52 0.12 200);
-    --color-accent-hover: oklch(0.44 0.13 200);
-    --color-accent-text: oklch(0.99 0.004 250);
+    --color-accent: light-dark(oklch(0.52 0.12 200), oklch(0.75 0.11 200));
+    --color-accent-hover: light-dark(oklch(0.44 0.13 200), oklch(0.82 0.1 200));
+    --color-accent-text: light-dark(
+      oklch(0.99 0.004 250),
+      oklch(0.18 0.01 250)
+    );
 
-    --color-focus: oklch(0.52 0.15 250);
+    --color-focus: light-dark(oklch(0.52 0.15 250), oklch(0.75 0.13 250));
 
     /* Danger: red (hue 27), for buttons that destroy data. The text has at least 4.5:1 contrast against the surface. */
-    --color-danger: oklch(0.52 0.19 27);
-    --color-danger-hover: oklch(0.45 0.18 27);
-    --color-danger-bg: oklch(0.97 0.02 27);
-    --color-danger-text: oklch(0.99 0.004 250);
+    --color-danger: light-dark(oklch(0.52 0.19 27), oklch(0.7 0.17 27));
+    --color-danger-hover: light-dark(oklch(0.45 0.18 27), oklch(0.77 0.15 27));
+    --color-danger-bg: light-dark(oklch(0.97 0.02 27), oklch(0.28 0.06 27));
+    --color-danger-text: light-dark(
+      oklch(0.99 0.004 250),
+      oklch(0.18 0.01 250)
+    );
 
     /* Rating stars: gold (hue 80), with at least 3:1 contrast against the surface */
-    --color-star: oklch(0.62 0.13 80);
+    --color-star: light-dark(oklch(0.62 0.13 80), oklch(0.8 0.14 85));
   }
 
   html {
@@ -185,7 +197,8 @@
     border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     background: var(--color-surface);
-    box-shadow: 0 0.5rem 1.5rem oklch(0 0 0 / 0.12);
+    box-shadow: 0 0.5rem 1.5rem
+      light-dark(oklch(0 0 0 / 0.12), oklch(0 0 0 / 0.5));
   }
 
   .account-menu__list {
@@ -287,10 +300,20 @@
     align-items: center;
     gap: 0.25rem;
     padding: 0.125rem 0.5rem;
-    border: 1px solid oklch(0.8 var(--badge-chroma) var(--badge-hue));
+    border: 1px solid
+      light-dark(
+        oklch(0.8 var(--badge-chroma) var(--badge-hue)),
+        oklch(0.5 var(--badge-chroma) var(--badge-hue))
+      );
     border-radius: 999px;
-    background: oklch(0.95 calc(var(--badge-chroma) * 0.3) var(--badge-hue));
-    color: oklch(0.42 var(--badge-chroma) var(--badge-hue));
+    background: light-dark(
+      oklch(0.95 calc(var(--badge-chroma) * 0.3) var(--badge-hue)),
+      oklch(0.28 calc(var(--badge-chroma) * 0.4) var(--badge-hue))
+    );
+    color: light-dark(
+      oklch(0.42 var(--badge-chroma) var(--badge-hue)),
+      oklch(0.84 var(--badge-chroma) var(--badge-hue))
+    );
     font-size: 0.875rem;
     font-weight: 500;
     line-height: 1.5;
@@ -349,7 +372,10 @@
   .status-filter__toggle:hover .badge,
   .status-picker__option:hover .badge,
   .game-playthrough__outcome:hover .badge {
-    border-color: oklch(0.6 var(--badge-chroma) var(--badge-hue));
+    border-color: light-dark(
+      oklch(0.6 var(--badge-chroma) var(--badge-hue)),
+      oklch(0.7 var(--badge-chroma) var(--badge-hue))
+    );
   }
 
   /* All badge colors derive from the chroma, so a chroma of 0 makes the badge grey. The dashed border and the open
@@ -856,7 +882,8 @@
     border: 1px solid var(--color-border);
     border-radius: 0.5rem;
     background: var(--color-surface);
-    box-shadow: 0 0.25rem 1rem oklch(0.25 0.012 250 / 0.15);
+    box-shadow: 0 0.25rem 1rem
+      light-dark(oklch(0.25 0.012 250 / 0.15), oklch(0 0 0 / 0.5));
   }
 
   /* An element with the hidden attribute stays hidden: display on the class would show it. */
