@@ -1,0 +1,40 @@
+package server
+
+// settingsPreferencesView is the preferences page of the settings: the time zone. Each section shows the message of
+// its failed change.
+templ settingsPreferencesView(page settingsPreferencesPage) {
+	@settingsLayout("/settings/preferences") {
+		<h1>Preferences</h1>
+		if page.Saved != "" {
+			<p class="settings__saved" role="status">{ page.Saved }</p>
+		}
+		@settingsSection("Time zone") {
+			<form class="account-form" method="post" action="/settings/preferences/time-zone">
+				if page.TimeZoneError != "" {
+					@accountFormError(page.TimeZoneError)
+				}
+				<label class="account-form__field">
+					Time zone
+					<input
+						class="account-form__input"
+						type="text"
+						name="time_zone"
+						list="time-zones"
+						autocomplete="off"
+						value={ page.TimeZone }
+						placeholder={ page.ServerTimeZone }
+					/>
+					<span class="account-form__hint">
+						if page.ServerTimeZone != "" {
+							Leave empty to use the server time zone ({ page.ServerTimeZone }).
+						} else {
+							Leave empty to use the server time zone.
+						}
+					</span>
+				</label>
+				<datalist id="time-zones" data-time-zones></datalist>
+				<button class="account-form__submit" type="submit">Save time zone</button>
+			</form>
+		}
+	}
+}

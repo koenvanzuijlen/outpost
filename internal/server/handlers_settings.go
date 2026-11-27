@@ -10,50 +10,41 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
-// settingsPage is the data for settingsView. Saved is the message of a successful change. UsernameError, PasswordError
-// and TimeZoneError are the messages of a failed change in that section. Username and TimeZone are the values of the
-// username and time zone fields. ServerTimeZone is the name of the server time zone, or "" if it has no name.
-type settingsPage struct {
-	User           database.User
-	Username       string
-	TimeZone       string
-	ServerTimeZone string
-	Saved          string
-	UsernameError  string
-	PasswordError  string
-	TimeZoneError  string
+// settingsAccountPage is the data for settingsAccountView. Saved is the message of a successful change.
+// UsernameError and PasswordError are the messages of a failed change in that section. Username is the value of the
+// username field.
+type settingsAccountPage struct {
+	Saved         string
+	User          database.User
+	Username      string
+	UsernameError string
+	PasswordError string
 }
 
-// savedMessages maps the saved query value to the message that the settings page shows after a successful change.
-var savedMessages = map[string]string{
-	"username":  "Username saved.",
-	"password":  "Password changed. Other sessions are signed out.",
-	"time-zone": "Time zone saved.",
+// accountSavedMessages maps the saved query value to the message that the account page shows after a successful change.
+var accountSavedMessages = map[string]string{
+	"username": "Username saved.",
+	"password": "Password changed. Other sessions are signed out.",
 }
 
-// renderSettings renders the settings page of the signed-in user with status. It fills page.User and
-// page.ServerTimeZone, page.Username when it is empty, and page.TimeZone when it is empty and no time zone error is
-// set.
-func (server *Server) renderSettings(w http.ResponseWriter, r *http.Request, status int, page settingsPage) {
+// renderSettingsAccount renders the account page of the settings of the signed-in user with status. It fills
+// page.User, and page.Username when it is empty.
+func (server *Server) renderSettingsAccount(w http.ResponseWriter, r *http.Request, status int, page settingsAccountPage) {
 	page.User = currentUser(r)
 	if page.Username == "" {
 		page.Username = page.User.Username
 	}
-	if page.TimeZone == "" && page.TimeZoneError == "" && page.User.TimeZone != nil {
-		page.TimeZone = *page.User.TimeZone
-	}
-	page.ServerTimeZone = serverTimeZoneLabel()
 	server.renderComponent(w, r, status, settingsAccountView(page))
 }
 
-// handleSettings renders the settings of the signed-in user. It reads query value saved, and shows the message of a
-// successful change for a known value.
-func (server *Server) handleSettings(w http.ResponseWriter, r *http.Request) {
+// handleSettingsAccount renders the account page of the settings. It reads query value saved, and shows the message
+// of a successful change for a known value.
+func (server *Server) handleSettingsAccount(w http.ResponseWriter, r *http.Request) {
 	saved := r.URL.Query().Get("saved")
-	page := settingsPage{
-		Saved: savedMessages[saved],
+	page := settingsAccountPage{
+		Saved: accountSavedMessages[saved],
 	}
-	server.renderSettings(w, r, http.StatusOK, page)
+	server.renderSettingsAccount(w, r, http.StatusOK, page)
 }
 
 // handleChangeUsername changes the username of the signed-in user. It reads form value username, and redirects to the
@@ -63,7 +54,7 @@ func (server *Server) handleChangeUsername(w http.ResponseWriter, r *http.Reques
 
 	username := normalizeUsername(r.PostFormValue("username"))
 	if !validUsername(username) {
-		server.renderSettings(w, r, http.StatusBadRequest, settingsPage{
+		server.renderSettingsAccount(w, r, http.StatusBadRequest, settingsAccountPage{
 			Username:      username,
 			UsernameError: usernameRule,
 		})
@@ -73,7 +64,7 @@ func (server *Server) handleChangeUsername(w http.ResponseWriter, r *http.Reques
 	err := server.store.RenameUser(r.Context(), user.ID, username)
 	if err != nil {
 		if errors.Is(err, database.ErrUsernameTaken) {
-			server.renderSettings(w, r, http.StatusBadRequest, settingsPage{
+			server.renderSettingsAccount(w, r, http.StatusBadRequest, settingsAccountPage{
 				Username:      username,
 				UsernameError: "This username is taken",
 			})
@@ -98,14 +89,14 @@ func (server *Server) handleChangePassword(w http.ResponseWriter, r *http.Reques
 	newPasswordConfirm := r.PostFormValue("new_password_confirm")
 
 	if problem := passwordProblem(newPassword); problem != "" {
-		server.renderSettings(w, r, http.StatusBadRequest, settingsPage{
+		server.renderSettingsAccount(w, r, http.StatusBadRequest, settingsAccountPage{
 			PasswordError: problem,
 		})
 		return
 	}
 
 	if newPassword != newPasswordConfirm {
-		server.renderSettings(w, r, http.StatusBadRequest, settingsPage{
+		server.renderSettingsAccount(w, r, http.StatusBadRequest, settingsAccountPage{
 			PasswordError: "The passwords do not match",
 		})
 		return
@@ -120,7 +111,7 @@ func (server *Server) handleChangePassword(w http.ResponseWriter, r *http.Reques
 
 	ok, err := auth.VerifyPassword(currentHash, currentPassword)
 	if err != nil || !ok {
-		server.renderSettings(w, r, http.StatusBadRequest, settingsPage{
+		server.renderSettingsAccount(w, r, http.StatusBadRequest, settingsAccountPage{
 			PasswordError: "The current password is wrong",
 		})
 		return
@@ -136,15 +127,52 @@ func (server *Server) handleChangePassword(w http.ResponseWriter, r *http.Reques
 	http.Redirect(w, r, "/settings/account?saved=password", http.StatusSeeOther)
 }
 
+// settingsPreferencesPage is the data for settingsPreferencesView. Saved is the message of a successful change.
+// TimeZoneError is the message of a failed time zone change. TimeZone is the value of the time zone field.
+// ServerTimeZone is the name of the server time zone, or "" if it has no name.
+type settingsPreferencesPage struct {
+	Saved          string
+	TimeZone       string
+	ServerTimeZone string
+	TimeZoneError  string
+}
+
+// preferencesSavedMessages maps the saved query value to the message that the preferences page shows after a
+// successful change.
+var preferencesSavedMessages = map[string]string{
+	"time-zone": "Time zone saved.",
+}
+
+// renderSettingsPreferences renders the preferences page of the settings of the signed-in user with status. It fills
+// page.ServerTimeZone, and page.TimeZone when it is empty and no time zone error is set.
+func (server *Server) renderSettingsPreferences(w http.ResponseWriter, r *http.Request, status int, page settingsPreferencesPage) {
+	user := currentUser(r)
+	if page.TimeZone == "" && page.TimeZoneError == "" && user.TimeZone != nil {
+		page.TimeZone = *user.TimeZone
+	}
+	page.ServerTimeZone = serverTimeZoneLabel()
+	server.renderComponent(w, r, status, settingsPreferencesView(page))
+}
+
+// handleSettingsPreferences renders the preferences page of the settings. It reads query value saved, and shows the
+// message of a successful change for a known value.
+func (server *Server) handleSettingsPreferences(w http.ResponseWriter, r *http.Request) {
+	saved := r.URL.Query().Get("saved")
+	page := settingsPreferencesPage{
+		Saved: preferencesSavedMessages[saved],
+	}
+	server.renderSettingsPreferences(w, r, http.StatusOK, page)
+}
+
 // handleSetTimeZone stores the time zone of the signed-in user. An empty value selects the time zone of the server. It
-// reads form value time_zone, and redirects to the account page of the settings.
+// reads form value time_zone, and redirects to the preferences page of the settings.
 func (server *Server) handleSetTimeZone(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.PostFormValue("time_zone"))
 	var timeZone *string
 	if name != "" {
 		_, err := time.LoadLocation(name)
 		if err != nil || name == "Local" {
-			server.renderSettings(w, r, http.StatusBadRequest, settingsPage{TimeZone: name, TimeZoneError: "Choose a time zone from the list"})
+			server.renderSettingsPreferences(w, r, http.StatusBadRequest, settingsPreferencesPage{TimeZone: name, TimeZoneError: "Choose a time zone from the list"})
 			return
 		}
 		timeZone = &name
@@ -157,7 +185,7 @@ func (server *Server) handleSetTimeZone(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	http.Redirect(w, r, "/settings/account?saved=time-zone", http.StatusSeeOther)
+	http.Redirect(w, r, "/settings/preferences?saved=time-zone", http.StatusSeeOther)
 }
 
 // serverTimeZoneLabel returns the name of the server time zone for the settings page, or "" if Go knows the zone only

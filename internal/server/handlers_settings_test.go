@@ -7,23 +7,27 @@ import (
 	"github.com/koenvanzuijlen/outpost/internal/auth"
 )
 
-// TestHandleSettingsSaved checks which success message the settings page shows for the saved query value.
+// TestHandleSettingsSaved checks which success message each settings page shows for the saved query value. A message
+// shows only on the page of its form.
 func TestHandleSettingsSaved(t *testing.T) {
 	tests := []struct {
+		path       string
 		query      string
 		wantBody   string
 		unwantBody string
 	}{
-		{query: "?saved=username", wantBody: "Username saved."},
-		{query: "?saved=password", wantBody: "Password changed."},
-		{query: "?saved=time-zone", wantBody: "Time zone saved."},
-		{query: "?saved=bogus", unwantBody: `role="status"`},
+		{path: "/settings/account", query: "?saved=username", wantBody: "Username saved."},
+		{path: "/settings/account", query: "?saved=password", wantBody: "Password changed."},
+		{path: "/settings/account", query: "?saved=time-zone", unwantBody: `role="status"`},
+		{path: "/settings/account", query: "?saved=bogus", unwantBody: `role="status"`},
+		{path: "/settings/preferences", query: "?saved=time-zone", wantBody: "Time zone saved."},
+		{path: "/settings/preferences", query: "?saved=username", unwantBody: `role="status"`},
 	}
 	for _, tt := range tests {
-		t.Run(tt.query, func(t *testing.T) {
+		t.Run(tt.path+tt.query, func(t *testing.T) {
 			server := newTestServer(t)
 
-			w := getPage(t, server, "/settings/account"+tt.query)
+			w := getPage(t, server, tt.path+tt.query)
 			if tt.wantBody != "" {
 				assertBodyContains(t, w, tt.wantBody)
 			}
@@ -74,9 +78,9 @@ func TestHandleSetTimeZone(t *testing.T) {
 		wantLocation string
 		wantStored   *string
 	}{
-		{"zone", "time_zone=Europe%2FAmsterdam", http.StatusSeeOther, "/settings/account?saved=time-zone", new("Europe/Amsterdam")},
-		{"spaces", "time_zone=+UTC+", http.StatusSeeOther, "/settings/account?saved=time-zone", new("UTC")},
-		{"empty", "time_zone=", http.StatusSeeOther, "/settings/account?saved=time-zone", nil},
+		{"zone", "time_zone=Europe%2FAmsterdam", http.StatusSeeOther, "/settings/preferences?saved=time-zone", new("Europe/Amsterdam")},
+		{"spaces", "time_zone=+UTC+", http.StatusSeeOther, "/settings/preferences?saved=time-zone", new("UTC")},
+		{"empty", "time_zone=", http.StatusSeeOther, "/settings/preferences?saved=time-zone", nil},
 		{"unknown", "time_zone=Mars%2FOlympus_Mons", http.StatusBadRequest, "", nil},
 		{"local", "time_zone=Local", http.StatusBadRequest, "", nil},
 	}
@@ -84,7 +88,7 @@ func TestHandleSetTimeZone(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
 
-			w := postForm(t, server, "/settings/account/time-zone", tt.body)
+			w := postForm(t, server, "/settings/preferences/time-zone", tt.body)
 			if w.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
 			}
@@ -97,6 +101,40 @@ func TestHandleSetTimeZone(t *testing.T) {
 			got := user.TimeZone
 			if (got == nil) != (tt.wantStored == nil) || (got != nil && *got != *tt.wantStored) {
 				t.Errorf("UserByUsername() time zone = %v, want %v", derefOrNil(got), derefOrNil(tt.wantStored))
+			}
+		})
+	}
+}
+
+// TestHandleSettingsPreferencesTimeZone checks that the time zone field of the preferences page shows the stored time
+// zone of the user.
+func TestHandleSettingsPreferencesTimeZone(t *testing.T) {
+	tests := []struct {
+		name       string
+		stored     *string
+		wantFilled bool
+	}{
+		{"none", nil, false},
+		{"stored", new("Europe/Amsterdam"), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			if tt.stored != nil {
+				err := server.store.SetUserTimeZone(t.Context(), testUserID, tt.stored)
+				if err != nil {
+					t.Fatalf("SetUserTimeZone() error = %v", err)
+				}
+			}
+
+			w := getPage(t, server, "/settings/preferences")
+			if w.Code != http.StatusOK {
+				t.Fatalf("GET /settings/preferences status = %d, want %d", w.Code, http.StatusOK)
+			}
+			if tt.wantFilled {
+				assertBodyContains(t, w, `value="Europe/Amsterdam"`)
+			} else {
+				assertBodyNotContains(t, w, `value="Europe/Amsterdam"`)
 			}
 		})
 	}
