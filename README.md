@@ -1,4 +1,6 @@
-# Outpost
+<h1 align="center">
+  <img src=".github/assets/readme-logo.svg" alt="Outpost" width="306" height="96">
+</h1>
 
 A self-hosted game tracker: log the games you play, rate them, record playthroughs, and keep track of what you own on which platform. Game data comes from [IGDB](https://www.igdb.com/).
 
