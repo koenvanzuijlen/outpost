@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.0](https://github.com/koenvanzuijlen/outpost/compare/v1.1.0...v1.2.0) (2026-11-27)
+
+
+### Features
+
+* add a dark theme and a theme setting in the preferences ([#62](https://github.com/koenvanzuijlen/outpost/issues/62)) ([c61e62c](https://github.com/koenvanzuijlen/outpost/commit/c61e62c21dcd593874686b0c0de3f1bf3b36bc29))
+* **library:** add the status uninterested ([#61](https://github.com/koenvanzuijlen/outpost/issues/61)) ([2aa6c4a](https://github.com/koenvanzuijlen/outpost/commit/2aa6c4acaa073e11f2c6ad053bc6e48cf1818203))
+* **library:** change the status of several games at once ([#59](https://github.com/koenvanzuijlen/outpost/issues/59)) ([634e993](https://github.com/koenvanzuijlen/outpost/commit/634e9936c7c6802fd41f39b51d50d60bc99718de))
+* replace the icon with a tent between pines ([#63](https://github.com/koenvanzuijlen/outpost/issues/63)) ([e40a021](https://github.com/koenvanzuijlen/outpost/commit/e40a0215244f9381a100f26fca156b41e20f15b1))
+
 ## [1.1.0](https://github.com/koenvanzuijlen/outpost/compare/v1.0.0...v1.1.0) (2026-11-25)
 
 
