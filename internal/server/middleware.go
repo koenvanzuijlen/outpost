@@ -8,8 +8,9 @@ import (
 
 // contentSecurityPolicyValue is the Content-Security-Policy of every response. Scripts, styles and fonts load only
 // from Outpost, and images also from the IGDB image server. Inline scripts, event handlers and style attributes are
-// blocked. Forms submit only to Outpost, and other sites cannot show Outpost in a frame.
-const contentSecurityPolicyValue = "default-src 'self'; img-src 'self' https://images.igdb.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+// blocked. The only inline style that loads is the <style> element of favicon.svg, allowed by its SHA-256 hash.
+// Forms submit only to Outpost, and other sites cannot show Outpost in a frame.
+const contentSecurityPolicyValue = "default-src 'self'; img-src 'self' https://images.igdb.com; style-src 'self' 'sha256-ZHFz94GDLcPbjwPI4KK3hJmG8eaKEnc9V+zZi62TC6k='; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 
 // statusRecorder wraps a response writer to save the status code.
 type statusRecorder struct {
