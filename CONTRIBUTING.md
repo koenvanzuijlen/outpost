@@ -76,6 +76,7 @@ These terms are used the same way in the UI, the code and the database.
 | **admin**             | An account with the role `admin`. The first account is an admin.                                          | `users.role`                              |
 | **sign in, sign out** | Start and end a session. The UI never says "log in" or "log out".                                         | `/sign-in`, `/sign-out`                   |
 | **session**           | The period in which a browser stays signed in. It lasts 30 days after its last use.                       | `sessions`                                |
+| **theme**             | The colors of the pages: "Follow system", "Light" or "Dark". A setting per account.                       | `users.theme`                             |
 
 Rules that follow from it:
 

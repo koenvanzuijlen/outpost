@@ -88,6 +88,15 @@
     --color-star: light-dark(oklch(0.62 0.13 80), oklch(0.8 0.14 85));
   }
 
+  /* A fixed theme of the user overrides the system theme. The theme "system" has no rule, so it keeps "light dark". */
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
   html {
     font-family: "DM Sans", system-ui, sans-serif;
   }
@@ -1357,6 +1366,37 @@
     border-radius: 0.5rem;
     background: var(--color-danger-bg);
     color: var(--color-danger);
+  }
+
+  /* The fieldset loses its browser frame. The legend looks like the label text of a field. A rendered legend is not a
+     grid item, so the gap of the fieldset does not apply to it: its margin sets the distance to the choices. */
+  .account-form__choices {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .account-form__legend {
+    margin-block-end: 0.25rem;
+    padding: 0;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .account-form__choice {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+
+  .account-form__radio {
+    margin: 0;
+    accent-color: var(--color-accent);
+    cursor: pointer;
   }
 
   /* The settings page has wider sections than the sign-in page. This rule comes after .account-page, so its width

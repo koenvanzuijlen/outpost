@@ -128,27 +128,34 @@ func (server *Server) handleChangePassword(w http.ResponseWriter, r *http.Reques
 }
 
 // settingsPreferencesPage is the data for settingsPreferencesView. Saved is the message of a successful change.
-// TimeZoneError is the message of a failed time zone change. TimeZone is the value of the time zone field.
-// ServerTimeZone is the name of the server time zone, or "" if it has no name.
+// ThemeError and TimeZoneError are the messages of a failed change in that section. Theme is the checked theme.
+// TimeZone is the value of the time zone field. ServerTimeZone is the name of the server time zone, or "" if it has
+// no name.
 type settingsPreferencesPage struct {
 	Saved          string
 	TimeZone       string
 	ServerTimeZone string
 	TimeZoneError  string
+	Theme          database.Theme
+	ThemeError     string
 }
 
 // preferencesSavedMessages maps the saved query value to the message that the preferences page shows after a
 // successful change.
 var preferencesSavedMessages = map[string]string{
 	"time-zone": "Time zone saved.",
+	"theme":     "Theme saved.",
 }
 
 // renderSettingsPreferences renders the preferences page of the settings of the signed-in user with status. It fills
-// page.ServerTimeZone, and page.TimeZone when it is empty and no time zone error is set.
+// page.ServerTimeZone, page.Theme when it is empty, and page.TimeZone when it is empty and no time zone error is set.
 func (server *Server) renderSettingsPreferences(w http.ResponseWriter, r *http.Request, status int, page settingsPreferencesPage) {
 	user := currentUser(r)
 	if page.TimeZone == "" && page.TimeZoneError == "" && user.TimeZone != nil {
 		page.TimeZone = *user.TimeZone
+	}
+	if page.Theme == "" {
+		page.Theme = user.Theme
 	}
 	page.ServerTimeZone = serverTimeZoneLabel()
 	server.renderComponent(w, r, status, settingsPreferencesView(page))
@@ -162,6 +169,25 @@ func (server *Server) handleSettingsPreferences(w http.ResponseWriter, r *http.R
 		Saved: preferencesSavedMessages[saved],
 	}
 	server.renderSettingsPreferences(w, r, http.StatusOK, page)
+}
+
+// handleSetTheme stores the theme of the signed-in user. It reads form value theme, and redirects to the preferences
+// page of the settings. The current theme counts as success.
+func (server *Server) handleSetTheme(w http.ResponseWriter, r *http.Request) {
+	theme := database.Theme(r.PostFormValue("theme"))
+	if !theme.Valid() {
+		server.renderSettingsPreferences(w, r, http.StatusBadRequest, settingsPreferencesPage{ThemeError: "Choose a theme"})
+		return
+	}
+
+	err := server.store.SetUserTheme(r.Context(), currentUser(r).ID, theme)
+	if err != nil {
+		server.logger.Error("failed to set theme", "error", err)
+		server.renderServerError(w, r)
+		return
+	}
+
+	http.Redirect(w, r, "/settings/preferences?saved=theme", http.StatusSeeOther)
 }
 
 // handleSetTimeZone stores the time zone of the signed-in user. An empty value selects the time zone of the server. It

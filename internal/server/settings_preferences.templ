@@ -1,12 +1,37 @@
 package server
 
-// settingsPreferencesView is the preferences page of the settings: the time zone. Each section shows the message of
-// its failed change.
+import "github.com/koenvanzuijlen/outpost/internal/database"
+
+// settingsPreferencesView is the preferences page of the settings: the theme and the time zone. Each section shows the
+// message of its failed change.
 templ settingsPreferencesView(page settingsPreferencesPage) {
 	@settingsLayout("/settings/preferences") {
 		<h1>Preferences</h1>
 		if page.Saved != "" {
 			<p class="settings__saved" role="status">{ page.Saved }</p>
+		}
+		@settingsSection("Theme") {
+			<form class="account-form" method="post" action="/settings/preferences/theme">
+				if page.ThemeError != "" {
+					@accountFormError(page.ThemeError)
+				}
+				<fieldset class="account-form__choices">
+					<legend class="account-form__legend">Theme</legend>
+					for _, theme := range database.Themes {
+						<label class="account-form__choice">
+							<input
+								class="account-form__radio"
+								type="radio"
+								name="theme"
+								value={ string(theme) }
+								checked?={ page.Theme == theme }
+							/>
+							{ themeLabel(theme) }
+						</label>
+					}
+				</fieldset>
+				<button class="account-form__submit" type="submit">Save theme</button>
+			</form>
 		}
 		@settingsSection("Time zone") {
 			<form class="account-form" method="post" action="/settings/preferences/time-zone">

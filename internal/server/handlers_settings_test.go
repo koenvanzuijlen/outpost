@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/koenvanzuijlen/outpost/internal/auth"
+	"github.com/koenvanzuijlen/outpost/internal/database"
 )
 
 // TestHandleSettingsSaved checks which success message each settings page shows for the saved query value. A message
@@ -21,6 +22,7 @@ func TestHandleSettingsSaved(t *testing.T) {
 		{path: "/settings/account", query: "?saved=time-zone", unwantBody: `role="status"`},
 		{path: "/settings/account", query: "?saved=bogus", unwantBody: `role="status"`},
 		{path: "/settings/preferences", query: "?saved=time-zone", wantBody: "Time zone saved."},
+		{path: "/settings/preferences", query: "?saved=theme", wantBody: "Theme saved."},
 		{path: "/settings/preferences", query: "?saved=username", unwantBody: `role="status"`},
 	}
 	for _, tt := range tests {
@@ -136,6 +138,70 @@ func TestHandleSettingsPreferencesTimeZone(t *testing.T) {
 			} else {
 				assertBodyNotContains(t, w, `value="Europe/Amsterdam"`)
 			}
+		})
+	}
+}
+
+// TestHandleSetTheme checks the validation, the redirect and the stored value of a theme change.
+func TestHandleSetTheme(t *testing.T) {
+	tests := []struct {
+		name         string
+		body         string
+		wantStatus   int
+		wantLocation string
+		wantStored   database.Theme
+	}{
+		{"dark", "theme=dark", http.StatusSeeOther, "/settings/preferences?saved=theme", database.Theme("dark")},
+		{"light", "theme=light", http.StatusSeeOther, "/settings/preferences?saved=theme", database.Theme("light")},
+		{"system", "theme=system", http.StatusSeeOther, "/settings/preferences?saved=theme", database.Theme("system")},
+		{"unknown", "theme=auto", http.StatusBadRequest, "", database.Theme("system")},
+		{"empty", "theme=", http.StatusBadRequest, "", database.Theme("system")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+
+			w := postForm(t, server, "/settings/preferences/theme", tt.body)
+			if w.Code != tt.wantStatus {
+				t.Errorf("status = %d, want %d", w.Code, tt.wantStatus)
+			}
+			assertLocation(t, w, tt.wantLocation)
+
+			user, _, err := server.store.UserByUsername(t.Context(), "admin")
+			if err != nil {
+				t.Fatalf("UserByUsername() error = %v", err)
+			}
+			if user.Theme != tt.wantStored {
+				t.Errorf("UserByUsername() theme = %q, want %q", user.Theme, tt.wantStored)
+			}
+		})
+	}
+}
+
+// TestHandleSettingsPreferencesTheme checks that the theme form of the preferences page checks the stored theme of
+// the user.
+func TestHandleSettingsPreferencesTheme(t *testing.T) {
+	tests := []struct {
+		name        string
+		stored      database.Theme
+		wantChecked string
+		unwanted    string
+	}{
+		{"default", "", `value="system" checked`, `value="dark" checked`},
+		{"dark", database.ThemeDark, `value="dark" checked`, `value="system" checked`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := newTestServer(t)
+			if tt.stored != "" {
+				if err := server.store.SetUserTheme(t.Context(), testUserID, tt.stored); err != nil {
+					t.Fatalf("SetUserTheme() error = %v", err)
+				}
+			}
+
+			w := getPage(t, server, "/settings/preferences")
+			assertBodyContains(t, w, tt.wantChecked)
+			assertBodyNotContains(t, w, tt.unwanted)
 		})
 	}
 }

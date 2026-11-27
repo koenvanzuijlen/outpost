@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strconv"
@@ -109,4 +110,26 @@ func dateInputValue(t *time.Time) string {
 // playthrough handlers use the id as the URL fragment.
 func playthroughAnchor(id int64) string {
 	return "playthrough-" + strconv.FormatInt(id, 10)
+}
+
+// layoutTheme returns the theme of the signed-in user in ctx. It returns ThemeSystem if ctx has no user, or if the
+// theme of the user is not valid.
+func layoutTheme(ctx context.Context) database.Theme {
+	user, ok := userFromContext(ctx)
+	if !ok || !user.Theme.Valid() {
+		return database.ThemeSystem
+	}
+	return user.Theme
+}
+
+// themeLabel returns the text of theme in the theme setting.
+func themeLabel(theme database.Theme) string {
+	switch theme {
+	case database.ThemeLight:
+		return "Light"
+	case database.ThemeDark:
+		return "Dark"
+	default:
+		return "Follow system"
+	}
 }
