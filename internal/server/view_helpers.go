@@ -28,15 +28,6 @@ func ratingLabel(rating int64) string {
 	return ratingScore(rating) + " out of 5"
 }
 
-// outcomeLabel returns the badge text for a playthrough outcome: the label of the game status with the same value. The
-// stored value "playing" reads oddly as an outcome, so it is shown as "In progress".
-func outcomeLabel(outcome string) string {
-	if outcome == string(database.PlaythroughOutcomePlaying) {
-		return "In progress"
-	}
-	return gameStatusLabel(database.GameStatus(outcome))
-}
-
 // platformNames returns the names of the platforms, separated by commas, for example "PC, Nintendo Switch".
 func platformNames(platforms []dbgen.Platform) string {
 	names := make([]string, 0, len(platforms))
@@ -74,6 +65,15 @@ func copySummary(platformName string, dlcs []database.CopyDLC) string {
 		return platformName
 	}
 	return fmt.Sprintf("%s (%d DLC owned)", platformName, ownedCount)
+}
+
+// outcomeLabel returns the badge text for a playthrough outcome: the label of the game status with the same value. The
+// stored value "playing" reads oddly as an outcome, so it is shown as "In progress".
+func outcomeLabel(outcome string) string {
+	if outcome == string(database.PlaythroughOutcomePlaying) {
+		return "In progress"
+	}
+	return gameStatusLabel(database.GameStatus(outcome))
 }
 
 // playthroughPlatformOptions returns the platforms for the platform select of the playthrough in entry: the owned
