@@ -151,7 +151,7 @@
   .menu-bar__logo {
     display: inline-block;
     width: 3rem;
-    height: 4rem;
+    height: 3rem;
     background-color: currentColor;
     -webkit-mask-image: url("/static/images/outpost.svg");
     mask-image: url("/static/images/outpost.svg");
