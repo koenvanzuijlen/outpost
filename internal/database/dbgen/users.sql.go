@@ -40,7 +40,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) (int64, error) {
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT
-    id, username, password_hash, role, time_zone
+    id, username, password_hash, role, time_zone, theme
 FROM
     users
 WHERE
@@ -56,13 +56,14 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.PasswordHash,
 		&i.Role,
 		&i.TimeZone,
+		&i.Theme,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
 SELECT
-    id, username, password_hash, role, time_zone
+    id, username, password_hash, role, time_zone, theme
 FROM
     users
 WHERE
@@ -78,6 +79,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.PasswordHash,
 		&i.Role,
 		&i.TimeZone,
+		&i.Theme,
 	)
 	return i, err
 }
@@ -86,7 +88,7 @@ const insertUser = `-- name: InsertUser :one
 INSERT INTO users(username, password_hash, role)
     VALUES (?, ?, ?)
 RETURNING
-    id, username, password_hash, role, time_zone
+    id, username, password_hash, role, time_zone, theme
 `
 
 type InsertUserParams struct {
@@ -104,13 +106,14 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (User, e
 		&i.PasswordHash,
 		&i.Role,
 		&i.TimeZone,
+		&i.Theme,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
 SELECT
-    id, username, password_hash, role, time_zone
+    id, username, password_hash, role, time_zone, theme
 FROM
     users
 ORDER BY
@@ -132,6 +135,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.PasswordHash,
 			&i.Role,
 			&i.TimeZone,
+			&i.Theme,
 		); err != nil {
 			return nil, err
 		}
@@ -215,6 +219,28 @@ type UpdateUserRoleParams struct {
 
 func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, updateUserRole, arg.Role, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateUserTheme = `-- name: UpdateUserTheme :execrows
+UPDATE
+    users
+SET
+    theme = ?
+WHERE
+    id = ?
+`
+
+type UpdateUserThemeParams struct {
+	Theme string
+	ID    int64
+}
+
+func (q *Queries) UpdateUserTheme(ctx context.Context, arg UpdateUserThemeParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUserTheme, arg.Theme, arg.ID)
 	if err != nil {
 		return 0, err
 	}

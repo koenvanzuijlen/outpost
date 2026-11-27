@@ -1,8 +1,8 @@
 package server
 
-// settingsAccountView is the account page of the settings: the username, the password and the time zone. Each section shows
-// the message of its failed change.
-templ settingsAccountView(page settingsPage) {
+// settingsAccountView is the account page of the settings: the username and the password. Each section shows the
+// message of its failed change.
+templ settingsAccountView(page settingsAccountPage) {
 	@settingsLayout("/settings/account") {
 		<h1>Account</h1>
 		if page.Saved != "" {
@@ -41,42 +41,5 @@ templ settingsAccountView(page settingsPage) {
 				<button class="account-form__submit" type="submit">Change password</button>
 			</form>
 		}
-		@settingsSection("Time zone") {
-			<form class="account-form" method="post" action="/settings/account/time-zone">
-				if page.TimeZoneError != "" {
-					@accountFormError(page.TimeZoneError)
-				}
-				<label class="account-form__field">
-					Time zone
-					<input
-						class="account-form__input"
-						type="text"
-						name="time_zone"
-						list="time-zones"
-						autocomplete="off"
-						value={ page.TimeZone }
-						placeholder={ page.ServerTimeZone }
-					/>
-					<span class="account-form__hint">
-						if page.ServerTimeZone != "" {
-							Leave empty to use the server time zone ({ page.ServerTimeZone }).
-						} else {
-							Leave empty to use the server time zone.
-						}
-					</span>
-				</label>
-				<datalist id="time-zones" data-time-zones></datalist>
-				<button class="account-form__submit" type="submit">Save time zone</button>
-			</form>
-		}
 	}
-}
-
-// settingsSection is one section of the settings page with title as its heading. The children are the content of the
-// section.
-templ settingsSection(title string) {
-	<section class="settings__section">
-		<h2>{ title }</h2>
-		{ children... }
-	</section>
 }

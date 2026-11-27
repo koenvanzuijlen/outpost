@@ -1,6 +1,8 @@
 package server
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -63,7 +65,9 @@ func TestContentSecurityPolicy(t *testing.T) {
 		{"bad request", "/library?sort=bogus"},
 	}
 
-	want := "default-src 'self'; img-src 'self' https://images.igdb.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	want := "default-src 'self'; img-src 'self' https://images.igdb.com; " +
+		"style-src 'self' 'sha256-ZHFz94GDLcPbjwPI4KK3hJmG8eaKEnc9V+zZi62TC6k='; " +
+		"base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := newTestServer(t)
@@ -77,6 +81,26 @@ func TestContentSecurityPolicy(t *testing.T) {
 				t.Errorf("Content-Security-Policy = %q, want %q", got, want)
 			}
 		})
+	}
+}
+
+// TestContentSecurityPolicyAllowsFaviconStyle checks that the policy holds the hash of the <style> element of the
+// favicon, so the dark variant of the favicon loads.
+func TestContentSecurityPolicyAllowsFaviconStyle(t *testing.T) {
+	svg, err := staticFiles.ReadFile("static/images/favicon.svg")
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+	_, rest, found := strings.Cut(string(svg), "<style>")
+	style, _, closed := strings.Cut(rest, "</style>")
+	if !found || !closed {
+		t.Fatal("favicon.svg has no <style> element")
+	}
+
+	sum := sha256.Sum256([]byte(style))
+	want := "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
+	if !strings.Contains(contentSecurityPolicyValue, want) {
+		t.Errorf("contentSecurityPolicyValue = %q, want it to contain %q", contentSecurityPolicyValue, want)
 	}
 }
 

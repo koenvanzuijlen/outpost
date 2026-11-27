@@ -68,6 +68,14 @@ SET
 WHERE
     id = ?;
 
+-- name: UpdateUserTheme :execrows
+UPDATE
+    users
+SET
+    theme = ?
+WHERE
+    id = ?;
+
 -- name: UpdateUserForSetup :execrows
 UPDATE
     users

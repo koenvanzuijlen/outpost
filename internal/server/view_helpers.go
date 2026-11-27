@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strconv"
@@ -25,15 +26,6 @@ func ratingScore(rating int64) string {
 // ratingLabel converts a numeric rating into an accessible textual representation.
 func ratingLabel(rating int64) string {
 	return ratingScore(rating) + " out of 5"
-}
-
-// outcomeLabel returns the badge text for a playthrough outcome: the label of the game status with the same value. The
-// stored value "playing" reads oddly as an outcome, so it is shown as "In progress".
-func outcomeLabel(outcome string) string {
-	if outcome == string(database.PlaythroughOutcomePlaying) {
-		return "In progress"
-	}
-	return gameStatusLabel(database.GameStatus(outcome))
 }
 
 // platformNames returns the names of the platforms, separated by commas, for example "PC, Nintendo Switch".
@@ -75,6 +67,15 @@ func copySummary(platformName string, dlcs []database.CopyDLC) string {
 	return fmt.Sprintf("%s (%d DLC owned)", platformName, ownedCount)
 }
 
+// outcomeLabel returns the badge text for a playthrough outcome: the label of the game status with the same value. The
+// stored value "playing" reads oddly as an outcome, so it is shown as "In progress".
+func outcomeLabel(outcome string) string {
+	if outcome == string(database.PlaythroughOutcomePlaying) {
+		return "In progress"
+	}
+	return gameStatusLabel(database.GameStatus(outcome))
+}
+
 // playthroughPlatformOptions returns the platforms for the platform select of the playthrough in entry: the owned
 // platforms, followed by the platform of the playthrough if it is not owned. The platform of the playthrough must be
 // in the list, because the browser selects the first option when no option matches, and saving would then clear the
@@ -109,4 +110,26 @@ func dateInputValue(t *time.Time) string {
 // playthrough handlers use the id as the URL fragment.
 func playthroughAnchor(id int64) string {
 	return "playthrough-" + strconv.FormatInt(id, 10)
+}
+
+// layoutTheme returns the theme of the signed-in user in ctx. It returns ThemeSystem if ctx has no user, or if the
+// theme of the user is not valid.
+func layoutTheme(ctx context.Context) database.Theme {
+	user, ok := userFromContext(ctx)
+	if !ok || !user.Theme.Valid() {
+		return database.ThemeSystem
+	}
+	return user.Theme
+}
+
+// themeLabel returns the text of theme in the theme setting.
+func themeLabel(theme database.Theme) string {
+	switch theme {
+	case database.ThemeLight:
+		return "Light"
+	case database.ThemeDark:
+		return "Dark"
+	default:
+		return "Follow system"
+	}
 }

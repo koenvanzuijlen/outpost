@@ -1,10 +1,11 @@
 package server
 
-// layout is the HTML document around every page, with the menu bar and the footer. The search box in the menu bar is
-// prefilled with query. The page content goes in children. The footer shows the version from the context.
+// layout is the HTML document around every page, with the menu bar and the footer. The html element carries the
+// theme of the signed-in user in data-theme, which the CSS reads. The search box in the menu bar is prefilled with
+// query. The page content goes in children. The footer shows the version from the context.
 templ layout(query string) {
 	<!DOCTYPE html>
-	<html lang="en">
+	<html lang="en" data-theme={ string(layoutTheme(ctx)) }>
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>

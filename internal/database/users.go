@@ -46,13 +46,41 @@ func (r UserRole) Valid() bool {
 	return slices.Contains(UserRoles, r)
 }
 
+// ErrInvalidTheme is returned when a theme is not one of Themes.
+var ErrInvalidTheme = errors.New("invalid theme")
+
+// Theme is the color theme of the pages of a user, one of the Theme constants. Values are stored as text and
+// validated in Go.
+type Theme string
+
+// The themes. ThemeSystem follows the theme of the operating system or the browser.
+const (
+	ThemeSystem Theme = "system"
+	ThemeLight  Theme = "light"
+	ThemeDark   Theme = "dark"
+)
+
+// Themes are all themes, in the order of the theme setting.
+var Themes = []Theme{
+	ThemeSystem,
+	ThemeLight,
+	ThemeDark,
+}
+
+// Valid reports whether t is one of Themes.
+func (t Theme) Valid() bool {
+	return slices.Contains(Themes, t)
+}
+
 // User is a user account without its password hash.
 // TimeZone is an IANA time zone name, or nil for the time zone of the server.
+// Theme is the color theme of the pages of the user.
 type User struct {
 	ID       int64
 	Username string
 	Role     UserRole
 	TimeZone *string
+	Theme    Theme
 }
 
 // IsAdmin reports whether u has the admin role.
@@ -67,6 +95,7 @@ func userFrom(row dbgen.User) User {
 		Username: row.Username,
 		Role:     UserRole(row.Role),
 		TimeZone: row.TimeZone,
+		Theme:    Theme(row.Theme),
 	}
 }
 
@@ -260,6 +289,26 @@ func (s *Store) SetUserTimeZone(ctx context.Context, userID int64, timeZone *str
 	})
 	if err != nil {
 		return fmt.Errorf("update user time zone: %w", err)
+	}
+	if rows == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
+// SetUserTheme stores theme as the theme of the user. Returns ErrInvalidTheme if theme is not one of Themes, or
+// ErrUserNotFound if the user does not exist.
+func (s *Store) SetUserTheme(ctx context.Context, userID int64, theme Theme) error {
+	if !theme.Valid() {
+		return ErrInvalidTheme
+	}
+
+	rows, err := s.queries.UpdateUserTheme(ctx, dbgen.UpdateUserThemeParams{
+		ID:    userID,
+		Theme: string(theme),
+	})
+	if err != nil {
+		return fmt.Errorf("update user theme: %w", err)
 	}
 	if rows == 0 {
 		return ErrUserNotFound

@@ -3,6 +3,7 @@ package server
 // settingsNavItems are the links in the submenu of the settings pages, in the order of the submenu.
 var settingsNavItems = []tabNavItem{
 	{Label: "Account", Href: "/settings/account"},
+	{Label: "Preferences", Href: "/settings/preferences"},
 	{Label: "Export", Href: "/settings/export"},
 }
 
@@ -15,4 +16,13 @@ templ settingsLayout(current string) {
 			{ children... }
 		</div>
 	}
+}
+
+// settingsSection is one section of the settings page with title as its heading. The children are the content of the
+// section.
+templ settingsSection(title string) {
+	<section class="settings__section">
+		<h2>{ title }</h2>
+		{ children... }
+	</section>
 }

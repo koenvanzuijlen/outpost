@@ -201,6 +201,23 @@ func TestPlaythroughPlatformOptions(t *testing.T) {
 	}
 }
 
+// TestThemeLabel checks the text of each theme in the theme setting.
+func TestThemeLabel(t *testing.T) {
+	tests := []struct {
+		theme database.Theme
+		want  string
+	}{
+		{database.ThemeSystem, "Follow system"},
+		{database.ThemeLight, "Light"},
+		{database.ThemeDark, "Dark"},
+	}
+	for _, tt := range tests {
+		if got := themeLabel(tt.theme); got != tt.want {
+			t.Errorf("themeLabel(%q) = %q, want %q", tt.theme, got, tt.want)
+		}
+	}
+}
+
 // TestPlaythroughPlatformOptionsKeepsOwned checks that a call does not change the result of an earlier call when owned
 // has spare capacity. Without a copy, both results share the backing array of owned.
 func TestPlaythroughPlatformOptionsKeepsOwned(t *testing.T) {
