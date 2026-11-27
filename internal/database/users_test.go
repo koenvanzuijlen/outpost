@@ -34,11 +34,13 @@ func TestSetupNeeded(t *testing.T) {
 	}
 }
 
-// TestCompleteSetup checks that setup works once and that a second setup does not create a user.
+// TestCompleteSetup checks that setup works once and that a second setup does not create a user. The User that
+// CompleteSetup returns has no theme. The stored user has the default theme.
 func TestCompleteSetup(t *testing.T) {
 	store := newTestStore(t)
 	ctx := t.Context()
 	want := User{ID: 1, Username: "koen", Role: "admin"}
+	wantStored := User{ID: 1, Username: "koen", Role: "admin", Theme: "system"}
 
 	user, err := store.CompleteSetup(ctx, "koen", "hash")
 	if err != nil {
@@ -52,8 +54,8 @@ func TestCompleteSetup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UserByUsername() error = %v", err)
 	}
-	if found != want {
-		t.Errorf("UserByUsername() user = %v, want %v", found, want)
+	if found != wantStored {
+		t.Errorf("UserByUsername() user = %v, want %v", found, wantStored)
 	}
 	if hash != "hash" {
 		t.Errorf("UserByUsername() hash = %q, want %q", hash, "hash")
@@ -420,6 +422,100 @@ func TestSetUserTimeZoneUnknownUser(t *testing.T) {
 	err := store.SetUserTimeZone(t.Context(), 99, nil)
 	if !errors.Is(err, ErrUserNotFound) {
 		t.Errorf("SetUserTimeZone() error = %v, want %v", err, ErrUserNotFound)
+	}
+}
+
+// TestThemeValid checks which values are valid themes. The check is case-sensitive.
+func TestThemeValid(t *testing.T) {
+	tests := []struct {
+		theme Theme
+		want  bool
+	}{
+		{Theme("system"), true},
+		{Theme("light"), true},
+		{Theme("dark"), true},
+		{Theme(""), false},
+		{Theme("Dark"), false},
+		{Theme("auto"), false},
+	}
+	for _, tt := range tests {
+		if got := tt.theme.Valid(); got != tt.want {
+			t.Errorf("Theme(%q).Valid() = %v, want %v", tt.theme, got, tt.want)
+		}
+	}
+}
+
+// TestSetUserTheme checks the default theme of a user and that each theme is stored and read back.
+func TestSetUserTheme(t *testing.T) {
+	store := newTestStore(t)
+	ctx := t.Context()
+	if _, err := store.CompleteSetup(ctx, "koen", "hash"); err != nil {
+		t.Fatalf("CompleteSetup() error = %v", err)
+	}
+
+	steps := []struct {
+		name  string
+		set   bool
+		theme Theme
+		want  Theme
+	}{
+		{name: "default", set: false, want: Theme("system")},
+		{name: "dark", set: true, theme: ThemeDark, want: Theme("dark")},
+		{name: "light", set: true, theme: ThemeLight, want: Theme("light")},
+		{name: "system", set: true, theme: ThemeSystem, want: Theme("system")},
+	}
+
+	// The steps share one store and run in order: each step starts from the state of the step before it.
+	for _, step := range steps {
+		if step.set {
+			if err := store.SetUserTheme(ctx, 1, step.theme); err != nil {
+				t.Fatalf("%s: SetUserTheme() error = %v", step.name, err)
+			}
+		}
+
+		user, _, err := store.UserByUsername(ctx, "koen")
+		if err != nil {
+			t.Fatalf("%s: UserByUsername() error = %v", step.name, err)
+		}
+		if user.Theme != step.want {
+			t.Errorf("%s: UserByUsername() theme = %q, want %q", step.name, user.Theme, step.want)
+		}
+	}
+}
+
+// TestSetUserThemeErrors checks the errors of SetUserTheme, and that a failed change keeps the stored theme.
+func TestSetUserThemeErrors(t *testing.T) {
+	tests := []struct {
+		name       string
+		userID     int64
+		theme      Theme
+		wantErr    error
+		wantStored Theme
+	}{
+		{"invalid theme", 1, Theme("auto"), ErrInvalidTheme, Theme("system")},
+		{"unknown user", 99, ThemeDark, ErrUserNotFound, Theme("system")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newTestStore(t)
+			ctx := t.Context()
+			if _, err := store.CompleteSetup(ctx, "koen", "hash"); err != nil {
+				t.Fatalf("CompleteSetup() error = %v", err)
+			}
+
+			err := store.SetUserTheme(ctx, tt.userID, tt.theme)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("SetUserTheme() error = %v, want %v", err, tt.wantErr)
+			}
+
+			user, _, err := store.UserByUsername(ctx, "koen")
+			if err != nil {
+				t.Fatalf("UserByUsername() error = %v", err)
+			}
+			if user.Theme != tt.wantStored {
+				t.Errorf("UserByUsername() theme = %q, want %q", user.Theme, tt.wantStored)
+			}
+		})
 	}
 }
 
