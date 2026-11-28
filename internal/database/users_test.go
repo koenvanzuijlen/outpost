@@ -579,3 +579,33 @@ func TestDeleteUser(t *testing.T) {
 		t.Errorf("second DeleteUser() error = %v, want %v", err, ErrUserNotFound)
 	}
 }
+
+// TestDeleteUserDeletesGameLists checks that deleting a user deletes the lists of the user. SQLite gives the next user
+// the free ID, so without the cascade that user would get the old lists.
+func TestDeleteUserDeletesGameLists(t *testing.T) {
+	store := newTestStore(t)
+	ctx := t.Context()
+	if _, err := store.CompleteSetup(ctx, "koen", "hash"); err != nil {
+		t.Fatalf("CompleteSetup() error = %v", err)
+	}
+	anna, err := store.CreateUser(ctx, "anna", "hash", UserRoleUser)
+	if err != nil {
+		t.Fatalf("CreateUser(anna) error = %v", err)
+	}
+	list := createGameList(t, store, anna.ID, "RPGs")
+
+	if err := store.DeleteUser(ctx, anna.ID); err != nil {
+		t.Fatalf("DeleteUser() error = %v", err)
+	}
+	bert, err := store.CreateUser(ctx, "bert", "hash", UserRoleUser)
+	if err != nil {
+		t.Fatalf("CreateUser(bert) error = %v", err)
+	}
+	if bert.ID != anna.ID {
+		t.Fatalf("bert.ID = %d, want %d", bert.ID, anna.ID)
+	}
+
+	if _, err := store.GetGameList(ctx, bert.ID, list.ID); !errors.Is(err, ErrGameListNotFound) {
+		t.Errorf("GetGameList() error = %v, want %v", err, ErrGameListNotFound)
+	}
+}

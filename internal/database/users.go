@@ -316,8 +316,9 @@ func (s *Store) SetUserTheme(ctx context.Context, userID int64, theme Theme) err
 	return nil
 }
 
-// DeleteUser deletes the user with the library, the wishlist, the copies, the DLC ownership, the playthroughs and the
-// sessions of the user. The catalog games and platforms stay. Returns ErrUserNotFound if the user does not exist.
+// DeleteUser deletes the user with the library, the wishlist, the lists, the copies, the DLC ownership, the
+// playthroughs and the sessions of the user. The catalog games and platforms stay. Returns ErrUserNotFound if the
+// user does not exist.
 func (s *Store) DeleteUser(ctx context.Context, userID int64) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {

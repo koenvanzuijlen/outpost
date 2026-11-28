@@ -85,6 +85,17 @@ func onlyPlaythrough(t *testing.T, details GameOverview) dbgen.ListPlaythroughsF
 	return details.Playthroughs[0]
 }
 
+// createGameList creates a list with name and no description for the user. It fails the test if the list cannot be
+// created.
+func createGameList(t *testing.T, store *Store, userID int64, name string) dbgen.GameList {
+	t.Helper()
+	list, err := store.CreateGameList(t.Context(), userID, GameListDetails{Name: name})
+	if err != nil {
+		t.Fatalf("CreateGameList(%q) failed: %v", name, err)
+	}
+	return list
+}
+
 // derefOrNil returns the value p points to, or nil, so failure messages show a value instead of an address.
 func derefOrNil[T any](p *T) any {
 	if p == nil {

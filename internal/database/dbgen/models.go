@@ -21,6 +21,19 @@ type Game struct {
 	Summary       *string
 }
 
+type GameList struct {
+	ID          int64
+	UserID      int64
+	Name        string
+	Description *string
+}
+
+type GameListItem struct {
+	GameListID int64
+	GameID     int64
+	AddedAt    time.Time
+}
+
 type GamePlatform struct {
 	GameID     int64
 	PlatformID int64
