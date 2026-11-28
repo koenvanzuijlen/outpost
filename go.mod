@@ -14,7 +14,7 @@ require (
 	github.com/a-h/templ v0.3.1118
 	github.com/pressly/goose/v3 v3.30.1
 	golang.org/x/crypto v0.59.0
-	modernc.org/sqlite v1.62.0
+	modernc.org/sqlite v1.63.0
 )
 
 require (
