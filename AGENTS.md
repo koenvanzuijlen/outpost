@@ -24,7 +24,7 @@ Never run a server that keeps running. Never run `git stash` or other commands t
 - Write each commit message as a [Conventional Commit](https://www.conventionalcommits.org/).
 - Types that appear in the changelog: `feat`, `fix`, `perf`, `revert`, `deps`.
 - Types that do not appear in the changelog: `build`, `ci`, `docs`, `refactor`, `style`, `test`. Do not use `chore`.
-- Use a feature as the scope (`library`, `wishlist`, `game`, `search`, `home`, `dlc`, `account`, `admin`), not a Go package. Leave the scope out when no feature fits.
+- Use a feature as the scope (`library`, `wishlist`, `lists`, `game`, `search`, `home`, `dlc`, `account`, `admin`), not a Go package. Leave the scope out when no feature fits.
 - One pull request is one change that is useful on its own, with one or more commits. Split large features into several pull requests.
 - Do not use `BEGIN_COMMIT_OVERRIDE`.
 - Start each pull request on a new branch from an updated `main`.

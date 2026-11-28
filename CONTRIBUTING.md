@@ -44,7 +44,7 @@ CI runs the tests, lint, `templ generate`, `templ fmt`, `sqlc diff` and Prettier
 
 - Each pull request is one change that is useful on its own. A large feature is split into several pull requests.
 - Pull requests are squash merged. The pull request title becomes the commit message on `main` and the changelog line, so it must be a [Conventional Commit](https://www.conventionalcommits.org/): `feat(library): …`, `fix: …`.
-- Use a feature as the scope (`library`, `wishlist`, `game`, `search`, `home`, `dlc`, `account`, `admin`), not a Go package. Leave the scope out when no feature fits.
+- Use a feature as the scope (`library`, `wishlist`, `lists`, `game`, `search`, `home`, `dlc`, `account`, `admin`), not a Go package. Leave the scope out when no feature fits.
 - Use a specific type instead of `chore`: `build`, `ci`, `docs`, `refactor`, `style` or `test`. Only `feat`, `fix`, `perf`, `revert` and `deps` appear in the changelog.
 
 ## Migrations
@@ -67,6 +67,7 @@ These terms are used the same way in the UI, the code and the database.
 | **catalog**           | Game and platform data cached from IGDB. Never shown as such.                                             | `games`, `platforms`, `game_platforms`    |
 | **library**           | Games and DLC you log: status, rating, notes, playthroughs. Owned or not.                                 | `user_games` where `NOT wishlisted`       |
 | **wishlist**          | Games you want. No status, no copies.                                                                     | `user_games` where `wishlisted`           |
+| **list**              | A named group of games that you make, with an optional description. Any game, in the library or not.      | `game_lists`, `game_list_items`           |
 | **user game**         | Code only: an entry in either the library or the wishlist.                                                | `user_games`, `GetGame`, `RemoveUserGame` |
 | **owned on**          | The platforms you own a game on. A property of a library game, not a separate list.                       | derived from the tables below             |
 | **owned copy**        | One platform you own a game on.                                                                           | `owned_copies`                            |
@@ -81,6 +82,7 @@ These terms are used the same way in the UI, the code and the database.
 Rules that follow from it:
 
 - **Ownership and the library are separate.** Adding a game to the library asks where you own it, with "Not owned" as an option. DLC can be owned per copy without being in the library, and added to the library without being owned.
+- **Lists are separate from the library.** A list holds any game. Removing a game from the library or the wishlist keeps it in its lists.
 - **Remove vs delete.** _Remove_ takes something out of a set: a game from the library or wishlist, a copy from a game. _Delete_ destroys a record: a playthrough.
 - **Status vs outcome.** A library entry has a _status_ (backlog, playing, completed, shelved, retired, abandoned, uninterested). A playthrough has an _outcome_ (playing, completed, retired, abandoned); `playing` is shown as "in progress".
 - **Account and user.** The UI says "account". The code and the database say "user" (`users`, `user_id`, `currentUser`).
