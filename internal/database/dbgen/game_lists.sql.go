@@ -77,6 +77,60 @@ func (q *Queries) GetGameList(ctx context.Context, arg GetGameListParams) (GameL
 	return i, err
 }
 
+const listGameListsForGame = `-- name: ListGameListsForGame :many
+SELECT
+    gl.id, gl.user_id, gl.name, gl.description,
+    gli.game_id IS NOT NULL AS has_game
+FROM
+    game_lists gl
+    LEFT JOIN game_list_items gli ON gl.id = gli.game_list_id
+        AND gli.game_id = ?1
+WHERE
+    gl.user_id = ?2
+ORDER BY
+    gl.name,
+    gl.id
+`
+
+type ListGameListsForGameParams struct {
+	GameID int64
+	UserID int64
+}
+
+type ListGameListsForGameRow struct {
+	GameList GameList
+	HasGame  bool
+}
+
+func (q *Queries) ListGameListsForGame(ctx context.Context, arg ListGameListsForGameParams) ([]ListGameListsForGameRow, error) {
+	rows, err := q.db.QueryContext(ctx, listGameListsForGame, arg.GameID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListGameListsForGameRow
+	for rows.Next() {
+		var i ListGameListsForGameRow
+		if err := rows.Scan(
+			&i.GameList.ID,
+			&i.GameList.UserID,
+			&i.GameList.Name,
+			&i.GameList.Description,
+			&i.HasGame,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listGameListsForUser = `-- name: ListGameListsForUser :many
 SELECT
     id, user_id, name, description

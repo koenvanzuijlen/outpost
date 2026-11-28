@@ -375,7 +375,8 @@ func (s *Store) EditLibraryGames(ctx context.Context, userID int64, igdbIDs []in
 //   - A wishlisted game: only the wishlist entry.
 //
 // Catalog data (games, platforms, cached DLC lists) is never deleted, so adding the game again needs no IGDB call for
-// its DLC. Returns ErrUserGameNotFound if the game isn't in the given list; nothing is removed then.
+// its DLC. The game stays in the lists of the user. Returns ErrUserGameNotFound if the game isn't in the given list;
+// nothing is removed then.
 func (s *Store) RemoveUserGame(ctx context.Context, userID, igdbID int64, wishlisted bool) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
